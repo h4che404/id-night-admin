@@ -1,16 +1,20 @@
 import { FileClock } from "lucide-react";
 
 import { Badge, SectionHeader, Surface, Timeline, toneForLabel } from "@/components/ui-kit";
-import { auditTrail } from "@/lib/data";
+import { requireBackendSession } from "@/lib/auth-session";
+import { fetchBackendAudit } from "@/lib/idnight-backend";
 import { formatDate } from "@/lib/utils";
 
-export default function AuditPage() {
+export default async function AuditPage() {
+  const session = await requireBackendSession();
+  const auditTrail = await fetchBackendAudit(session.accessToken);
+
   return (
     <div className="space-y-6">
       <SectionHeader
         eyebrow="Auditoria"
         title="Bitacora y trazabilidad"
-        description="Quien hizo que, cuando, desde que dispositivo y sobre que entidad. Este modulo tiene prioridad estructural en la interfaz."
+        description="Quien hizo que, cuando y sobre que entidad. Este modulo tiene prioridad estructural en la interfaz."
       />
 
       <Surface className="p-6">
@@ -27,9 +31,9 @@ export default function AuditPage() {
           <Timeline
             items={auditTrail.map((event) => ({
               title: `${event.actor} · ${event.action}`,
-              description: `${event.entity} · ${event.device} · ${event.outcome}`,
-              meta: formatDate(event.at),
-              tone: toneForLabel(event.outcome),
+              description: `${event.entity ?? "Sin target"} · ${event.venueName ?? "Sin sede"}`,
+              meta: formatDate(event.occurredAt),
+              tone: toneForLabel(event.action),
             }))}
           />
         </div>

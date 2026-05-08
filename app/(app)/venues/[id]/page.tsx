@@ -1,27 +1,34 @@
 import { notFound } from "next/navigation";
 
-import { Badge, SectionHeader, Surface, Timeline, ValuePair, toneForLabel } from "@/components/ui-kit";
+import { Badge, SectionHeader, Surface, ValuePair, toneForLabel } from "@/components/ui-kit";
 import { requireBackendSession } from "@/lib/auth-session";
-import { fetchBackendVenues } from "@/lib/idnight-backend";
-import { auditTrail } from "@/lib/data";
-import { formatDate } from "@/lib/utils";
+import { fetchBackendAccessPoints, fetchBackendDevices, fetchBackendOperators, fetchBackendVenues } from "@/lib/idnight-backend";
 
 export default async function VenueDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const session = await requireBackendSession();
-  const venues = await fetchBackendVenues(session.accessToken);
+  const [venues, accessPoints, operators, devices] = await Promise.all([
+    fetchBackendVenues(session.accessToken),
+    fetchBackendAccessPoints(session.accessToken),
+    fetchBackendOperators(session.accessToken),
+    fetchBackendDevices(session.accessToken),
+  ]);
   const venue = venues.find((item) => item.id === id);
 
   if (!venue) {
     notFound();
   }
 
+  const venueAccessPoints = accessPoints.filter((item) => item.venueId === venue.id);
+  const venueOperators = operators.filter((item) => item.venueId === venue.id);
+  const venueDevices = devices.filter((item) => item.venueId === venue.id);
+
   return (
     <div className="space-y-6">
       <SectionHeader
         eyebrow="Detalle de local"
         title={venue.name}
-        description="El summary viene del backend Azure. Las capas operativas profundas siguen preparadas en UI hasta que exista un endpoint admin mas rico."
+        description="Resumen operativo de la sede usando la API administrativa real."
       />
 
       <div className="grid gap-6 xl:grid-cols-[1.35fr_1fr]">
@@ -29,51 +36,36 @@ export default async function VenueDetailPage({ params }: { params: Promise<{ id
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-slate-400">Fuente de datos</p>
-              <h2 className="mt-2 text-2xl font-semibold text-white">Azure `/venues`</h2>
+              <h2 className="mt-2 text-2xl font-semibold text-white">Azure `/admin/venues`</h2>
             </div>
-            <Badge label={venue.verifiedPartner ? "Partner verificado" : "Pendiente"} tone={toneForLabel(venue.verifiedPartner ? "Verificado" : "Pendiente")} />
+            <Badge label={venue.active ? "Activo" : "Inactivo"} tone={toneForLabel(venue.active ? "Activo" : "Inactivo")} />
           </div>
           <div className="mt-6 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
             <ValuePair label="Venue ID" value={venue.id} />
             <ValuePair label="Nombre" value={venue.name} />
-            <ValuePair label="Direccion" value={venue.address} />
-            <ValuePair label="Partner" value={venue.verifiedPartner ? "Si" : "No"} />
-            <ValuePair label="Cobertura admin" value="Parcial" />
-            <ValuePair label="Estado live" value="Conectado" />
+            <ValuePair label="Razón social" value={venue.legalName ?? "Sin razón social"} />
+            <ValuePair label="Puertas" value={String(venueAccessPoints.length)} />
+            <ValuePair label="Operadores" value={String(venueOperators.length)} />
+            <ValuePair label="Dispositivos" value={String(venueDevices.length)} />
           </div>
         </Surface>
 
         <Surface className="p-6">
-          <p className="text-sm font-medium text-slate-50">Que falta en API</p>
+          <p className="text-sm font-medium text-slate-50">Qué muestra hoy la API</p>
           <div className="mt-5 space-y-4">
             {[
-              "Horarios, categoria y eventos activos",
-              "Puertas por venue",
-              "Operadores asignados",
-              "Dispositivos por sede",
-              "Metricas operativas por local",
+              `${venueAccessPoints.length} puertas asociadas`,
+              `${venueOperators.length} operadores asociados`,
+              `${venueDevices.length} dispositivos vinculados`,
+              "Sin eventos activos modelados todavía",
             ].map((label) => (
-              <div key={label} className="rounded-2xl border border-amber-400/15 bg-amber-400/8 p-4">
-                <p className="text-sm font-medium text-amber-100">{label}</p>
+              <div key={label} className="rounded-2xl border border-sky-400/15 bg-sky-400/8 p-4">
+                <p className="text-sm font-medium text-sky-100">{label}</p>
               </div>
             ))}
           </div>
         </Surface>
       </div>
-
-      <Surface className="p-6">
-        <p className="text-sm font-medium text-slate-50">Bitacora de referencia UX</p>
-        <div className="mt-6">
-          <Timeline
-            items={auditTrail.map((event) => ({
-              title: event.action,
-              description: `${event.actor} · ${event.entity} · ${event.outcome}`,
-              meta: formatDate(event.at),
-              tone: toneForLabel(event.outcome),
-            }))}
-          />
-        </div>
-      </Surface>
     </div>
   );
 }

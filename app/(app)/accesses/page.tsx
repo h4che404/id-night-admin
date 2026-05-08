@@ -1,10 +1,14 @@
 import Link from "next/link";
 
 import { Badge, DataShell, DataTable, FilterChip, SectionHeader, toneForLabel } from "@/components/ui-kit";
-import { accesses } from "@/lib/data";
+import { requireBackendSession } from "@/lib/auth-session";
+import { fetchBackendAccessSessions } from "@/lib/idnight-backend";
 import { formatDate } from "@/lib/utils";
 
-export default function AccessesPage() {
+export default async function AccessesPage() {
+  const session = await requireBackendSession();
+  const accesses = await fetchBackendAccessSessions(session.accessToken);
+
   return (
     <div className="space-y-6">
       <SectionHeader
@@ -19,7 +23,6 @@ export default function AccessesPage() {
         filters={
           <>
             <FilterChip label="Hoy" active />
-            <FilterChip label="Sala Prisma" />
             <FilterChip label="Permitidos" />
             <FilterChip label="Revision manual" />
           </>
@@ -29,15 +32,15 @@ export default function AccessesPage() {
           columns={["Fecha y hora", "Persona", "Local", "Puerta", "Operador", "Resultado", "Motivo", "Detalle"]}
           rows={accesses.map((access) => (
             <tr key={access.id} className="hover:bg-slate-950/20">
-              <td className="px-5 py-4 text-sm text-slate-300">{formatDate(access.timestamp)}</td>
-              <td className="px-5 py-4 font-medium text-slate-100">{access.person}</td>
-              <td className="px-5 py-4 text-sm text-slate-300">{access.venue}</td>
-              <td className="px-5 py-4 text-sm text-slate-300">{access.gate}</td>
-              <td className="px-5 py-4 text-sm text-slate-300">{access.operator}</td>
+              <td className="px-5 py-4 text-sm text-slate-300">{formatDate(access.occurredAt)}</td>
+              <td className="px-5 py-4 font-medium text-slate-100">{access.personName}</td>
+              <td className="px-5 py-4 text-sm text-slate-300">{access.venueName}</td>
+              <td className="px-5 py-4 text-sm text-slate-300">{access.accessPointName}</td>
+              <td className="px-5 py-4 text-sm text-slate-300">{access.operatorName}</td>
               <td className="px-5 py-4">
                 <Badge label={access.result} tone={toneForLabel(access.result)} />
               </td>
-              <td className="px-5 py-4 text-sm text-slate-300">{access.reason}</td>
+              <td className="px-5 py-4 text-sm text-slate-300">{access.reason ?? "Sin motivo"}</td>
               <td className="px-5 py-4 text-sm text-sky-300">
                 <Link href={`/accesses/${access.id}`}>Ver acceso</Link>
               </td>

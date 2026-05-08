@@ -1,38 +1,44 @@
 import Link from "next/link";
 
 import { Badge, DataShell, DataTable, FilterChip, SectionHeader, Surface, toneForLabel } from "@/components/ui-kit";
-import { profiles } from "@/lib/data";
+import { requireBackendSession } from "@/lib/auth-session";
+import { fetchBackendProfiles } from "@/lib/idnight-backend";
 import { formatShortDate } from "@/lib/utils";
 
-export default function ProfilesPage() {
+export default async function ProfilesPage() {
+  const session = await requireBackendSession();
+  const profiles = await fetchBackendProfiles(session.accessToken);
+
   return (
     <div className="space-y-6">
       <SectionHeader
         eyebrow="Perfiles de identidad"
         title="Usuarios enrolados y estado de validacion"
-        description="Busqueda por nombre y estado, con foco en mayoria de edad verificada, alertas vigentes e historial operativo asociado."
+        description="Busqueda por nombre y estado, con foco en mayoria de edad verificada, alertas e historial operativo asociado."
       />
 
       <div className="grid gap-4 lg:grid-cols-5">
         <Surface className="p-5">
           <p className="text-sm text-slate-400">Verificados</p>
-          <p className="mt-3 text-3xl font-semibold text-white">824</p>
+          <p className="mt-3 text-3xl font-semibold text-white">{profiles.filter((profile) => profile.verification === "VERIFIED").length}</p>
         </Surface>
         <Surface className="p-5">
           <p className="text-sm text-slate-400">Pendientes</p>
-          <p className="mt-3 text-3xl font-semibold text-white">43</p>
+          <p className="mt-3 text-3xl font-semibold text-white">{profiles.filter((profile) => profile.verification === "PENDING").length}</p>
         </Surface>
         <Surface className="p-5">
-          <p className="text-sm text-slate-400">En revision</p>
-          <p className="mt-3 text-3xl font-semibold text-white">12</p>
+          <p className="text-sm text-slate-400">Rechazados</p>
+          <p className="mt-3 text-3xl font-semibold text-white">{profiles.filter((profile) => profile.verification === "REJECTED").length}</p>
         </Surface>
         <Surface className="p-5">
-          <p className="text-sm text-slate-400">Suspendidos</p>
-          <p className="mt-3 text-3xl font-semibold text-white">5</p>
+          <p className="text-sm text-slate-400">Con alertas</p>
+          <p className="mt-3 text-3xl font-semibold text-white">{profiles.filter((profile) => profile.alerts > 0).length}</p>
         </Surface>
         <Surface className="p-5">
           <p className="text-sm text-slate-400">Consentimiento al dia</p>
-          <p className="mt-3 text-3xl font-semibold text-white">99.2%</p>
+          <p className="mt-3 text-3xl font-semibold text-white">
+            {profiles.length === 0 ? "0%" : `${Math.round((profiles.filter((profile) => profile.consentAccepted).length / profiles.length) * 100)}%`}
+          </p>
         </Surface>
       </div>
 
@@ -44,7 +50,6 @@ export default function ProfilesPage() {
             <FilterChip label="Verificados" active />
             <FilterChip label="Pendientes" />
             <FilterChip label="Con alertas" />
-            <FilterChip label="Suspendidos" />
           </>
         }
       >

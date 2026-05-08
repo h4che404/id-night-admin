@@ -1,8 +1,12 @@
-import { Badge, DataShell, DataTable, FilterChip, SectionHeader, EmptyState, toneForLabel } from "@/components/ui-kit";
-import { alerts } from "@/lib/data";
+import { Badge, DataShell, DataTable, EmptyState, FilterChip, SectionHeader, toneForLabel } from "@/components/ui-kit";
+import { requireBackendSession } from "@/lib/auth-session";
+import { fetchBackendAlerts } from "@/lib/idnight-backend";
 import { formatShortDate } from "@/lib/utils";
 
-export default function AlertsPage() {
+export default async function AlertsPage() {
+  const session = await requireBackendSession();
+  const alerts = await fetchBackendAlerts(session.accessToken);
+
   return (
     <div className="space-y-6">
       <SectionHeader
@@ -30,11 +34,11 @@ export default function AlertsPage() {
               <td className="px-5 py-4">
                 <Badge label={alert.level} tone={toneForLabel(alert.level)} />
               </td>
-              <td className="px-5 py-4 font-medium text-slate-100">{alert.profile}</td>
-              <td className="px-5 py-4 text-sm text-slate-300">{alert.venue}</td>
+              <td className="px-5 py-4 font-medium text-slate-100">{alert.profileName}</td>
+              <td className="px-5 py-4 text-sm text-slate-300">{alert.venueName}</td>
               <td className="px-5 py-4 text-sm text-slate-300">{alert.reason}</td>
-              <td className="px-5 py-4 text-sm text-slate-300">{alert.sourceIncident}</td>
-              <td className="px-5 py-4 text-sm text-slate-300">{formatShortDate(alert.expiresAt)}</td>
+              <td className="px-5 py-4 text-sm text-slate-300">{alert.sourceIncidentId ?? "Sin incidente"}</td>
+              <td className="px-5 py-4 text-sm text-slate-300">{alert.expiresAt ? formatShortDate(alert.expiresAt) : "Sin vencimiento"}</td>
               <td className="px-5 py-4 text-sm text-slate-300">{alert.owner}</td>
             </tr>
           ))}
