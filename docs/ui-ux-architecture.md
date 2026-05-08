@@ -86,21 +86,24 @@
 ## Integracion Azure actual
 
 - Backend Azure validado: `https://backend-id-night.azurewebsites.net`
-- Conexion del frontend: proxy server-side con cookies `httpOnly` para evitar el bloqueo CORS del backend actual.
-- Endpoints conectados hoy:
-  - `POST /auth/login`
-  - `POST /auth/register`
-  - `GET /actuator/health`
-  - `GET /me/profile`
-  - `GET /venues`
-  - `GET /me/check-ins`
-  - `GET /me/incidents`
-  - `GET /me/biometric/status`
-- Modulos admin todavia sin endpoint HTTP publicado en Azure:
-  - operadores
-  - dispositivos
-  - alertas
-  - auditoria
-  - accesos globales
-  - incidentes globales
-  - directorio completo de perfiles
+- Web admin oficial: `https://id-night-admin.vercel.app`
+- Conexion del frontend: proxy server-side con cookies `httpOnly` para evitar el bloqueo CORS del backend.
+- Auth administrativa real:
+  - `POST /admin/auth/login`
+  - `POST /admin/auth/refresh`
+  - `GET /admin/me`
+- Modulos live conectados hoy:
+  - venues
+  - access-points
+  - operators
+  - devices
+  - profiles
+  - access-sessions
+  - incidents
+  - alerts
+  - audit
+  - system health
+- Hosting oficial:
+  - backend en Azure App Service
+  - panel admin en Vercel
+- El experimento de web admin en Azure fue descartado para evitar dos frontends operativos en paralelo.
