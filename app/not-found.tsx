@@ -9,14 +9,13 @@ export default function NotFound() {
         <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">ID-Night</p>
         <h1 className="mt-3 text-3xl font-semibold text-white">Vista no encontrada</h1>
         <p className="mt-3 text-sm leading-6 text-slate-400">
-          El enlace no existe dentro del prototipo actual. La navegacion principal sigue disponible desde el centro de
-          control.
+          La página que buscás no existe o fue eliminada.
         </p>
         <Link
-          href="/dashboard"
+          href="/venue"
           className="mt-6 inline-flex rounded-2xl border border-sky-300/30 bg-sky-400/12 px-4 py-3 text-sm font-medium text-sky-50"
         >
-          Volver al dashboard
+          Volver al panel
         </Link>
       </Surface>
     </div>

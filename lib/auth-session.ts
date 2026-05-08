@@ -3,7 +3,7 @@ import "server-only";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
-import { BackendApiError, fetchBackendProfile, type BackendAdminMe } from "@/lib/idnight-backend";
+import { BackendApiError, fetchAdminProfile, type BackendAdminMe } from "@/lib/idnight-backend";
 
 export const ACCESS_COOKIE = "idnight_admin_access_token";
 export const REFRESH_COOKIE = "idnight_admin_refresh_token";
@@ -44,7 +44,7 @@ export async function requireBackendProfile(): Promise<{
   const session = await requireBackendSession();
 
   try {
-    const profile = await fetchBackendProfile(session.accessToken);
+    const profile = await fetchAdminProfile(session.accessToken);
     return { session, profile };
   } catch (error) {
     if (error instanceof BackendApiError && (error.status === 401 || error.status === 403)) {

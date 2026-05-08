@@ -2,6 +2,6 @@
 
 import { ErrorPanel } from "@/components/ui-kit";
 
-export default function Error() {
+export default function AppError() {
   return <ErrorPanel />;
 }

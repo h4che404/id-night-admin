@@ -3,6 +3,8 @@ import "server-only";
 export const IDNIGHT_BACKEND_URL =
   process.env.IDNIGHT_BACKEND_URL ?? "https://backend-id-night.azurewebsites.net";
 
+/* ── Types ─────────────────────────────────────────────────────── */
+
 export type BackendAuthResponse = {
   accessToken: string;
   refreshToken: string;
@@ -17,161 +19,31 @@ export type BackendAdminMe = {
   fullName: string;
   role: string;
   active: boolean;
-  venueId: string;
-  venueName: string;
+  venueId: string | null;
+  venueName: string | null;
 };
 
 export type BackendVenue = {
   id: string;
   name: string;
-  legalName: string | null;
+  address: string | null;
+  city: string | null;
   active: boolean;
-  accessPoints: number;
-  operators: number;
-  devices: number;
 };
 
-export type BackendAccessPoint = {
+export type BackendSecurityUser = {
   id: string;
-  venueId: string;
-  venueName: string;
-  name: string;
-  active: boolean;
-  status: string;
-  operatorName: string;
-  deviceName: string;
-  lastActivity: string | null;
-  throughput: string | null;
-};
-
-export type BackendOperator = {
-  id: string;
-  name: string;
-  role: string;
-  venueId: string;
-  venueName: string;
-  status: string;
+  firstName: string;
+  lastName: string;
+  fullName: string;
   email: string;
-  documentId: string;
-  lastSession: string | null;
-  permissions: string[];
-};
-
-export type BackendDevice = {
-  id: string;
-  name: string;
+  role: string;
+  active: boolean;
   venueId: string;
-  venueName: string;
-  accessPointName: string;
-  status: string;
-  syncAt: string | null;
-  appVersion: string;
-  battery: string;
-  deviceKey: string;
-};
-
-export type BackendProfile = {
-  id: string;
-  name: string;
-  documentMasked: string;
-  verification: string;
-  enrolledAt: string;
-  consentAccepted: boolean;
-  alerts: number;
-  incidents: number;
-  recentVenue: string;
-  recentAccessResult: string;
-};
-
-export type BackendAccessSession = {
-  id: string;
-  occurredAt: string;
-  personName: string;
-  venueName: string;
-  accessPointName: string;
-  operatorName: string;
-  result: string;
-  reason: string | null;
-};
-
-export type BackendAccessSessionDetail = BackendAccessSession & {
-  alertSummary: string | null;
-};
-
-export type BackendIncident = {
-  id: string;
   createdAt: string;
-  severity: string;
-  status: string;
-  venueName: string;
-  operatorName: string;
-  profileName: string;
-  summary: string;
 };
 
-export type BackendIncidentDetail = BackendIncident & {
-  description: string;
-  followUp: string;
-  evidence: string[];
-};
-
-export type BackendAlert = {
-  id: string;
-  level: string;
-  profileName: string;
-  venueName: string;
-  reason: string;
-  sourceIncidentId: string | null;
-  expiresAt: string | null;
-  owner: string;
-};
-
-export type BackendAuditLog = {
-  id: string;
-  occurredAt: string;
-  actor: string;
-  action: string;
-  entity: string | null;
-  venueName: string | null;
-  metadata: string | null;
-};
-
-export type BackendBiometricStatus = {
-  profileId: string | null;
-  biometricStatus: string;
-  hasActiveTemplate: boolean;
-  provider: string | null;
-  modelName: string | null;
-  modelVersion: string | null;
-  dimension: number | null;
-  enrolledAt: string | null;
-  lastMatchedAt: string | null;
-};
-
-export type BackendHealth = {
-  status: string;
-  groups?: string[];
-};
-
-export type BackendSystemHealth = {
-  status: string;
-  venues: number;
-  operators: number;
-  devices: number;
-  profiles: number;
-  accessSessions: number;
-  incidents: number;
-  alerts: number;
-  auditLogs: number;
-};
-
-export type BackendProfileDetail = {
-  summary: BackendProfile;
-  accesses: BackendAccessSession[];
-  incidents: BackendIncident[];
-  alerts: BackendAlert[];
-  audit: BackendAuditLog[];
-};
+/* ── API error ─────────────────────────────────────────────────── */
 
 export class BackendApiError extends Error {
   status: number;
@@ -182,6 +54,8 @@ export class BackendApiError extends Error {
     this.status = status;
   }
 }
+
+/* ── Generic request helper ────────────────────────────────────── */
 
 type RequestOptions = {
   token?: string;
@@ -227,10 +101,24 @@ async function backendRequest<T>(path: string, options: RequestOptions = {}): Pr
   return (await response.json()) as T;
 }
 
+/* ── Auth endpoints ────────────────────────────────────────────── */
+
 export function backendLogin(email: string, password: string) {
   return backendRequest<BackendAuthResponse>("/admin/auth/login", {
     method: "POST",
     body: { email, password },
+  });
+}
+
+export function backendRegister(data: {
+  firstName: string;
+  lastName: string;
+  email: string;
+  password: string;
+}) {
+  return backendRequest<BackendAuthResponse>("/admin/auth/register", {
+    method: "POST",
+    body: data,
   });
 }
 
@@ -241,102 +129,84 @@ export function backendRefresh(refreshToken: string) {
   });
 }
 
-export function fetchBackendProfile(token: string) {
+/* ── Admin profile ─────────────────────────────────────────────── */
+
+export function fetchAdminProfile(token: string) {
   return backendRequest<BackendAdminMe>("/admin/me", { token });
 }
 
-export function fetchBackendVenues(token: string) {
-  return backendRequest<BackendVenue[]>("/admin/venues", { token });
+export function updateAdminProfile(
+  token: string,
+  data: { firstName: string; lastName: string },
+) {
+  return backendRequest<BackendAdminMe>("/admin/me", {
+    token,
+    method: "PUT",
+    body: data,
+  });
 }
 
-export function fetchBackendAccessPoints(token: string) {
-  return backendRequest<BackendAccessPoint[]>("/admin/access-points", { token });
+/* ── Venue ─────────────────────────────────────────────────────── */
+
+export function fetchMyVenue(token: string) {
+  return backendRequest<BackendVenue>("/admin/venues/mine", { token });
 }
 
-export function fetchBackendOperators(token: string) {
-  return backendRequest<BackendOperator[]>("/admin/operators", { token });
+export function createVenue(
+  token: string,
+  data: { name: string; address?: string; city?: string },
+) {
+  return backendRequest<BackendVenue>("/admin/venues", {
+    token,
+    method: "POST",
+    body: data,
+  });
 }
 
-export function fetchBackendOperatorDetail(token: string, id: string) {
-  return backendRequest<BackendOperator>(`/admin/operators/${id}`, { token });
+export function updateVenue(
+  token: string,
+  data: { name: string; address?: string; city?: string },
+) {
+  return backendRequest<BackendVenue>("/admin/venues/mine", {
+    token,
+    method: "PUT",
+    body: data,
+  });
 }
 
-export function fetchBackendDevices(token: string) {
-  return backendRequest<BackendDevice[]>("/admin/devices", { token });
+/* ── Security users ────────────────────────────────────────────── */
+
+export function fetchSecurityUsers(token: string) {
+  return backendRequest<BackendSecurityUser[]>("/admin/venues/mine/security-users", { token });
 }
 
-export function fetchBackendProfiles(token: string) {
-  return backendRequest<BackendProfile[]>("/admin/profiles", { token });
+export function createSecurityUser(
+  token: string,
+  data: { firstName: string; lastName: string; email: string; password: string },
+) {
+  return backendRequest<BackendSecurityUser>("/admin/venues/mine/security-users", {
+    token,
+    method: "POST",
+    body: data,
+  });
 }
 
-export function fetchBackendProfileDetail(token: string, id: string) {
-  return backendRequest<BackendProfileDetail>(`/admin/profiles/${id}`, { token });
+export function updateSecurityUser(
+  token: string,
+  id: string,
+  data: { firstName: string; lastName: string; email: string },
+) {
+  return backendRequest<BackendSecurityUser>(`/admin/venues/mine/security-users/${id}`, {
+    token,
+    method: "PUT",
+    body: data,
+  });
 }
 
-export function fetchBackendAccessSessions(token: string) {
-  return backendRequest<BackendAccessSession[]>("/admin/access-sessions", { token });
-}
-
-export function fetchBackendAccessSessionDetail(token: string, id: string) {
-  return backendRequest<BackendAccessSessionDetail>(`/admin/access-sessions/${id}`, { token });
-}
-
-export function fetchBackendIncidents(token: string) {
-  return backendRequest<BackendIncident[]>("/admin/incidents", { token });
-}
-
-export function fetchBackendIncidentDetail(token: string, id: string) {
-  return backendRequest<BackendIncidentDetail>(`/admin/incidents/${id}`, { token });
-}
-
-export function fetchBackendAlerts(token: string) {
-  return backendRequest<BackendAlert[]>("/admin/alerts", { token });
-}
-
-export function fetchBackendAudit(token: string) {
-  return backendRequest<BackendAuditLog[]>("/admin/audit", { token });
-}
-
-export function fetchBackendSystemHealth(token: string) {
-  return backendRequest<BackendSystemHealth>("/admin/system/health", { token });
-}
-
-export function fetchBackendBiometricStatus(token: string) {
-  return backendRequest<BackendBiometricStatus>("/me/biometric/status", { token });
-}
-
-export function fetchBackendHealth() {
-  return backendRequest<BackendHealth>("/actuator/health");
-}
-
-export async function fetchBackendSnapshot(token: string) {
-  const [health, me, venues, accessPoints, operators, devices, profiles, accesses, incidents, alerts, audit, system] = await Promise.allSettled([
-    fetchBackendHealth(),
-    fetchBackendProfile(token),
-    fetchBackendVenues(token),
-    fetchBackendAccessPoints(token),
-    fetchBackendOperators(token),
-    fetchBackendDevices(token),
-    fetchBackendProfiles(token),
-    fetchBackendAccessSessions(token),
-    fetchBackendIncidents(token),
-    fetchBackendAlerts(token),
-    fetchBackendAudit(token),
-    fetchBackendSystemHealth(token),
-  ]);
-
-  return {
-    health: health.status === "fulfilled" ? health.value : null,
-    me: me.status === "fulfilled" ? me.value : null,
-    venues: venues.status === "fulfilled" ? venues.value : [],
-    accessPoints: accessPoints.status === "fulfilled" ? accessPoints.value : [],
-    operators: operators.status === "fulfilled" ? operators.value : [],
-    devices: devices.status === "fulfilled" ? devices.value : [],
-    profiles: profiles.status === "fulfilled" ? profiles.value : [],
-    accesses: accesses.status === "fulfilled" ? accesses.value : [],
-    incidents: incidents.status === "fulfilled" ? incidents.value : [],
-    alerts: alerts.status === "fulfilled" ? alerts.value : [],
-    audit: audit.status === "fulfilled" ? audit.value : [],
-    system: system.status === "fulfilled" ? system.value : null,
-  };
+export function toggleSecurityUserStatus(token: string, id: string, active: boolean) {
+  return backendRequest<BackendSecurityUser>(`/admin/venues/mine/security-users/${id}/status`, {
+    token,
+    method: "PATCH",
+    body: { active },
+  });
 }

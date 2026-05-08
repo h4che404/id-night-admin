@@ -2,11 +2,11 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ShieldAlert } from "lucide-react";
 
-import { LoginForm } from "@/components/login-form";
+import { RegisterForm } from "@/components/register-form";
 import { Surface } from "@/components/ui-kit";
 import { readBackendSession } from "@/lib/auth-session";
 
-export default async function LoginPage() {
+export default async function RegisterPage() {
   const session = await readBackendSession();
 
   if (session) {
@@ -23,17 +23,17 @@ export default async function LoginPage() {
             </div>
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.24em] text-sky-300/80">ID-Night</p>
-              <h1 className="text-2xl font-semibold text-slate-50">Iniciar sesión</h1>
+              <h1 className="text-2xl font-semibold text-slate-50">Crear cuenta</h1>
             </div>
           </div>
 
-          <LoginForm />
+          <RegisterForm />
 
           <div className="mt-8 text-center">
             <p className="text-sm text-slate-500">
-              ¿No tenés cuenta?{" "}
-              <Link href="/register" className="text-sky-300 hover:text-sky-200 transition">
-                Crear cuenta
+              ¿Ya tenés cuenta?{" "}
+              <Link href="/login" className="text-sky-300 hover:text-sky-200 transition">
+                Iniciar sesión
               </Link>
             </p>
           </div>

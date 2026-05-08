@@ -8,7 +8,6 @@ export default async function AuthenticatedLayout({ children }: { children: Reac
     <AppShell
       userName={profile.fullName}
       userEmail={profile.email}
-      verificationStatus={profile.role}
     >
       {children}
     </AppShell>
