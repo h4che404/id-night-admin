@@ -7,23 +7,15 @@ export async function POST(request: Request) {
   try {
     const session = await requireBackendSession();
 
-    const { firstName, lastName, email, password } = (await request.json()) as {
+    const { firstName, lastName, email } = (await request.json()) as {
       firstName?: string;
       lastName?: string;
       email?: string;
-      password?: string;
     };
 
-    if (!firstName || !lastName || !email || !password) {
+    if (!firstName || !lastName || !email) {
       return NextResponse.json(
         { message: "Todos los campos son obligatorios." },
-        { status: 400 },
-      );
-    }
-
-    if (password.length < 8) {
-      return NextResponse.json(
-        { message: "La contraseña debe tener al menos 8 caracteres." },
         { status: 400 },
       );
     }
@@ -32,7 +24,6 @@ export async function POST(request: Request) {
       firstName,
       lastName,
       email,
-      password,
     });
 
     return NextResponse.json({ ok: true, user });

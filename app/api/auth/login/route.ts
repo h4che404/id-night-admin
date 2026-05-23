@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
-import { backendLogin } from "@/lib/idnight-backend";
 import { ACCESS_COOKIE, REFRESH_COOKIE } from "@/lib/auth-session";
+import { loginWithSupabase } from "@/lib/supabase-auth";
 
 export async function POST(request: Request) {
   try {
@@ -14,18 +14,18 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: "Email y contrasena son obligatorios." }, { status: 400 });
     }
 
-    const session = await backendLogin(email, password);
+    const session = await loginWithSupabase(email, password);
     const response = NextResponse.json({ ok: true });
 
     const secure = process.env.NODE_ENV === "production";
-    response.cookies.set(ACCESS_COOKIE, session.accessToken, {
+    response.cookies.set(ACCESS_COOKIE, session.access_token, {
       httpOnly: true,
       sameSite: "lax",
       secure,
       path: "/",
-      maxAge: session.expiresInSeconds,
+      maxAge: session.expires_in,
     });
-    response.cookies.set(REFRESH_COOKIE, session.refreshToken, {
+    response.cookies.set(REFRESH_COOKIE, session.refresh_token, {
       httpOnly: true,
       sameSite: "lax",
       secure,

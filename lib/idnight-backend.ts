@@ -5,12 +5,6 @@ export const IDNIGHT_BACKEND_URL =
 
 /* ── Types ─────────────────────────────────────────────────────── */
 
-export type BackendAuthResponse = {
-  accessToken: string;
-  refreshToken: string;
-  expiresInSeconds: number;
-};
-
 export type BackendAdminMe = {
   id: string;
   email: string;
@@ -80,9 +74,20 @@ async function backendRequest<T>(path: string, options: RequestOptions = {}): Pr
     let message = `Backend request failed (${response.status})`;
 
     try {
-      const payload = (await response.json()) as { message?: string };
+      const payload = (await response.json()) as {
+        message?: string;
+        detail?: string;
+        error?: string;
+        title?: string;
+      };
       if (payload?.message) {
         message = payload.message;
+      } else if (payload?.detail) {
+        message = payload.detail;
+      } else if (payload?.error) {
+        message = payload.error;
+      } else if (payload?.title) {
+        message = payload.title;
       }
     } catch {
       const text = await response.text();
@@ -99,34 +104,6 @@ async function backendRequest<T>(path: string, options: RequestOptions = {}): Pr
   }
 
   return (await response.json()) as T;
-}
-
-/* ── Auth endpoints ────────────────────────────────────────────── */
-
-export function backendLogin(email: string, password: string) {
-  return backendRequest<BackendAuthResponse>("/admin/auth/login", {
-    method: "POST",
-    body: { email, password },
-  });
-}
-
-export function backendRegister(data: {
-  firstName: string;
-  lastName: string;
-  email: string;
-  password: string;
-}) {
-  return backendRequest<BackendAuthResponse>("/admin/auth/register", {
-    method: "POST",
-    body: data,
-  });
-}
-
-export function backendRefresh(refreshToken: string) {
-  return backendRequest<BackendAuthResponse>("/admin/auth/refresh", {
-    method: "POST",
-    body: { refreshToken },
-  });
 }
 
 /* ── Admin profile ─────────────────────────────────────────────── */
@@ -182,7 +159,7 @@ export function fetchSecurityUsers(token: string) {
 
 export function createSecurityUser(
   token: string,
-  data: { firstName: string; lastName: string; email: string; password: string },
+  data: { firstName: string; lastName: string; email: string },
 ) {
   return backendRequest<BackendSecurityUser>("/admin/venues/mine/security-users", {
     token,

@@ -1,6 +1,6 @@
 "use client";
 
-import { LockKeyhole, Mail, User, UserPlus } from "lucide-react";
+import { Mail, User, UserPlus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
@@ -12,7 +12,6 @@ export function SecurityUserForm() {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
@@ -27,7 +26,7 @@ export function SecurityUserForm() {
       const response = await fetch("/api/venue/security-users", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ firstName, lastName, email, password }),
+        body: JSON.stringify({ firstName, lastName, email }),
       });
 
       const payload = (await response.json()) as { ok?: boolean; message?: string };
@@ -40,7 +39,6 @@ export function SecurityUserForm() {
       setFirstName("");
       setLastName("");
       setEmail("");
-      setPassword("");
       router.refresh();
 
       setTimeout(() => {
@@ -105,14 +103,9 @@ export function SecurityUserForm() {
           type="email"
         />
 
-        <FormField
-          label="Contraseña temporal"
-          icon={<LockKeyhole className="h-4 w-4" />}
-          value={password}
-          onChange={setPassword}
-          placeholder="Mínimo 8 caracteres"
-          type="password"
-        />
+        <p className="text-sm leading-6 text-slate-400">
+          Vamos a crear la cuenta en Supabase y enviar una invitación para que esta persona termine su acceso sin compartir contraseñas locales.
+        </p>
 
         {error ? (
           <div className="rounded-2xl border border-rose-400/20 bg-rose-400/10 px-4 py-3 text-sm text-rose-100">
@@ -122,7 +115,7 @@ export function SecurityUserForm() {
 
         {success ? (
           <div className="rounded-2xl border border-emerald-400/20 bg-emerald-400/10 px-4 py-3 text-sm text-emerald-100">
-            Usuario creado correctamente.
+            Invitación enviada correctamente.
           </div>
         ) : null}
 

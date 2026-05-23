@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ShieldAlert } from "lucide-react";
 
@@ -28,15 +27,6 @@ export default async function LoginPage() {
           </div>
 
           <LoginForm />
-
-          <div className="mt-8 text-center">
-            <p className="text-sm text-slate-500">
-              ¿No tenés cuenta?{" "}
-              <Link href="/register" className="text-sky-300 hover:text-sky-200 transition">
-                Crear cuenta
-              </Link>
-            </p>
-          </div>
         </Surface>
       </div>
     </div>

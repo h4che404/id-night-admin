@@ -11,9 +11,9 @@
 
 ID-Night Admin es el panel web donde un **administrador de boliche** (venue) puede:
 
-1. Registrarse y crear su cuenta
-2. Crear su boliche
-3. Gestionar usuarios de seguridad que operarán la app mobile
+1. Iniciar sesión con una cuenta Supabase ya provisionada
+2. Crear o completar el setup de su boliche
+3. Gestionar usuarios de seguridad que operarán la app mobile mediante invitaciones
 
 **Lo que NO hace la web en esta fase MVP:**
 - No gestiona accesos ni escaneos (eso es la app mobile)
@@ -93,29 +93,17 @@ Venue   (1) ──── (0..N) SecurityUser  Un boliche tiene muchos usuarios d
 
 ## 3. Flujos funcionales
 
-### Flujo 1 — Registro
-
-```
-Usuario accede a /register
-→ Completa: nombre, apellido, email, contraseña
-→ POST /admin/auth/register
-→ Backend crea Account + devuelve JWT
-→ Frontend guarda JWT en cookie httpOnly
-→ Redirige a /venue
-```
-
-### Flujo 2 — Login
+### Flujo 1 — Login
 
 ```
 Usuario accede a /login
 → Ingresa email + contraseña
-→ POST /admin/auth/login (ya existe)
-→ Backend valida credenciales + devuelve JWT
-→ Frontend guarda JWT en cookie httpOnly
+→ Supabase valida credenciales
+→ Frontend guarda la sesión Supabase en cookies seguras
 → Redirige a /venue
 ```
 
-### Flujo 3 — Crear boliche
+### Flujo 2 — Crear boliche
 
 ```
 Admin accede a /venue sin tener venue
@@ -127,7 +115,7 @@ Admin accede a /venue sin tener venue
 → Frontend recarga y muestra el panel del boliche
 ```
 
-### Flujo 4 — Gestionar seguridad
+### Flujo 3 — Gestionar seguridad
 
 ```
 Admin accede a /venue/security
@@ -135,8 +123,9 @@ Admin accede a /venue/security
 → Admin puede:
    → Crear usuario: POST /admin/venues/mine/security-users
    → Activar/desactivar: PATCH /admin/venues/mine/security-users/:id/status
-→ Cada usuario queda vinculado al venue del admin
-→ El usuario de seguridad podrá loguearse en la app mobile
+→ Backend crea/invita la cuenta en Supabase
+→ Cada usuario queda vinculado al venue del admin con rol local
+→ El usuario de seguridad podrá activar su cuenta y loguearse en la app mobile
 ```
 
 ---
@@ -147,9 +136,9 @@ Admin accede a /venue/security
 
 | Método | Ruta | Estado | Descripción |
 |--------|------|--------|-------------|
-| `POST` | `/admin/auth/login` | ✅ Existe | Login admin con email+password |
-| `POST` | `/admin/auth/refresh` | ✅ Existe | Refresh del JWT |
-| `POST` | `/admin/auth/register` | 🔴 Nuevo | Registro de cuenta admin |
+| `POST` | `https://<project-ref>.supabase.co/auth/v1/token?grant_type=password` | ✅ Externo | Login admin con Supabase |
+| `POST` | `https://<project-ref>.supabase.co/auth/v1/token?grant_type=refresh_token` | ✅ Externo | Refresh de sesión Supabase |
+| `POST` | `https://<project-ref>.supabase.co/auth/v1/invite` | ✅ Backend/Admin API | Invitación controlada para cuentas privilegiadas |
 
 ### Perfil admin
 
@@ -179,32 +168,13 @@ Admin accede a /venue/security
 
 ## 5. Contratos de request/response
 
-### `POST /admin/auth/register`
+### Autenticación administrativa
 
-**Request:**
-```json
-{
-  "firstName": "Juan",
-  "lastName": "García",
-  "email": "juan@email.com",
-  "password": "mipassword123"
-}
-```
+Las cuentas `ADMIN`, `SUPERVISOR` y `GUARD` ya no se registran desde el panel. Son **invite-only**.
 
-**Response (200):**
-```json
-{
-  "accessToken": "eyJhbG...",
-  "refreshToken": "dGhpcyBp...",
-  "expiresInSeconds": 3600
-}
-```
-
-**Validaciones:**
-- `firstName`: obligatorio, no vacío
-- `lastName`: obligatorio, no vacío
-- `email`: obligatorio, formato válido, único
-- `password`: obligatorio, mínimo 8 caracteres
+- El login ocurre contra Supabase.
+- El backend usa el bearer token Supabase para resolver el `Operator` local y su rol.
+- El alta de nuevos operadores se hace desde un admin activo y dispara una invitación controlada.
 
 ---
 

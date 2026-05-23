@@ -1,8 +1,6 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ShieldAlert } from "lucide-react";
 
-import { RegisterForm } from "@/components/register-form";
 import { Surface } from "@/components/ui-kit";
 import { readBackendSession } from "@/lib/auth-session";
 
@@ -23,19 +21,12 @@ export default async function RegisterPage() {
             </div>
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.24em] text-sky-300/80">ID-Night</p>
-              <h1 className="text-2xl font-semibold text-slate-50">Crear cuenta</h1>
+              <h1 className="text-2xl font-semibold text-slate-50">Acceso por invitación</h1>
             </div>
           </div>
 
-          <RegisterForm />
-
-          <div className="mt-8 text-center">
-            <p className="text-sm text-slate-500">
-              ¿Ya tenés cuenta?{" "}
-              <Link href="/login" className="text-sky-300 hover:text-sky-200 transition">
-                Iniciar sesión
-              </Link>
-            </p>
+          <div className="mt-8 rounded-2xl border border-slate-800 bg-slate-950/40 px-5 py-4 text-sm text-slate-300">
+            Las cuentas del panel se provisionan desde la operación interna. Si todavía no recibiste tu invitación, pedile a un administrador activo que te agregue como operador o supervisor.
           </div>
         </Surface>
       </div>

@@ -5,8 +5,8 @@ import { redirect } from "next/navigation";
 
 import { BackendApiError, fetchAdminProfile, type BackendAdminMe } from "@/lib/idnight-backend";
 
-export const ACCESS_COOKIE = "idnight_admin_access_token";
-export const REFRESH_COOKIE = "idnight_admin_refresh_token";
+export const ACCESS_COOKIE = "idnight_admin_supabase_access_token";
+export const REFRESH_COOKIE = "idnight_admin_supabase_refresh_token";
 
 export type BackendSession = {
   accessToken: string;
