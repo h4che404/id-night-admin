@@ -1,7 +1,7 @@
 import "server-only";
 
 export const IDNIGHT_BACKEND_URL =
-  process.env.IDNIGHT_BACKEND_URL ?? "https://backend-id-night.azurewebsites.net";
+  process.env.IDNIGHT_BACKEND_URL ?? "https://api.idnight.app";
 
 /* ── Types ─────────────────────────────────────────────────────── */
 
