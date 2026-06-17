@@ -41,6 +41,19 @@ export type BackendSecurityUser = {
   createdAt: string;
 };
 
+export type BackendVenueDevice = {
+  id: string;
+  name: string;
+  deviceKey: string;
+  status: string;
+  statusLabel: string;
+  active: boolean;
+  accessPointName: string | null;
+  lastActivityAt: string | null;
+  createdAt: string | null;
+  updatedAt: string | null;
+};
+
 export type BackendVenueEntryRules = {
   active: boolean;
   minimumAge: number;
@@ -253,6 +266,43 @@ export function updateSecurityUser(
 
 export function toggleSecurityUserStatus(token: string, id: string, active: boolean) {
   return backendRequest<BackendSecurityUser>(`/admin/venues/mine/security-users/${id}/status`, {
+    token,
+    method: "PATCH",
+    body: { active },
+  });
+}
+
+/* ── Authorized venue devices ──────────────────────────────────── */
+
+export function fetchVenueDevices(token: string) {
+  return backendRequest<BackendVenueDevice[]>("/admin/venues/mine/devices", { token });
+}
+
+export function createVenueDevice(
+  token: string,
+  data: { name: string; deviceKey: string },
+) {
+  return backendRequest<BackendVenueDevice>("/admin/venues/mine/devices", {
+    token,
+    method: "POST",
+    body: data,
+  });
+}
+
+export function updateVenueDevice(
+  token: string,
+  id: string,
+  data: { name: string; deviceKey: string },
+) {
+  return backendRequest<BackendVenueDevice>(`/admin/venues/mine/devices/${id}`, {
+    token,
+    method: "PUT",
+    body: data,
+  });
+}
+
+export function toggleVenueDeviceStatus(token: string, id: string, active: boolean) {
+  return backendRequest<BackendVenueDevice>(`/admin/venues/mine/devices/${id}/status`, {
     token,
     method: "PATCH",
     body: { active },

@@ -1,4 +1,4 @@
-import { type ReactNode } from "react";
+import { type ReactNode, useId } from "react";
 import { CheckCircle2, XCircle } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -194,6 +194,7 @@ export function ErrorPanel({ message }: { message?: string }) {
 export function FormField({
   label,
   icon,
+  id,
   value,
   onChange,
   placeholder,
@@ -203,6 +204,7 @@ export function FormField({
 }: {
   label: string;
   icon?: ReactNode;
+  id?: string;
   value: string;
   onChange: (value: string) => void;
   placeholder?: string;
@@ -210,12 +212,18 @@ export function FormField({
   required?: boolean;
   disabled?: boolean;
 }) {
+  const generatedId = useId();
+  const inputId = id ?? generatedId;
+
   return (
     <div>
-      <label className="mb-2 block text-sm font-medium text-slate-300">{label}</label>
+      <label htmlFor={inputId} className="mb-2 block text-sm font-medium text-slate-300">
+        {label}
+      </label>
       <div className="flex items-center gap-3 rounded-2xl border border-slate-800 bg-slate-950/40 px-4 py-3.5 text-slate-400 focus-within:border-sky-400/30 transition">
         {icon}
         <input
+          id={inputId}
           className="w-full border-0 bg-transparent p-0 text-slate-100 outline-none placeholder:text-slate-600"
           value={value}
           onChange={(event) => onChange(event.target.value)}

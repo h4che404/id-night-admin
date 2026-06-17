@@ -1,4 +1,4 @@
-import { Building2, Shield, Settings2 } from "lucide-react";
+import { Building2, Shield, Settings2, Smartphone } from "lucide-react";
 import Link from "next/link";
 
 import { requireBackendSession } from "@/lib/auth-session";
@@ -88,6 +88,21 @@ export default async function VenuePage() {
             </div>
           </div>
         </Link>
+
+        <Link
+          href="/venue/devices"
+          className="group panel rounded-2xl p-5 transition hover:border-sky-400/30"
+        >
+          <div className="flex items-center gap-3">
+            <div className="rounded-xl border border-slate-800 bg-slate-950/30 p-2.5 transition group-hover:border-sky-400/20 group-hover:bg-sky-400/10">
+              <Smartphone className="h-4 w-4 text-slate-400 transition group-hover:text-sky-200" />
+            </div>
+            <div>
+              <p className="text-sm font-medium text-slate-100">Dispositivos autorizados</p>
+              <p className="mt-1 text-xs text-slate-500">Controlar tablets y teléfonos habilitados</p>
+            </div>
+          </div>
+        </Link>
       </div>
 
       <Surface className="p-6">
@@ -96,7 +111,7 @@ export default async function VenuePage() {
           <div>
             <p className="text-sm font-medium text-slate-100">Próximos pasos</p>
             <p className="mt-1 text-sm leading-6 text-slate-400">
-              Creá usuarios de seguridad para que tu equipo pueda operar el escaneo y control de accesos desde la app mobile de ID-Night.
+              Definí usuarios de seguridad y autorizá los dispositivos que tu equipo va a usar en la puerta para operar el control de accesos desde la app mobile de ID-Night.
             </p>
           </div>
         </div>
