@@ -84,7 +84,7 @@ export default async function VenuePage() {
             </div>
             <div>
               <p className="text-sm font-medium text-slate-100">Configuración</p>
-              <p className="mt-1 text-xs text-slate-500">Editar datos del boliche</p>
+              <p className="mt-1 text-xs text-slate-500">Editar datos y requisitos de ingreso</p>
             </div>
           </div>
         </Link>

@@ -37,6 +37,16 @@ export type BackendSecurityUser = {
   createdAt: string;
 };
 
+export type BackendVenueEntryRules = {
+  active: boolean;
+  minimumAge: number;
+  requireVerifiedAdult: boolean;
+  requireIdentityVerification: boolean;
+  requireValidTicket: boolean;
+  allowManualReview: boolean;
+  notes: string | null;
+};
+
 /* ── API error ─────────────────────────────────────────────────── */
 
 export class BackendApiError extends Error {
@@ -145,6 +155,29 @@ export function updateVenue(
   data: { name: string; address?: string; city?: string },
 ) {
   return backendRequest<BackendVenue>("/admin/venues/mine", {
+    token,
+    method: "PUT",
+    body: data,
+  });
+}
+
+export function fetchMyVenueEntryRules(token: string) {
+  return backendRequest<BackendVenueEntryRules>("/admin/venues/mine/entry-rules", { token });
+}
+
+export function updateMyVenueEntryRules(
+  token: string,
+  data: {
+    active: boolean;
+    minimumAge: number;
+    requireVerifiedAdult: boolean;
+    requireIdentityVerification: boolean;
+    requireValidTicket: boolean;
+    allowManualReview: boolean;
+    notes?: string;
+  },
+) {
+  return backendRequest<BackendVenueEntryRules>("/admin/venues/mine/entry-rules", {
     token,
     method: "PUT",
     body: data,
