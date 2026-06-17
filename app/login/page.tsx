@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { ShieldAlert } from "lucide-react";
+import Link from "next/link";
 
 import { LoginForm } from "@/components/login-form";
 import { resolveAdminSessionAccess } from "@/lib/admin-session-access";
@@ -36,6 +37,12 @@ export default async function LoginPage() {
           </div>
 
           <LoginForm />
+
+          <div className="mt-6 text-center text-sm text-slate-400">
+            <Link href="/register" className="hover:text-sky-300 transition-colors">
+              ¿No tenés cuenta? Registrate
+            </Link>
+          </div>
         </Surface>
       </div>
     </div>

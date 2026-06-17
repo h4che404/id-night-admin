@@ -75,6 +75,20 @@ export async function loginWithSupabase(email: string, password: string) {
   });
 }
 
+export async function registerWithSupabase(
+  email: string,
+  password: string,
+  data: { firstName: string; lastName: string }
+) {
+  return supabaseRequest<SupabaseSessionResponse>("/signup", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${SUPABASE_PUBLISHABLE_KEY}`,
+    },
+    body: JSON.stringify({ email, password, data }),
+  });
+}
+
 export async function refreshSupabaseSession(refreshToken: string) {
   return supabaseRequest<SupabaseSessionResponse>("/token?grant_type=refresh_token", {
     method: "POST",
