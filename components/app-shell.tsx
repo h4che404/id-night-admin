@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { type ReactNode, useState } from "react";
 
+import { membershipRoleLabel } from "@/components/organization-membership-details";
 import { cn } from "@/lib/utils";
 import { navigationItems } from "@/lib/data";
 
@@ -30,13 +31,18 @@ export function AppShell({
   children,
   userName,
   userEmail,
+  organizationName,
+  membershipRole,
 }: {
   children: ReactNode;
   userName: string;
   userEmail: string;
+  organizationName?: string | null;
+  membershipRole?: string | null;
 }) {
   const pathname = usePathname();
   const [loggingOut, setLoggingOut] = useState(false);
+  const translatedMembershipRole = membershipRoleLabel(membershipRole ?? null);
 
   async function handleLogout() {
     setLoggingOut(true);
@@ -94,6 +100,14 @@ export function AppShell({
             <div className="rounded-2xl border border-slate-800/80 bg-slate-950/30 p-4">
               <p className="text-sm font-medium text-slate-100">{userName}</p>
               <p className="mt-1 text-xs text-slate-500">{userEmail}</p>
+              {organizationName ? (
+                <p className="mt-3 text-xs font-medium uppercase tracking-[0.14em] text-sky-300/70">
+                  {organizationName}
+                </p>
+              ) : null}
+              {translatedMembershipRole ? (
+                <p className="mt-1 text-xs text-slate-400">Rol org: {translatedMembershipRole}</p>
+              ) : null}
             </div>
             <button
               onClick={handleLogout}
@@ -114,7 +128,12 @@ export function AppShell({
               <div className="glow-ring flex h-9 w-9 items-center justify-center rounded-xl bg-sky-400/10">
                 <ShieldAlert className="h-4 w-4 text-sky-200" />
               </div>
-              <p className="text-sm font-semibold text-slate-50">ID-Night Admin</p>
+              <div>
+                <p className="text-sm font-semibold text-slate-50">ID-Night Admin</p>
+                {organizationName ? (
+                  <p className="text-[11px] uppercase tracking-[0.14em] text-sky-300/70">{organizationName}</p>
+                ) : null}
+              </div>
             </div>
             <button
               onClick={handleLogout}

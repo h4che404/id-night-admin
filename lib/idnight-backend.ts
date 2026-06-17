@@ -15,6 +15,10 @@ export type BackendAdminMe = {
   active: boolean;
   venueId: string | null;
   venueName: string | null;
+  organizationId: string | null;
+  organizationName: string | null;
+  membershipRole: string | null;
+  membershipActive: boolean | null;
 };
 
 export type BackendVenue = {
@@ -45,6 +49,25 @@ export type BackendVenueEntryRules = {
   requireValidTicket: boolean;
   allowManualReview: boolean;
   notes: string | null;
+};
+
+export type BackendOwnerOnboardingStatus = {
+  needsOnboarding: boolean;
+  hasOperatorProfile: boolean;
+  operatorRole: string | null;
+  organizationId: string | null;
+  organizationName: string | null;
+  venueId: string | null;
+  venueName: string | null;
+};
+
+export type BackendOwnerOnboardingResponse = {
+  organizationId: string;
+  organizationName: string;
+  venueId: string;
+  venueName: string;
+  operatorId: string;
+  operatorRole: string;
 };
 
 /* ── API error ─────────────────────────────────────────────────── */
@@ -120,6 +143,21 @@ async function backendRequest<T>(path: string, options: RequestOptions = {}): Pr
 
 export function fetchAdminProfile(token: string) {
   return backendRequest<BackendAdminMe>("/admin/me", { token });
+}
+
+export function fetchOwnerOnboardingStatus(token: string) {
+  return backendRequest<BackendOwnerOnboardingStatus>("/organizations/onboarding", { token });
+}
+
+export function createOwnerOnboarding(
+  token: string,
+  data: { organizationName: string; venueName: string; city?: string; address?: string },
+) {
+  return backendRequest<BackendOwnerOnboardingResponse>("/organizations/onboarding", {
+    token,
+    method: "POST",
+    body: data,
+  });
 }
 
 export function updateAdminProfile(

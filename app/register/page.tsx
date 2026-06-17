@@ -2,13 +2,22 @@ import { redirect } from "next/navigation";
 import { ShieldAlert } from "lucide-react";
 
 import { Surface } from "@/components/ui-kit";
+import { resolveAdminSessionAccess } from "@/lib/admin-session-access";
 import { readBackendSession } from "@/lib/auth-session";
 
 export default async function RegisterPage() {
   const session = await readBackendSession();
 
   if (session) {
-    redirect("/venue");
+    const access = await resolveAdminSessionAccess(session.accessToken);
+
+    if (access.kind === "admin") {
+      redirect("/venue");
+    }
+
+    if (access.kind === "onboarding") {
+      redirect("/owner-onboarding");
+    }
   }
 
   return (

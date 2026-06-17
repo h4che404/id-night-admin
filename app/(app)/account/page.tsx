@@ -1,5 +1,6 @@
 import { requireBackendSession } from "@/lib/auth-session";
 import { fetchAdminProfile } from "@/lib/idnight-backend";
+import { OrganizationMembershipDetails } from "@/components/organization-membership-details";
 import { Badge, SectionHeader, Surface } from "@/components/ui-kit";
 
 export default async function AccountPage() {
@@ -57,6 +58,11 @@ export default async function AccountPage() {
                 <p className="mt-1 text-sm text-slate-200">{profile.venueName}</p>
               </div>
             ) : null}
+            <OrganizationMembershipDetails
+              organizationName={profile.organizationName}
+              membershipRole={profile.membershipRole}
+              membershipActive={profile.membershipActive}
+            />
           </div>
         </Surface>
       </div>

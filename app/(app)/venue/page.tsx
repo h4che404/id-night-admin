@@ -29,7 +29,7 @@ export default async function VenuePage() {
         <SectionHeader
           eyebrow={`Hola, ${profile.firstName}`}
           title="Creá tu boliche"
-          description="Para empezar a operar, necesitás crear tu boliche. Una vez creado, vas a poder agregar usuarios de seguridad que usarán la app mobile."
+          description="Para empezar a operar, necesitás crear tu boliche. Una vez creado, vas a poder agregar usuarios de seguridad que usarán la app mobile. Si hacés el onboarding de propietario desde cero, ese flujo ya crea automáticamente tu primera organización y boliche."
         />
 
         <Surface className="p-6 md:p-8">
