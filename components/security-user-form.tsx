@@ -29,7 +29,12 @@ export function SecurityUserForm() {
         body: JSON.stringify({ firstName, lastName, email }),
       });
 
-      const payload = (await response.json()) as { ok?: boolean; message?: string };
+      let payload: { ok?: boolean; message?: string } = {};
+      try {
+        payload = (await response.json()) as { ok?: boolean; message?: string };
+      } catch {
+        // Ignored, payload remains {}
+      }
 
       if (!response.ok) {
         throw new Error(payload.message ?? "No se pudo crear el usuario.");

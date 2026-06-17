@@ -17,13 +17,21 @@ export function SecurityUserActions({
     setLoading(true);
 
     try {
-      await fetch("/api/venue/security-users", {
+      const response = await fetch(`/api/venue/security-users/${userId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: userId, active: !active }),
+        body: JSON.stringify({ active: !active }),
       });
 
-      router.refresh();
+      try {
+        await response.json();
+      } catch {
+        // Handle parsing errors gracefully
+      }
+
+      if (response.ok) {
+        router.refresh();
+      }
     } catch {
       // silently fail — the UI will remain unchanged
     } finally {

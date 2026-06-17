@@ -1,13 +1,23 @@
 import { NextResponse } from "next/server";
 
 import { requireBackendSession } from "@/lib/auth-session";
-import { createSecurityUser, toggleSecurityUserStatus } from "@/lib/idnight-backend";
+import { createSecurityUser } from "@/lib/idnight-backend";
 
 export async function POST(request: Request) {
   try {
     const session = await requireBackendSession();
 
-    const { firstName, lastName, email } = (await request.json()) as {
+    let body;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json(
+        { message: "Formato de solicitud inválido." },
+        { status: 400 },
+      );
+    }
+
+    const { firstName, lastName, email } = body as {
       firstName?: string;
       lastName?: string;
       email?: string;
@@ -29,31 +39,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true, user });
   } catch (error) {
     const message = error instanceof Error ? error.message : "No se pudo crear el usuario.";
-    return NextResponse.json({ message }, { status: 400 });
-  }
-}
-
-export async function PATCH(request: Request) {
-  try {
-    const session = await requireBackendSession();
-
-    const { id, active } = (await request.json()) as {
-      id?: string;
-      active?: boolean;
-    };
-
-    if (!id || active === undefined) {
-      return NextResponse.json(
-        { message: "Faltan campos obligatorios." },
-        { status: 400 },
-      );
-    }
-
-    await toggleSecurityUserStatus(session.accessToken, id, active);
-
-    return NextResponse.json({ ok: true });
-  } catch (error) {
-    const message = error instanceof Error ? error.message : "No se pudo actualizar el usuario.";
     return NextResponse.json({ message }, { status: 400 });
   }
 }
