@@ -22,6 +22,7 @@ import { navigationItems } from "@/lib/data";
 const iconMap: Record<string, ReactNode> = {
   venue: <Building2 className="h-4 w-4" />,
   security: <Shield className="h-4 w-4" />,
+  incidents: <ShieldAlert className="h-4 w-4" />,
   devices: <Smartphone className="h-4 w-4" />,
   settings: <Settings2 className="h-4 w-4" />,
   account: <User className="h-4 w-4" />,

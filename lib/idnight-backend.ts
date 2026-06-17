@@ -54,6 +54,23 @@ export type BackendVenueDevice = {
   updatedAt: string | null;
 };
 
+export type BackendIncidentSummary = {
+  id: string;
+  createdAt: string;
+  severity: string;
+  status: string;
+  venueName: string;
+  operatorName: string | null;
+  profileName: string | null;
+  summary: string | null;
+};
+
+export type BackendIncidentDetail = BackendIncidentSummary & {
+  description: string | null;
+  followUp: string | null;
+  evidence: string[] | null;
+};
+
 export type BackendVenueEntryRules = {
   active: boolean;
   minimumAge: number;
@@ -306,5 +323,27 @@ export function toggleVenueDeviceStatus(token: string, id: string, active: boole
     token,
     method: "PATCH",
     body: { active },
+  });
+}
+
+/* ── Incidents ─────────────────────────────────────────────────── */
+
+export function fetchVenueIncidents(token: string) {
+  return backendRequest<BackendIncidentSummary[]>("/admin/venues/mine/incidents", { token });
+}
+
+export function fetchVenueIncident(token: string, id: string) {
+  return backendRequest<BackendIncidentDetail>(`/admin/venues/mine/incidents/${id}`, { token });
+}
+
+export function updateVenueIncident(
+  token: string,
+  id: string,
+  data: { severity?: string; status?: string; description?: string | null },
+) {
+  return backendRequest<BackendIncidentDetail>(`/admin/venues/mine/incidents/${id}`, {
+    token,
+    method: "PATCH",
+    body: data,
   });
 }
