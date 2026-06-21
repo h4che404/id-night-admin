@@ -13,7 +13,7 @@ export default async function LoginPage() {
   if (session) {
     const access = await resolveAdminSessionAccess(session.accessToken);
 
-    if (access.kind === "admin") {
+    if (access.kind === "admin" || access.kind === "degraded") {
       redirect("/venue");
     }
 

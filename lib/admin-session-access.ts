@@ -16,6 +16,9 @@ export type ResolvedAdminSessionAccess =
       onboarding: BackendOwnerOnboardingStatus;
     }
   | {
+      kind: "degraded";
+    }
+  | {
       kind: "login";
     };
 
@@ -26,6 +29,9 @@ export async function resolveAdminSessionAccess(
     const profile = await fetchAdminProfile(accessToken);
     return { kind: "admin", profile };
   } catch (error) {
+    if (error instanceof BackendApiError && error.status >= 500) {
+      return { kind: "degraded" };
+    }
     if (!(error instanceof BackendApiError) || !isAccessResolutionStatus(error.status)) {
       throw error;
     }
@@ -40,8 +46,9 @@ export async function resolveAdminSessionAccess(
 
     return { kind: "login" };
   } catch (error) {
-    if (error instanceof BackendApiError && isAccessResolutionStatus(error.status)) {
-      return { kind: "login" };
+    if (error instanceof BackendApiError) {
+      if (error.status >= 500) return { kind: "degraded" };
+      if (isAccessResolutionStatus(error.status)) return { kind: "login" };
     }
 
     throw error;

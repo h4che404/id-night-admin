@@ -30,15 +30,29 @@ function requireConfig() {
 async function supabaseRequest<T>(path: string, options: RequestInit = {}) {
   requireConfig();
 
-  const response = await fetch(`${SUPABASE_URL}/auth/v1${path}`, {
-    ...options,
-    headers: {
-      "Content-Type": "application/json",
-      apikey: SUPABASE_PUBLISHABLE_KEY,
-      ...(options.headers ?? {}),
-    },
-    cache: "no-store",
-  });
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 8000);
+
+  let response: Response;
+  try {
+    response = await fetch(`${SUPABASE_URL}/auth/v1${path}`, {
+      ...options,
+      headers: {
+        "Content-Type": "application/json",
+        apikey: SUPABASE_PUBLISHABLE_KEY,
+        ...(options.headers ?? {}),
+      },
+      cache: "no-store",
+      signal: controller.signal,
+    });
+  } catch (err) {
+    if (err instanceof Error && err.name === "AbortError") {
+      throw new Error("El servicio de autenticación no está disponible. Intentá de nuevo.");
+    }
+    throw err;
+  } finally {
+    clearTimeout(timeoutId);
+  }
 
   if (!response.ok) {
     let message = `Supabase request failed (${response.status})`;
