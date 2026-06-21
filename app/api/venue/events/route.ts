@@ -56,7 +56,7 @@ export async function POST(request: Request) {
 
     let maxCapacity: number | undefined;
     if (maxCapacityValue !== undefined && maxCapacityValue !== null && maxCapacityValue !== "") {
-      if (!Number.isInteger(maxCapacityValue) || maxCapacityValue <= 0) {
+      if (typeof maxCapacityValue !== "number" || !Number.isInteger(maxCapacityValue) || maxCapacityValue <= 0) {
         return errorResponse("Max capacity must be a positive whole number.");
       }
 
