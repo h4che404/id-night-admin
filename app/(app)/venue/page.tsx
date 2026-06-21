@@ -39,7 +39,25 @@ function MetricCard({
 
 export default async function VenuePage() {
   const session = await requireBackendSession();
-  const profile = await fetchAdminProfile(session.accessToken);
+
+  let profile = null;
+  try {
+    profile = await fetchAdminProfile(session.accessToken);
+  } catch {
+    // backend unreachable or user not authorized — show degraded state
+  }
+
+  if (!profile) {
+    return (
+      <div className="space-y-6">
+        <SectionHeader
+          eyebrow="Mi boliche"
+          title="Panel de administración"
+          description="El servicio no está disponible en este momento. Intentá de nuevo en unos segundos."
+        />
+      </div>
+    );
+  }
 
   let venue = null;
   try {

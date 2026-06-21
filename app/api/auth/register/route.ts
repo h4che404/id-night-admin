@@ -42,11 +42,23 @@ export async function POST(request: Request) {
     return response;
   } catch (error) {
     let message = error instanceof Error ? error.message : "No pudimos crear la cuenta.";
-    
+
     if (message.includes("<!DOCTYPE") || message.length > 200) {
       message = "No se pudo registrar la cuenta. Por favor intentá más tarde.";
     }
-    
+
+    const alreadyRegistered =
+      message.toLowerCase().includes("already registered") ||
+      message.toLowerCase().includes("already been registered") ||
+      message.toLowerCase().includes("email already");
+
+    if (alreadyRegistered) {
+      return NextResponse.json(
+        { message: "Este email ya tiene una cuenta. Iniciá sesión.", alreadyRegistered: true },
+        { status: 409 },
+      );
+    }
+
     return NextResponse.json({ message }, { status: 400 });
   }
 }

@@ -34,7 +34,17 @@ export function LoginForm() {
       router.push("/venue");
       router.refresh();
     } catch (submitError) {
-      setError(submitError instanceof Error ? submitError.message : "No se pudo iniciar sesión.");
+      const msg = submitError instanceof Error ? submitError.message : "";
+      if (
+        msg.toLowerCase().includes("invalid") ||
+        msg.toLowerCase().includes("credentials") ||
+        msg.toLowerCase().includes("email") ||
+        msg.toLowerCase().includes("password")
+      ) {
+        setError("Email o contraseña incorrectos.");
+      } else {
+        setError(msg || "No se pudo iniciar sesión.");
+      }
     } finally {
       setLoading(false);
     }
