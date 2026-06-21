@@ -30,8 +30,9 @@ function severityTone(severity: string) {
 }
 
 function statusTone(status: string) {
-  if (status === "OPEN") return "warning" as const;
-  if (status === "CLOSED") return "success" as const;
+  if (status === "REPORTED") return "warning" as const;
+  if (status === "REVIEWED") return "info" as const;
+  if (status === "DISMISSED") return "neutral" as const;
   return "neutral" as const;
 }
 
@@ -96,7 +97,7 @@ export default async function VenueIncidentsPage() {
           subtitle={`${incidents.length} incidente${incidents.length === 1 ? "" : "s"} reportado${incidents.length === 1 ? "" : "s"}`}
         >
           <DataTable
-            columns={["Fecha", "Severidad", "Estado", "Operador / Persona", "Resumen", "Acciones"]}
+            columns={["Fecha", "Severidad", "Estado", "Categoría", "Operador / Persona", "Resumen", "Acciones"]}
             rows={incidents.map((incident) => (
               <tr key={incident.id} className="align-top hover:bg-slate-950/20">
                 <td className="px-5 py-4 text-sm text-slate-300">{formatDateTime(incident.createdAt)}</td>
@@ -106,6 +107,7 @@ export default async function VenueIncidentsPage() {
                 <td className="px-5 py-4">
                   <Badge label={incident.status} tone={statusTone(incident.status)} />
                 </td>
+                <td className="px-5 py-4 text-sm text-slate-300">{incident.category ?? "—"}</td>
                 <td className="px-5 py-4">
                   <p className="font-medium text-slate-100">{incident.operatorName || "N/A"}</p>
                   <p className="mt-1 text-xs text-slate-500">

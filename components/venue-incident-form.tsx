@@ -6,13 +6,21 @@ import { useRouter } from "next/navigation";
 import { PrimaryButton, Surface } from "@/components/ui-kit";
 import { BackendIncidentDetail } from "@/lib/idnight-backend";
 
-export function VenueIncidentForm({ incident }: { incident: BackendIncidentDetail }) {
+export function VenueIncidentForm({
+  incident,
+  events = [],
+}: {
+  incident: BackendIncidentDetail;
+  events?: Array<{ id: string; name: string }>;
+}) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const [severity, setSeverity] = useState(incident.severity);
   const [status, setStatus] = useState(incident.status);
+  const [category, setCategory] = useState(incident.category ?? "");
+  const [eventId, setEventId] = useState(incident.eventId ?? "");
   const [description, setDescription] = useState(incident.description || "");
 
   async function handleSubmit(event: React.FormEvent) {
@@ -24,7 +32,13 @@ export function VenueIncidentForm({ incident }: { incident: BackendIncidentDetai
       const response = await fetch(`/api/venue/incidents/${incident.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ severity, status, description }),
+        body: JSON.stringify({
+          severity,
+          status,
+          category: category || null,
+          eventId: eventId || null,
+          description,
+        }),
       });
 
       if (!response.ok) {
@@ -52,7 +66,7 @@ export function VenueIncidentForm({ incident }: { incident: BackendIncidentDetai
     <Surface className="p-6">
       <form onSubmit={handleSubmit} className="space-y-6">
         <h3 className="text-lg font-medium text-white">Actualizar incidente</h3>
-        
+
         {error ? (
           <div className="rounded-xl border border-rose-500/20 bg-rose-500/10 p-4 text-sm text-rose-200">
             {error}
@@ -68,8 +82,9 @@ export function VenueIncidentForm({ incident }: { incident: BackendIncidentDetai
               onChange={(e) => setStatus(e.target.value)}
               className="w-full rounded-2xl border border-slate-800 bg-slate-950/40 px-4 py-3.5 text-slate-100 outline-none focus:border-sky-400/30 transition"
             >
-              <option value="OPEN">Abierto</option>
-              <option value="CLOSED">Cerrado</option>
+              <option value="REPORTED">Reportado</option>
+              <option value="REVIEWED">Revisado</option>
+              <option value="DISMISSED">Desestimado</option>
             </select>
           </div>
 
@@ -88,6 +103,44 @@ export function VenueIncidentForm({ incident }: { incident: BackendIncidentDetai
             </select>
           </div>
         </div>
+
+        <div>
+          <label htmlFor="category" className="mb-2 block text-sm font-medium text-slate-300">Categoría</label>
+          <select
+            id="category"
+            value={category}
+            onChange={(e) => setCategory(e.target.value)}
+            className="w-full rounded-2xl border border-slate-800 bg-slate-950/40 px-4 py-3.5 text-slate-100 outline-none focus:border-sky-400/30 transition"
+          >
+            <option value="">Sin categoría</option>
+            <option value="ACCESS_ISSUE">Problema de acceso</option>
+            <option value="DOCUMENT_OR_IDENTITY_ISSUE">Problema de documento / identidad</option>
+            <option value="TICKET_OR_GUEST_LIST_ISSUE">Problema con ticket / lista</option>
+            <option value="AGGRESSIVE_BEHAVIOR">Comportamiento agresivo</option>
+            <option value="PHYSICAL_ALTERCATION">Altercado físico</option>
+            <option value="HARASSMENT_OR_THREAT">Acoso o amenaza</option>
+            <option value="INTOXICATION_OR_MEDICAL_ASSISTANCE">Intoxicación / asistencia médica</option>
+            <option value="PROPERTY_DAMAGE_OR_REPORTED_THEFT">Daño a la propiedad / robo denunciado</option>
+            <option value="OTHER">Otro</option>
+          </select>
+        </div>
+
+        {events.length > 0 && (
+          <div>
+            <label htmlFor="eventId" className="mb-2 block text-sm font-medium text-slate-300">Vincular a evento</label>
+            <select
+              id="eventId"
+              value={eventId}
+              onChange={(e) => setEventId(e.target.value)}
+              className="w-full rounded-2xl border border-slate-800 bg-slate-950/40 px-4 py-3.5 text-slate-100 outline-none focus:border-sky-400/30 transition"
+            >
+              <option value="">Sin evento</option>
+              {events.map((ev) => (
+                <option key={ev.id} value={ev.id}>{ev.name}</option>
+              ))}
+            </select>
+          </div>
+        )}
 
         <div>
           <label htmlFor="description" className="mb-2 block text-sm font-medium text-slate-300">Descripción detallada</label>

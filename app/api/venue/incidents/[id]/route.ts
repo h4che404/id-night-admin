@@ -41,12 +41,21 @@ export async function PATCH(request: Request, props: { params: Promise<{ id: str
       return NextResponse.json({ message: "El cuerpo debe ser JSON valido." }, { status: 400 });
     }
 
-    const data: { severity?: string; status?: string; description?: string | null } = {};
+    const data: {
+      severity?: string;
+      status?: string;
+      category?: string | null;
+      eventId?: string | null;
+      description?: string | null;
+    } = {};
     if (typeof payload.severity === "string") data.severity = payload.severity;
     if (typeof payload.status === "string") data.status = payload.status;
-    if (typeof payload.description === "string" || payload.description === null) {
+    if (typeof payload.category === "string" || payload.category === null)
+      data.category = payload.category;
+    if (typeof payload.eventId === "string" || payload.eventId === null)
+      data.eventId = payload.eventId;
+    if (typeof payload.description === "string" || payload.description === null)
       data.description = payload.description;
-    }
 
     const result = await updateVenueIncident(session.accessToken, params.id, data);
     return NextResponse.json(result);

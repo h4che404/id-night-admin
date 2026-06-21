@@ -17,7 +17,10 @@ const mockIncident = {
   id: "inc_123",
   createdAt: "2024-05-01T12:00:00Z",
   severity: "LOW",
-  status: "OPEN",
+  status: "REPORTED",
+  category: null,
+  eventId: null,
+  eventName: null,
   venueName: "Test Venue",
   operatorName: "Juan",
   profileName: "Carlos",
@@ -49,7 +52,7 @@ describe("VenueIncidentForm", () => {
     });
     // Change status
     fireEvent.change(screen.getByLabelText(/estado/i), {
-      target: { value: "CLOSED" },
+      target: { value: "REVIEWED" },
     });
     // Change description
     fireEvent.change(screen.getByLabelText(/descripción detallada/i), {
@@ -69,7 +72,9 @@ describe("VenueIncidentForm", () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           severity: "MEDIUM",
-          status: "CLOSED",
+          status: "REVIEWED",
+          category: null,
+          eventId: null,
           description: "El usuario se retiró pacíficamente.",
         }),
       }),

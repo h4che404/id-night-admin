@@ -1,10 +1,41 @@
-import { Building2, Shield, Settings2, Smartphone } from "lucide-react";
+import { Shield, Settings2, Smartphone, Building2 } from "lucide-react";
 import Link from "next/link";
 
 import { requireBackendSession } from "@/lib/auth-session";
-import { fetchAdminProfile, fetchMyVenue, BackendApiError } from "@/lib/idnight-backend";
+import {
+  fetchAdminProfile,
+  fetchMyVenue,
+  fetchDashboardMetrics,
+  BackendApiError,
+  BackendDashboardMetrics,
+} from "@/lib/idnight-backend";
 import { Badge, EmptyState, SectionHeader, Surface } from "@/components/ui-kit";
 import { VenueCreateForm } from "@/components/venue-create-form";
+
+function MetricCard({
+  label,
+  value,
+  tone,
+}: {
+  label: string;
+  value: number;
+  tone: "info" | "success" | "warning" | "danger" | "neutral";
+}) {
+  const toneClass = {
+    info: "text-sky-300",
+    success: "text-emerald-300",
+    warning: "text-amber-300",
+    danger: "text-rose-300",
+    neutral: "text-slate-300",
+  }[tone];
+
+  return (
+    <Surface className="p-5">
+      <p className="text-xs font-medium uppercase tracking-[0.14em] text-slate-500">{label}</p>
+      <p className={`mt-3 text-3xl font-semibold tabular-nums ${toneClass}`}>{value}</p>
+    </Surface>
+  );
+}
 
 export default async function VenuePage() {
   const session = await requireBackendSession();
@@ -17,7 +48,6 @@ export default async function VenuePage() {
     if (error instanceof BackendApiError && error.status === 404) {
       venue = null;
     } else {
-      // For other errors (backend not supporting this endpoint yet), show create form
       venue = null;
     }
   }
@@ -39,6 +69,22 @@ export default async function VenuePage() {
     );
   }
 
+  /* ── Fetch metrics with graceful fallback ────────────────────── */
+  let metrics: BackendDashboardMetrics = {
+    eventsToday: 0,
+    activeEventsNow: 0,
+    admissionsToday: 0,
+    rejectionsToday: 0,
+    warningsToday: 0,
+    openIncidents: 0,
+  };
+  let metricsError: string | null = null;
+  try {
+    metrics = await fetchDashboardMetrics(session.accessToken);
+  } catch {
+    metricsError = "Metrics unavailable — backend not connected yet.";
+  }
+
   /* ── Has venue → dashboard panel ────────────────────────────── */
   return (
     <div className="space-y-6">
@@ -47,6 +93,20 @@ export default async function VenuePage() {
         title={venue.name}
         description={[venue.address, venue.city].filter(Boolean).join(", ") || "Sin dirección configurada"}
       />
+
+      {/* Operational metrics */}
+      <div className="grid gap-4 grid-cols-2 md:grid-cols-3">
+        <MetricCard label="Events today" value={metrics.eventsToday} tone="info" />
+        <MetricCard label="Active now" value={metrics.activeEventsNow} tone="success" />
+        <MetricCard label="Admissions today" value={metrics.admissionsToday} tone="success" />
+        <MetricCard label="Rejections today" value={metrics.rejectionsToday} tone="danger" />
+        <MetricCard label="Warnings today" value={metrics.warningsToday} tone="warning" />
+        <MetricCard label="Open incidents" value={metrics.openIncidents} tone="neutral" />
+      </div>
+
+      {metricsError && (
+        <p className="text-xs text-slate-500">{metricsError}</p>
+      )}
 
       <div className="grid gap-4 md:grid-cols-3">
         <Surface className="p-5">

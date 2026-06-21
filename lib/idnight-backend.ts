@@ -29,6 +29,18 @@ export type BackendVenue = {
   active: boolean;
 };
 
+export type BackendVenueEvent = {
+  id: string;
+  name: string;
+  status: string;
+  startsAt: string;
+  endsAt: string;
+  maxCapacity: number | null;
+  minAge: number;
+  allowManualDniCheck: boolean;
+  requireGuestList: boolean;
+};
+
 export type BackendSecurityUser = {
   id: string;
   firstName: string;
@@ -59,6 +71,9 @@ export type BackendIncidentSummary = {
   createdAt: string;
   severity: string;
   status: string;
+  category: string | null;
+  eventId: string | null;
+  eventName: string | null;
   venueName: string;
   operatorName: string | null;
   profileName: string | null;
@@ -98,6 +113,60 @@ export type BackendOwnerOnboardingResponse = {
   venueName: string;
   operatorId: string;
   operatorRole: string;
+};
+
+export type BackendGuestListEntry = {
+  id: string;
+  status: "ACTIVE" | "USED" | "CANCELLED";
+  firstName: string;
+  lastName: string;
+  dniSuffix: string;
+  category: string | null;
+  importedAt: string;
+};
+
+export type BackendGuestListImportResult = {
+  imported: number;
+  duplicates: number;
+  invalid: number;
+  errors: Array<{ row: number; field: string; reason: string }>;
+};
+
+export type BackendDashboardMetrics = {
+  eventsToday: number;
+  activeEventsNow: number;
+  admissionsToday: number;
+  rejectionsToday: number;
+  warningsToday: number;
+  openIncidents: number;
+};
+
+export type BackendEventReport = {
+  eventId: string;
+  eventName: string;
+  startsAt: string;
+  endsAt: string;
+  status: string;
+  totalEntries: number;
+  allowedCount: number;
+  allowedWithWarningCount: number;
+  rejectedCount: number;
+  guestListTotal: number;
+  guestListUsed: number;
+  guestListCancelled: number;
+  incidentCount: number;
+};
+
+export type BackendAccessSession = {
+  id: string;
+  occurredAt: string;
+  method: "IDNIGHT_VERIFIED" | "MANUAL_DNI_CHECK" | "GUEST_LIST_DNI_CHECK";
+  result: "ALLOWED" | "ALLOWED_WITH_WARNING" | "REJECTED";
+  warningType: string | null;
+  operatorName: string | null;
+  deviceName: string | null;
+  eventId: string;
+  eventName: string | null;
 };
 
 /* ── API error ─────────────────────────────────────────────────── */
@@ -252,6 +321,111 @@ export function updateMyVenueEntryRules(
   });
 }
 
+export function fetchVenueEvents(token: string) {
+  return backendRequest<BackendVenueEvent[]>("/admin/venues/mine/events", { token });
+}
+
+export function createVenueEvent(
+  token: string,
+  data: {
+    name: string;
+    startsAt: string;
+    endsAt: string;
+    maxCapacity?: number;
+    minAge?: number;
+    allowManualDniCheck?: boolean;
+    requireGuestList?: boolean;
+  },
+) {
+  return backendRequest<BackendVenueEvent>("/admin/venues/mine/events", {
+    token,
+    method: "POST",
+    body: data,
+  });
+}
+
+export function updateVenueEvent(
+  token: string,
+  id: string,
+  data: {
+    name?: string;
+    startsAt?: string;
+    endsAt?: string;
+    maxCapacity?: number | null;
+    minAge?: number;
+    allowManualDniCheck?: boolean;
+    requireGuestList?: boolean;
+  },
+) {
+  return backendRequest<BackendVenueEvent>(`/admin/venues/mine/events/${id}`, {
+    token,
+    method: "PATCH",
+    body: data,
+  });
+}
+
+export function activateVenueEvent(token: string, id: string) {
+  return backendRequest<BackendVenueEvent>(`/admin/venues/mine/events/${id}/activate`, {
+    token,
+    method: "POST",
+  });
+}
+
+export function finishVenueEvent(token: string, id: string) {
+  return backendRequest<BackendVenueEvent>(`/admin/venues/mine/events/${id}/finish`, {
+    token,
+    method: "POST",
+  });
+}
+
+export function cancelVenueEvent(token: string, id: string) {
+  return backendRequest<BackendVenueEvent>(`/admin/venues/mine/events/${id}/cancel`, {
+    token,
+    method: "POST",
+  });
+}
+
+export function fetchEventGuestList(token: string, eventId: string) {
+  return backendRequest<BackendGuestListEntry[]>(
+    `/admin/venues/mine/events/${eventId}/guest-list`,
+    { token },
+  );
+}
+
+export async function uploadEventGuestList(
+  token: string,
+  eventId: string,
+  formData: FormData,
+): Promise<BackendGuestListImportResult> {
+  const response = await fetch(
+    `${IDNIGHT_BACKEND_URL}/admin/venues/mine/events/${eventId}/guest-list`,
+    {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+      body: formData,
+      cache: "no-store",
+    },
+  );
+
+  if (!response.ok) {
+    let message = `Backend request failed (${response.status})`;
+    try {
+      const payload = (await response.json()) as { message?: string };
+      if (payload?.message) message = payload.message;
+    } catch { /* ignore */ }
+    throw new BackendApiError(message, response.status);
+  }
+
+  return response.json() as Promise<BackendGuestListImportResult>;
+}
+
+export function cancelGuestListEntry(token: string, eventId: string, entryId: string) {
+  return backendRequest<BackendGuestListEntry>(
+    `/admin/venues/mine/events/${eventId}/guest-list/${entryId}`,
+    { token, method: "PATCH", body: JSON.stringify({ status: "CANCELLED" }) },
+  );
+}
+
 /* ── Security users ────────────────────────────────────────────── */
 
 export function fetchSecurityUsers(token: string) {
@@ -328,6 +502,29 @@ export function toggleVenueDeviceStatus(token: string, id: string, active: boole
 
 /* ── Incidents ─────────────────────────────────────────────────── */
 
+export function fetchAccessSessions(
+  token: string,
+  params: {
+    eventId?: string;
+    method?: string;
+    result?: string;
+    fromDate?: string;
+    toDate?: string;
+  } = {},
+) {
+  const query = new URLSearchParams();
+  if (params.eventId) query.set("eventId", params.eventId);
+  if (params.method) query.set("method", params.method);
+  if (params.result) query.set("result", params.result);
+  if (params.fromDate) query.set("fromDate", params.fromDate);
+  if (params.toDate) query.set("toDate", params.toDate);
+  const qs = query.toString();
+  return backendRequest<BackendAccessSession[]>(
+    `/admin/venues/mine/access-sessions${qs ? `?${qs}` : ""}`,
+    { token },
+  );
+}
+
 export function fetchVenueIncidents(token: string) {
   return backendRequest<BackendIncidentSummary[]>("/admin/venues/mine/incidents", { token });
 }
@@ -339,11 +536,32 @@ export function fetchVenueIncident(token: string, id: string) {
 export function updateVenueIncident(
   token: string,
   id: string,
-  data: { severity?: string; status?: string; description?: string | null },
+  data: {
+    severity?: string;
+    status?: string;
+    category?: string | null;
+    eventId?: string | null;
+    description?: string | null;
+  },
 ) {
   return backendRequest<BackendIncidentDetail>(`/admin/venues/mine/incidents/${id}`, {
     token,
     method: "PATCH",
     body: data,
   });
+}
+
+/* ── Dashboard ─────────────────────────────────────────────────── */
+
+export function fetchDashboardMetrics(token: string) {
+  return backendRequest<BackendDashboardMetrics>("/admin/venues/mine/dashboard", { token });
+}
+
+/* ── Event report ──────────────────────────────────────────────── */
+
+export function fetchEventReport(token: string, eventId: string) {
+  return backendRequest<BackendEventReport>(
+    `/admin/venues/mine/events/${eventId}/report`,
+    { token },
+  );
 }

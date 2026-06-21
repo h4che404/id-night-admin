@@ -4,7 +4,7 @@ import { ArrowLeft, ShieldAlert } from "lucide-react";
 import { SectionHeader, Surface, Badge, ErrorPanel } from "@/components/ui-kit";
 import { VenueIncidentForm } from "@/components/venue-incident-form";
 import { requireBackendSession } from "@/lib/auth-session";
-import { fetchVenueIncident } from "@/lib/idnight-backend";
+import { fetchVenueIncident, fetchVenueEvents } from "@/lib/idnight-backend";
 
 function formatDateTime(value: string | null) {
   if (!value) {
@@ -31,8 +31,9 @@ function severityTone(severity: string) {
 }
 
 function statusTone(status: string) {
-  if (status === "OPEN") return "warning" as const;
-  if (status === "CLOSED") return "success" as const;
+  if (status === "REPORTED") return "warning" as const;
+  if (status === "REVIEWED") return "info" as const;
+  if (status === "DISMISSED") return "neutral" as const;
   return "neutral" as const;
 }
 
@@ -51,6 +52,14 @@ export default async function VenueIncidentDetailPage({
     incident = await fetchVenueIncident(session.accessToken, resolvedParams.id);
   } catch (error) {
     incidentError = error instanceof Error ? error.message : "No se pudo cargar el incidente.";
+  }
+
+  let events: Array<{ id: string; name: string }> = [];
+  try {
+    const raw = await fetchVenueEvents(session.accessToken);
+    events = raw.map((e) => ({ id: e.id, name: e.name }));
+  } catch {
+    events = [];
   }
 
   if (incidentError || !incident) {
@@ -92,6 +101,18 @@ export default async function VenueIncidentDetailPage({
                 <dt className="text-xs font-medium text-slate-500 mb-1">Severidad</dt>
                 <dd><Badge label={incident.severity} tone={severityTone(incident.severity)} /></dd>
               </div>
+              <div>
+                <dt className="text-xs font-medium text-slate-500 mb-1">Categoría</dt>
+                <dd className="text-sm text-slate-200">{incident.category ?? "Sin categoría"}</dd>
+              </div>
+              {incident.eventId && (
+                <div>
+                  <dt className="text-xs font-medium text-slate-500 mb-1">Evento</dt>
+                  <dd className="text-sm text-slate-200">
+                    {incident.eventName ?? incident.eventId}
+                  </dd>
+                </div>
+              )}
               <div className="sm:col-span-2 mt-2">
                 <dt className="text-xs font-medium text-slate-500 mb-1">Resumen</dt>
                 <dd className="text-sm text-slate-200">{incident.summary || "Sin resumen"}</dd>
@@ -154,7 +175,7 @@ export default async function VenueIncidentDetailPage({
             </dl>
           </Surface>
 
-          <VenueIncidentForm incident={incident} />
+          <VenueIncidentForm incident={incident} events={events} />
         </div>
       </div>
     </div>
