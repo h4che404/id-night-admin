@@ -59,6 +59,10 @@ export async function requireBackendProfile(): Promise<{
     redirect("/owner-onboarding");
   }
 
+  if (access.kind === "degraded") {
+    redirect("/login");
+  }
+
   redirect("/login");
 }
 

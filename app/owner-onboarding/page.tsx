@@ -14,7 +14,7 @@ export default async function OwnerOnboardingPage() {
     redirect("/venue");
   }
 
-  if (access.kind === "login") {
+  if (access.kind === "login" || access.kind === "degraded") {
     redirect("/login");
   }
 

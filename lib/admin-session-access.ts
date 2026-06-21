@@ -48,7 +48,20 @@ export async function resolveAdminSessionAccess(
   } catch (error) {
     if (error instanceof BackendApiError) {
       if (error.status >= 500) return { kind: "degraded" };
-      if (isAccessResolutionStatus(error.status)) return { kind: "login" };
+      if (isAccessResolutionStatus(error.status)) {
+        return {
+          kind: "onboarding",
+          onboarding: {
+            needsOnboarding: true,
+            hasOperatorProfile: false,
+            operatorRole: null,
+            organizationId: null,
+            organizationName: null,
+            venueId: null,
+            venueName: null,
+          },
+        };
+      }
     }
 
     throw error;
