@@ -28,7 +28,7 @@ export async function PUT(request: Request) {
       );
     }
 
-    await updateVenue(session.accessToken, venueId, { name, address, city });
+    await updateVenue(session.accessToken, profile.organizationId || "", venueId, { name, address, city });
 
     return NextResponse.json({ ok: true });
   } catch (error) {

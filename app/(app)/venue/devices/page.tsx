@@ -39,7 +39,7 @@ export default async function VenueDevicesPage() {
 
   let venue = null;
   try {
-    venue = await fetchMyVenue(session.accessToken);
+    venue = await fetchMyVenue(session.accessToken, profile.organizationId);
   } catch {
     venue = null;
   }

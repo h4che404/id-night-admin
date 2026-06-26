@@ -10,7 +10,7 @@ export default async function AccessSessionsPage() {
 
   let venue = null;
   try {
-    venue = await fetchMyVenue(session.accessToken);
+    venue = await fetchMyVenue(session.accessToken, profile.organizationId);
   } catch {
     venue = null;
   }

@@ -12,7 +12,7 @@ export default async function SecurityPage() {
   /* Check venue exists */
   let venue = null;
   try {
-    venue = await fetchMyVenue(session.accessToken);
+    venue = await fetchMyVenue(session.accessToken, profile.organizationId);
   } catch {
     venue = null;
   }

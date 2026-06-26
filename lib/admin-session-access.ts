@@ -63,7 +63,7 @@ export async function resolveAdminSessionAccess(
     let venueName: string | null = null;
 
     try {
-      const venues = await fetchVenues(accessToken);
+      const venues = await fetchVenues(accessToken, bootstrap.organization.id);
       if (venues && venues.length > 0) {
         venueId = venues[0].id;
         venueName = venues[0].name;

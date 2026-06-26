@@ -1,15 +1,15 @@
-import { requireBackendSession } from "@/lib/auth-session";
+import { requireBackendProfile } from "@/lib/auth-session";
 import { fetchMyVenue } from "@/lib/idnight-backend";
 import { SectionHeader, Surface, EmptyState } from "@/components/ui-kit";
 import { VenueSettingsForm } from "@/components/venue-settings-form";
 import { Settings2 } from "lucide-react";
 
 export default async function VenueSettingsPage() {
-  const session = await requireBackendSession();
+  const { session, profile } = await requireBackendProfile();
 
   let venue = null;
   try {
-    venue = await fetchMyVenue(session.accessToken);
+    venue = await fetchMyVenue(session.accessToken, profile.organizationId);
   } catch {
     venue = null;
   }

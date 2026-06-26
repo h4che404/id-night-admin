@@ -359,25 +359,41 @@ export async function createOwnerOnboarding(
   token: string,
   data: { organizationName: string; venueName: string; city?: string; address?: string },
 ): Promise<BackendOwnerOnboardingResponse> {
-  // First bootstrap user to create organization
-  const bootstrap = await bootstrapMe(token);
-  const orgId = bootstrap.organization?.id || "";
+  const url = IDNIGHT_BACKEND_URL.replace("/api/v1", "") + "/organizations/onboarding";
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 5000);
 
-  // Then create venue under that organization
-  const venue = await createVenue(token, {
-    name: data.venueName,
-    address: data.address,
-    city: data.city,
-  });
+  try {
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        organizationName: data.organizationName,
+        venueName: data.venueName,
+        city: data.city,
+        address: data.address,
+      }),
+      cache: "no-store",
+      signal: controller.signal,
+    });
 
-  return {
-    organizationId: orgId,
-    organizationName: data.organizationName,
-    venueId: venue.id,
-    venueName: venue.name,
-    operatorId: bootstrap.id,
-    operatorRole: "Owner",
-  };
+    if (!response.ok) {
+      const message = await readBackendErrorMessage(response);
+      throw new BackendApiError(message, response.status);
+    }
+
+    return (await response.json()) as BackendOwnerOnboardingResponse;
+  } catch (err) {
+    if (err instanceof Error && err.name === "AbortError") {
+      throw new BackendApiError("El servicio no está disponible en este momento.", 503);
+    }
+    throw err;
+  } finally {
+    clearTimeout(timeoutId);
+  }
 }
 
 export function updateAdminProfile(
@@ -393,13 +409,13 @@ export function updateAdminProfile(
 
 /* ── Venue ─────────────────────────────────────────────────────── */
 
-export function fetchVenues(token: string) {
-  return backendRequest<BackendVenue[]>("/venues", { token });
+export function fetchVenues(token: string, organizationId: string) {
+  return backendRequest<BackendVenue[]>(`/admin/organizations/${organizationId}/venues`, { token });
 }
 
 // Replaced fetchMyVenue dynamically via fetchVenues or direct ID lookup
-export async function fetchMyVenue(token: string): Promise<BackendVenue> {
-  const venues = await fetchVenues(token);
+export async function fetchMyVenue(token: string, organizationId: string | null): Promise<BackendVenue> {
+  const venues = await fetchVenues(token, organizationId || "");
   if (!venues || venues.length === 0) {
     throw new BackendApiError("No se encontró ningún boliche configurado.", 404);
   }
@@ -408,9 +424,10 @@ export async function fetchMyVenue(token: string): Promise<BackendVenue> {
 
 export function createVenue(
   token: string,
+  organizationId: string,
   data: { name: string; address?: string; city?: string },
 ) {
-  return backendRequest<BackendVenue>("/venues", {
+  return backendRequest<BackendVenue>(`/admin/organizations/${organizationId}/venues`, {
     token,
     method: "POST",
     body: data,
@@ -419,18 +436,19 @@ export function createVenue(
 
 export function updateVenue(
   token: string,
+  organizationId: string,
   venueId: string,
   data: { name: string; address?: string; city?: string },
 ) {
-  return backendRequest<BackendVenue>(`/venues/${venueId}`, {
+  return backendRequest<BackendVenue>(`/admin/organizations/${organizationId}/venues/${venueId}`, {
     token,
-    method: "PATCH",
+    method: "PUT",
     body: data,
   });
 }
 
 export function fetchMyVenueEntryRules(token: string, venueId: string) {
-  return backendRequest<BackendVenueEntryRules>(`/venues/${venueId}/entry-rules`, { token });
+  return backendRequest<BackendVenueEntryRules>(`/admin/venues/${venueId}/entry-rules`, { token });
 }
 
 export function updateMyVenueEntryRules(
@@ -446,7 +464,7 @@ export function updateMyVenueEntryRules(
     notes?: string;
   },
 ) {
-  return backendRequest<BackendVenueEntryRules>(`/venues/${venueId}/entry-rules`, {
+  return backendRequest<BackendVenueEntryRules>(`/admin/venues/${venueId}/entry-rules`, {
     token,
     method: "PUT",
     body: data,
@@ -454,7 +472,7 @@ export function updateMyVenueEntryRules(
 }
 
 export function fetchVenueEvents(token: string, venueId: string) {
-  return backendRequest<BackendVenueEvent[]>(`/venues/${venueId}/events`, { token });
+  return backendRequest<BackendVenueEvent[]>(`/admin/venues/${venueId}/events`, { token });
 }
 
 export function createVenueEvent(
@@ -470,7 +488,7 @@ export function createVenueEvent(
     requireGuestList?: boolean;
   },
 ) {
-  return backendRequest<BackendVenueEvent>(`/venues/${venueId}/events`, {
+  return backendRequest<BackendVenueEvent>(`/admin/venues/${venueId}/events`, {
     token,
     method: "POST",
     body: data,
@@ -491,7 +509,7 @@ export function updateVenueEvent(
     requireGuestList?: boolean;
   },
 ) {
-  return backendRequest<BackendVenueEvent>(`/venues/${venueId}/events/${id}`, {
+  return backendRequest<BackendVenueEvent>(`/admin/venues/${venueId}/events/${id}`, {
     token,
     method: "PATCH",
     body: data,
@@ -499,21 +517,21 @@ export function updateVenueEvent(
 }
 
 export function activateVenueEvent(token: string, venueId: string, id: string) {
-  return backendRequest<BackendVenueEvent>(`/venues/${venueId}/events/${id}/activate`, {
+  return backendRequest<BackendVenueEvent>(`/admin/venues/${venueId}/events/${id}/activate`, {
     token,
     method: "POST",
   });
 }
 
 export function finishVenueEvent(token: string, venueId: string, id: string) {
-  return backendRequest<BackendVenueEvent>(`/venues/${venueId}/events/${id}/finish`, {
+  return backendRequest<BackendVenueEvent>(`/admin/venues/${venueId}/events/${id}/finish`, {
     token,
     method: "POST",
   });
 }
 
 export function cancelVenueEvent(token: string, venueId: string, id: string) {
-  return backendRequest<BackendVenueEvent>(`/venues/${venueId}/events/${id}/cancel`, {
+  return backendRequest<BackendVenueEvent>(`/admin/venues/${venueId}/events/${id}/cancel`, {
     token,
     method: "POST",
   });
@@ -521,7 +539,7 @@ export function cancelVenueEvent(token: string, venueId: string, id: string) {
 
 export function fetchEventGuestList(token: string, venueId: string, eventId: string) {
   return backendRequest<BackendGuestListEntry[]>(
-    `/venues/${venueId}/events/${eventId}/guest-list`,
+    `/admin/venues/${venueId}/events/${eventId}/guest-list`,
     { token },
   );
 }
@@ -532,7 +550,7 @@ export async function uploadEventGuestList(
   eventId: string,
   formData: FormData,
 ): Promise<BackendGuestListImportResult> {
-  const response = await performBackendFetch(`/venues/${venueId}/events/${eventId}/guest-list/upload`, {
+  const response = await performBackendFetch(`/admin/venues/${venueId}/events/${eventId}/guest-list/upload`, {
     token,
     method: "POST",
     body: formData,
@@ -549,7 +567,7 @@ export async function uploadEventGuestList(
 
 export function cancelGuestListEntry(token: string, venueId: string, eventId: string, entryId: string) {
   return backendRequest<BackendGuestListEntry>(
-    `/venues/${venueId}/events/${eventId}/guest-list/entries/${entryId}`,
+    `/admin/venues/${venueId}/events/${eventId}/guest-list/entries/${entryId}`,
     { token, method: "DELETE" },
   );
 }
@@ -557,7 +575,7 @@ export function cancelGuestListEntry(token: string, venueId: string, eventId: st
 /* ── Security users ────────────────────────────────────────────── */
 
 export function fetchSecurityUsers(token: string, venueId: string) {
-  return backendRequest<BackendSecurityUser[]>(`/venues/${venueId}/operators`, { token });
+  return backendRequest<BackendSecurityUser[]>(`/admin/venues/${venueId}/operators`, { token });
 }
 
 export function createSecurityUser(
@@ -565,7 +583,7 @@ export function createSecurityUser(
   venueId: string,
   data: { firstName: string; lastName: string; email: string; role?: string },
 ) {
-  return backendRequest<BackendSecurityUser>(`/venues/${venueId}/operators`, {
+  return backendRequest<BackendSecurityUser>(`/admin/venues/${venueId}/operators`, {
     token,
     method: "POST",
     body: {
@@ -582,7 +600,7 @@ export function updateSecurityUser(
   id: string,
   data: { firstName: string; lastName: string; email: string; role?: string },
 ) {
-  return backendRequest<BackendSecurityUser>(`/venues/${venueId}/operators/${id}`, {
+  return backendRequest<BackendSecurityUser>(`/admin/venues/${venueId}/operators/${id}`, {
     token,
     method: "PATCH",
     body: {
@@ -596,7 +614,7 @@ export function toggleSecurityUserStatus(token: string, venueId: string, id: str
   // Map security user toggle to DELETE (to remove) or POST to re-add, or update if the contract supports active status.
   // In the new operator contract: DELETE removes an operator. We will keep DELETE since it's the standard clean way.
   if (!active) {
-    return backendRequest<BackendSecurityUser>(`/venues/${venueId}/operators/${id}`, {
+    return backendRequest<BackendSecurityUser>(`/admin/venues/${venueId}/operators/${id}`, {
       token,
       method: "DELETE",
     });
@@ -615,7 +633,7 @@ export async function fetchVenueDevices(token: string, venueId: string): Promise
     status: string;
     deactivatedAt: string | null;
     createdAt: string;
-  }>>(`/venues/${venueId}/devices`, { token });
+  }>>(`/admin/venues/${venueId}/devices`, { token });
 
   return rawDevices.map((d) => ({
     id: d.id,
@@ -636,7 +654,7 @@ export function createVenueDevice(
   venueId: string,
   data: { name: string; serialNumber: string },
 ) {
-  return backendRequest<BackendVenueDevice>(`/venues/${venueId}/devices`, {
+  return backendRequest<BackendVenueDevice>(`/admin/venues/${venueId}/devices`, {
     token,
     method: "POST",
     body: data,
@@ -649,7 +667,7 @@ export function updateVenueDevice(
   id: string,
   data: { name: string; serialNumber: string },
 ) {
-  return backendRequest<BackendVenueDevice>(`/venues/${venueId}/devices/${id}`, {
+  return backendRequest<BackendVenueDevice>(`/admin/venues/${venueId}/devices/${id}`, {
     token,
     method: "PATCH",
     body: data,
@@ -658,7 +676,7 @@ export function updateVenueDevice(
 
 export function toggleVenueDeviceStatus(token: string, venueId: string, id: string, active: boolean) {
   if (!active) {
-    return backendRequest<BackendVenueDevice>(`/venues/${venueId}/devices/${id}/deactivate`, {
+    return backendRequest<BackendVenueDevice>(`/admin/venues/${venueId}/devices/${id}/deactivate`, {
       token,
       method: "PATCH",
     });
@@ -680,7 +698,7 @@ export function fetchAccessSessions(
   } = {},
 ) {
   // If eventId is missing, access sessions might not be easily fetched at the venue level under the new contract.
-  // We default to the path: /venues/{venueId}/events/{eventId}/access-sessions
+  // We default to the path: /admin/venues/{venueId}/events/{eventId}/access-sessions
   const eventId = params.eventId ?? "00000000-0000-0000-0000-000000000000";
   const query = new URLSearchParams();
   if (params.method) query.set("method", params.method);
@@ -689,17 +707,17 @@ export function fetchAccessSessions(
   if (params.toDate) query.set("toDate", params.toDate);
   const qs = query.toString();
   return backendRequest<BackendAccessSession[]>(
-    `/venues/${venueId}/events/${eventId}/access-sessions${qs ? `?${qs}` : ""}`,
+    `/admin/venues/${venueId}/events/${eventId}/access-sessions${qs ? `?${qs}` : ""}`,
     { token },
   );
 }
 
 export function fetchVenueIncidents(token: string, venueId: string) {
-  return backendRequest<BackendIncidentSummary[]>(`/venues/${venueId}/incidents`, { token });
+  return backendRequest<BackendIncidentSummary[]>(`/admin/venues/${venueId}/incidents`, { token });
 }
 
 export function fetchVenueIncident(token: string, venueId: string, id: string) {
-  return backendRequest<BackendIncidentDetail>(`/venues/${venueId}/incidents/${id}`, { token });
+  return backendRequest<BackendIncidentDetail>(`/admin/venues/${venueId}/incidents/${id}`, { token });
 }
 
 export function updateVenueIncident(
@@ -715,7 +733,7 @@ export function updateVenueIncident(
     description?: string | null;
   },
 ) {
-  return backendRequest<BackendIncidentDetail>(`/venues/${venueId}/incidents/${id}`, {
+  return backendRequest<BackendIncidentDetail>(`/admin/venues/${venueId}/incidents/${id}`, {
     token,
     method: "PATCH",
     body: data,
@@ -725,14 +743,14 @@ export function updateVenueIncident(
 /* ── Dashboard ─────────────────────────────────────────────────── */
 
 export function fetchDashboardMetrics(token: string, venueId: string) {
-  return backendRequest<BackendDashboardMetrics>(`/venues/${venueId}/dashboard`, { token });
+  return backendRequest<BackendDashboardMetrics>(`/admin/venues/${venueId}/dashboard`, { token });
 }
 
 /* ── Event report ──────────────────────────────────────────────── */
 
 export function fetchEventReport(token: string, venueId: string, eventId: string) {
   return backendRequest<BackendEventReport>(
-    `/venues/${venueId}/events/${eventId}/report`,
+    `/admin/venues/${venueId}/events/${eventId}/report`,
     { token },
   );
 }

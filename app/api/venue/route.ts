@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
 
-import { requireBackendSession } from "@/lib/auth-session";
+import { requireBackendProfile } from "@/lib/auth-session";
 import { createVenue } from "@/lib/idnight-backend";
 
 export async function POST(request: Request) {
   try {
-    const session = await requireBackendSession();
+    const { session, profile } = await requireBackendProfile();
 
     const { name, address, city } = (await request.json()) as {
       name?: string;
@@ -20,7 +20,7 @@ export async function POST(request: Request) {
       );
     }
 
-    await createVenue(session.accessToken, { name, address, city });
+    await createVenue(session.accessToken, profile.organizationId || "", { name, address, city });
 
     return NextResponse.json({ ok: true });
   } catch (error) {

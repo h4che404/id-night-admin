@@ -98,7 +98,7 @@ describe("idnight backend error parsing", () => {
       }),
     ).resolves.toEqual(createdEvent);
 
-    expect(fetchSpy).toHaveBeenCalledWith(`${IDNIGHT_BACKEND_URL}/venues/venue-1/events`, {
+    expect(fetchSpy).toHaveBeenCalledWith(`${IDNIGHT_BACKEND_URL}/admin/venues/venue-1/events`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -146,7 +146,7 @@ describe("idnight backend error parsing", () => {
       }),
     ).resolves.toEqual(updatedEvent);
 
-    expect(fetchSpy).toHaveBeenCalledWith(`${IDNIGHT_BACKEND_URL}/venues/venue-1/events/event-1`, {
+    expect(fetchSpy).toHaveBeenCalledWith(`${IDNIGHT_BACKEND_URL}/admin/venues/venue-1/events/event-1`, {
       method: "PATCH",
       headers: {
         "Content-Type": "application/json",
@@ -219,7 +219,7 @@ describe("idnight backend error parsing", () => {
     ).resolves.toEqual(cancelled);
 
     expect(fetchSpy).toHaveBeenCalledWith(
-      expect.stringContaining("/venues/venue-1/events/event-1/guest-list/entries/entry-1"),
+      expect.stringContaining("/admin/venues/venue-1/events/event-1/guest-list/entries/entry-1"),
       expect.objectContaining({
         method: "DELETE",
         headers: expect.objectContaining({
@@ -253,7 +253,7 @@ describe("idnight backend error parsing", () => {
 
       await uploadExpectation;
       expect(fetchMock).toHaveBeenCalledWith(
-        expect.stringContaining("/venues/venue-1/events/event-1/guest-list"),
+        expect.stringContaining("/admin/venues/venue-1/events/event-1/guest-list"),
         expect.objectContaining({ signal: expect.any(AbortSignal) }),
       );
     } finally {

@@ -1,9 +1,8 @@
 import { Shield, Settings2, Smartphone, Building2 } from "lucide-react";
 import Link from "next/link";
 
-import { requireBackendSession } from "@/lib/auth-session";
+import { requireBackendProfile } from "@/lib/auth-session";
 import {
-  fetchAdminProfile,
   fetchMyVenue,
   fetchDashboardMetrics,
   BackendApiError,
@@ -38,30 +37,11 @@ function MetricCard({
 }
 
 export default async function VenuePage() {
-  const session = await requireBackendSession();
-
-  let profile = null;
-  try {
-    profile = await fetchAdminProfile(session.accessToken);
-  } catch {
-    // backend unreachable or user not authorized — show degraded state
-  }
-
-  if (!profile) {
-    return (
-      <div className="space-y-6">
-        <SectionHeader
-          eyebrow="Mi boliche"
-          title="Panel de administración"
-          description="El servicio no está disponible en este momento. Intentá de nuevo en unos segundos."
-        />
-      </div>
-    );
-  }
+  const { session, profile } = await requireBackendProfile();
 
   let venue = null;
   try {
-    venue = await fetchMyVenue(session.accessToken);
+    venue = await fetchMyVenue(session.accessToken, profile.organizationId);
   } catch (error) {
     if (error instanceof BackendApiError && error.status === 404) {
       venue = null;
