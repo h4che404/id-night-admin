@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { MockBackendApiError, fetchAdminProfile, fetchOwnerOnboardingStatus } = vi.hoisted(() => {
+const { MockBackendApiError, requireBackendSession, bootstrapMe, fetchVenues } = vi.hoisted(() => {
   class MockBackendApiError extends Error {
     status: number;
 
@@ -13,82 +13,89 @@ const { MockBackendApiError, fetchAdminProfile, fetchOwnerOnboardingStatus } = v
 
   return {
     MockBackendApiError,
-    fetchAdminProfile: vi.fn(),
-    fetchOwnerOnboardingStatus: vi.fn(),
+    requireBackendSession: vi.fn(),
+    bootstrapMe: vi.fn(),
+    fetchVenues: vi.fn(),
   };
 });
 
 vi.mock("@/lib/idnight-backend", () => ({
   BackendApiError: MockBackendApiError,
-  fetchAdminProfile,
-  fetchOwnerOnboardingStatus,
+  bootstrapMe,
+  fetchVenues,
 }));
 
 import { resolveAdminSessionAccess } from "@/lib/admin-session-access";
 
 describe("resolveAdminSessionAccess", () => {
   beforeEach(() => {
-    fetchAdminProfile.mockReset();
-    fetchOwnerOnboardingStatus.mockReset();
+    bootstrapMe.mockReset();
+    fetchVenues.mockReset();
   });
 
   it("returns admin access when the operator profile exists", async () => {
-    fetchAdminProfile.mockResolvedValue({ id: "operator-1", email: "owner@example.com" });
+    bootstrapMe.mockResolvedValue({
+      id: "operator-1",
+      email: "owner@example.com",
+      status: "active",
+      organization: { id: "org-1", name: "My Org" },
+    });
+    fetchVenues.mockResolvedValue([{ id: "venue-1", name: "My Venue" }]);
 
     await expect(resolveAdminSessionAccess("valid-token")).resolves.toMatchObject({
       kind: "admin",
-      profile: { id: "operator-1", email: "owner@example.com" },
+      profile: {
+        id: "operator-1",
+        email: "owner@example.com",
+        fullName: "owner@example.com",
+        role: "Owner",
+        active: true,
+        venueId: "venue-1",
+        venueName: "My Venue",
+        organizationId: "org-1",
+        organizationName: "My Org",
+      },
     });
-    expect(fetchOwnerOnboardingStatus).not.toHaveBeenCalled();
   });
 
   it("routes authenticated users without operators to onboarding", async () => {
-    fetchAdminProfile.mockRejectedValue(new MockBackendApiError("Operator missing", 401));
-    fetchOwnerOnboardingStatus.mockResolvedValue({
-      needsOnboarding: true,
-      hasOperatorProfile: false,
-      operatorRole: null,
-      organizationId: null,
-      organizationName: null,
-      venueId: null,
-      venueName: null,
+    bootstrapMe.mockResolvedValue({
+      id: "operator-1",
+      email: "owner@example.com",
+      status: "active",
+      organization: null,
     });
 
     await expect(resolveAdminSessionAccess("pending-owner-token")).resolves.toMatchObject({
       kind: "onboarding",
-      onboarding: { needsOnboarding: true, hasOperatorProfile: false },
+      onboarding: { needsOnboarding: true, hasOperatorProfile: true },
     });
   });
 
   it("keeps invalid sessions on login instead of looping", async () => {
-    fetchAdminProfile.mockRejectedValue(new MockBackendApiError("Unauthorized", 401));
-    fetchOwnerOnboardingStatus.mockRejectedValue(new MockBackendApiError("Unauthorized", 401));
+    bootstrapMe.mockRejectedValue(new MockBackendApiError("Unauthorized", 401));
 
     await expect(resolveAdminSessionAccess("expired-token")).resolves.toEqual({ kind: "login" });
   });
 
   it("keeps non-onboarding access failures on login", async () => {
-    fetchAdminProfile.mockRejectedValue(new MockBackendApiError("Forbidden", 403));
-    fetchOwnerOnboardingStatus.mockResolvedValue({
-      needsOnboarding: false,
-      hasOperatorProfile: true,
-      operatorRole: "GUARD",
-      organizationId: null,
-      organizationName: null,
-      venueId: null,
-      venueName: null,
-    });
+    bootstrapMe.mockRejectedValue(new MockBackendApiError("Forbidden", 403));
 
     await expect(resolveAdminSessionAccess("guard-token")).resolves.toEqual({ kind: "login" });
   });
 
+  it("returns degraded kind for server errors", async () => {
+    bootstrapMe.mockRejectedValue(new MockBackendApiError("Internal Server Error", 500));
+
+    await expect(resolveAdminSessionAccess("broken-token")).resolves.toEqual({ kind: "degraded" });
+  });
+
   it("rethrows unexpected admin profile errors", async () => {
-    fetchAdminProfile.mockRejectedValue(new MockBackendApiError("Backend down", 500));
+    bootstrapMe.mockRejectedValue(new MockBackendApiError("Bad Request", 400));
 
     await expect(resolveAdminSessionAccess("broken-token")).rejects.toMatchObject({
-      message: "Backend down",
-      status: 500,
+      message: "Bad Request",
+      status: 400,
     });
-    expect(fetchOwnerOnboardingStatus).not.toHaveBeenCalled();
   });
 });

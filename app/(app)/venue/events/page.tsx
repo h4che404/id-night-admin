@@ -59,7 +59,7 @@ export default async function VenueEventsPage() {
   let events: Awaited<ReturnType<typeof fetchVenueEvents>> = [];
   let eventsError: string | null = null;
   try {
-    events = await fetchVenueEvents(session.accessToken);
+    events = await fetchVenueEvents(session.accessToken, venue.id);
   } catch (error) {
     eventsError = getSafeEventErrorMessage(error, "Could not load venue events. Please try again.");
   }

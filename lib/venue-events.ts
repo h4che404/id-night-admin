@@ -96,6 +96,11 @@ export function normalizeEventInstant(value: string) {
   const offsetSign = match[9];
   const offsetHour = Number(match[10] ?? "0");
   const offsetMinute = Number(match[11] ?? "0");
+
+  if (timeZoneDesignator !== "Z" && (offsetHour > 23 || offsetMinute > 59)) {
+    return null;
+  }
+
   const offsetMinutes =
     timeZoneDesignator === "Z"
       ? 0

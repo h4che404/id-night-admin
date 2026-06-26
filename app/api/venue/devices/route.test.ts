@@ -24,6 +24,25 @@ const { MockBackendApiError, requireBackendSession, createVenueDevice, updateVen
 
 vi.mock("@/lib/auth-session", () => ({
   requireBackendSession,
+  requireBackendProfile: async () => {
+    const session = await requireBackendSession();
+    return {
+      session,
+      profile: {
+        id: "admin-1",
+        email: "admin@idnight.app",
+        fullName: "Admin User",
+        role: "Owner",
+        active: true,
+        venueId: "venue-1",
+        venueName: "My Venue",
+        organizationId: "org-1",
+        organizationName: "My Org",
+        membershipRole: "Owner",
+        membershipActive: true,
+      },
+    };
+  },
 }));
 
 vi.mock("@/lib/idnight-backend", () => ({
@@ -78,9 +97,9 @@ describe("/api/venue/devices", () => {
 
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({ ok: true });
-    expect(createVenueDevice).toHaveBeenCalledWith("admin-token", {
+    expect(createVenueDevice).toHaveBeenCalledWith("admin-token", "venue-1", {
       name: "Tablet puerta",
-      deviceKey: "door-01",
+      serialNumber: "door-01",
     });
   });
 
@@ -147,6 +166,6 @@ describe("/api/venue/devices", () => {
 
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({ ok: true });
-    expect(toggleVenueDeviceStatus).toHaveBeenCalledWith("admin-token", "device-1", false);
+    expect(toggleVenueDeviceStatus).toHaveBeenCalledWith("admin-token", "venue-1", "device-1", false);
   });
 });

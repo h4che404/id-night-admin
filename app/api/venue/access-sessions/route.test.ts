@@ -22,6 +22,25 @@ const { MockBackendApiError, requireBackendSession, fetchAccessSessions } = vi.h
 
 vi.mock("@/lib/auth-session", () => ({
   requireBackendSession,
+  requireBackendProfile: async () => {
+    const session = await requireBackendSession();
+    return {
+      session,
+      profile: {
+        id: "admin-1",
+        email: "admin@idnight.app",
+        fullName: "Admin User",
+        role: "Owner",
+        active: true,
+        venueId: "venue-1",
+        venueName: "My Venue",
+        organizationId: "org-1",
+        organizationName: "My Org",
+        membershipRole: "Owner",
+        membershipActive: true,
+      },
+    };
+  },
 }));
 
 vi.mock("@/lib/idnight-backend", () => ({
@@ -69,7 +88,7 @@ describe("/api/venue/access-sessions", () => {
 
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual(SESSION_FIXTURE);
-    expect(fetchAccessSessions).toHaveBeenCalledWith("admin-token", {
+    expect(fetchAccessSessions).toHaveBeenCalledWith("admin-token", "venue-1", {
       eventId: undefined,
       method: undefined,
       result: undefined,
@@ -85,6 +104,7 @@ describe("/api/venue/access-sessions", () => {
 
     expect(fetchAccessSessions).toHaveBeenCalledWith(
       "admin-token",
+      "venue-1",
       expect.objectContaining({ method: "IDNIGHT_VERIFIED" }),
     );
   });
@@ -96,6 +116,7 @@ describe("/api/venue/access-sessions", () => {
 
     expect(fetchAccessSessions).toHaveBeenCalledWith(
       "admin-token",
+      "venue-1",
       expect.objectContaining({ result: "REJECTED" }),
     );
   });
@@ -107,6 +128,7 @@ describe("/api/venue/access-sessions", () => {
 
     expect(fetchAccessSessions).toHaveBeenCalledWith(
       "admin-token",
+      "venue-1",
       expect.objectContaining({
         eventId: "event-1",
         fromDate: "2026-06-01",

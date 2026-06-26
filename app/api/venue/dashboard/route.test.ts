@@ -22,6 +22,25 @@ const { MockBackendApiError, requireBackendSession, fetchDashboardMetrics } = vi
 
 vi.mock("@/lib/auth-session", () => ({
   requireBackendSession,
+  requireBackendProfile: async () => {
+    const session = await requireBackendSession();
+    return {
+      session,
+      profile: {
+        id: "admin-1",
+        email: "admin@idnight.app",
+        fullName: "Admin User",
+        role: "Owner",
+        active: true,
+        venueId: "venue-1",
+        venueName: "My Venue",
+        organizationId: "org-1",
+        organizationName: "My Org",
+        membershipRole: "Owner",
+        membershipActive: true,
+      },
+    };
+  },
 }));
 
 vi.mock("@/lib/idnight-backend", () => ({
@@ -60,7 +79,7 @@ describe("/api/venue/dashboard", () => {
 
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual(mockMetrics);
-    expect(fetchDashboardMetrics).toHaveBeenCalledWith("admin-token");
+    expect(fetchDashboardMetrics).toHaveBeenCalledWith("admin-token", "venue-1");
   });
 
   it("preserves backend 4xx error", async () => {

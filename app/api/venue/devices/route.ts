@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { requireBackendSession } from "@/lib/auth-session";
+import { requireBackendProfile } from "@/lib/auth-session";
 import {
   BackendApiError,
   createVenueDevice,
@@ -28,7 +28,12 @@ function routeErrorResponse(error: unknown, fallbackMessage: string) {
 }
 
 export async function POST(request: Request) {
-  const session = await requireBackendSession();
+  const { session, profile } = await requireBackendProfile();
+  const venueId = profile.venueId;
+
+  if (!venueId) {
+    return NextResponse.json({ message: "No venue associated." }, { status: 404 });
+  }
 
   try {
     const payload = await parseJson(request);
@@ -44,7 +49,7 @@ export async function POST(request: Request) {
       return errorResponse("El nombre y la clave del dispositivo son obligatorios.");
     }
 
-    await createVenueDevice(session.accessToken, { name, deviceKey });
+    await createVenueDevice(session.accessToken, venueId, { name, serialNumber: deviceKey });
     return NextResponse.json({ ok: true });
   } catch (error) {
     return routeErrorResponse(error, "No se pudo registrar el dispositivo.");
@@ -52,7 +57,12 @@ export async function POST(request: Request) {
 }
 
 export async function PUT(request: Request) {
-  const session = await requireBackendSession();
+  const { session, profile } = await requireBackendProfile();
+  const venueId = profile.venueId;
+
+  if (!venueId) {
+    return NextResponse.json({ message: "No venue associated." }, { status: 404 });
+  }
 
   try {
     const payload = await parseJson(request);
@@ -69,7 +79,7 @@ export async function PUT(request: Request) {
       return errorResponse("Faltan campos obligatorios del dispositivo.");
     }
 
-    await updateVenueDevice(session.accessToken, id, { name, deviceKey });
+    await updateVenueDevice(session.accessToken, venueId, id, { name, serialNumber: deviceKey });
     return NextResponse.json({ ok: true });
   } catch (error) {
     return routeErrorResponse(error, "No se pudo actualizar el dispositivo.");
@@ -77,7 +87,12 @@ export async function PUT(request: Request) {
 }
 
 export async function PATCH(request: Request) {
-  const session = await requireBackendSession();
+  const { session, profile } = await requireBackendProfile();
+  const venueId = profile.venueId;
+
+  if (!venueId) {
+    return NextResponse.json({ message: "No venue associated." }, { status: 404 });
+  }
 
   try {
     const payload = await parseJson(request);
@@ -93,9 +108,10 @@ export async function PATCH(request: Request) {
       return errorResponse("Faltan campos obligatorios para el estado del dispositivo.");
     }
 
-    await toggleVenueDeviceStatus(session.accessToken, id, active);
+    await toggleVenueDeviceStatus(session.accessToken, venueId, id, active);
     return NextResponse.json({ ok: true });
   } catch (error) {
     return routeErrorResponse(error, "No se pudo actualizar el estado del dispositivo.");
   }
 }
+

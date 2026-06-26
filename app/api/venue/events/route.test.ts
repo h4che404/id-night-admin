@@ -22,6 +22,25 @@ const { MockBackendApiError, requireBackendSession, createVenueEvent } = vi.hois
 
 vi.mock("@/lib/auth-session", () => ({
   requireBackendSession,
+  requireBackendProfile: async () => {
+    const session = await requireBackendSession();
+    return {
+      session,
+      profile: {
+        id: "admin-1",
+        email: "admin@idnight.app",
+        fullName: "Admin User",
+        role: "Owner",
+        active: true,
+        venueId: "venue-1",
+        venueName: "My Venue",
+        organizationId: "org-1",
+        organizationName: "My Org",
+        membershipRole: "Owner",
+        membershipActive: true,
+      },
+    };
+  },
 }));
 
 vi.mock("@/lib/idnight-backend", () => ({
@@ -92,11 +111,33 @@ describe("/api/venue/events", () => {
 
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({ ok: true });
-    expect(createVenueEvent).toHaveBeenCalledWith("admin-token", {
+    expect(createVenueEvent).toHaveBeenCalledWith("admin-token", "venue-1", {
       name: "Friday Opening",
       startsAt: "2026-06-20T23:00:00.000Z",
       endsAt: "2026-06-21T05:00:00.000Z",
       maxCapacity: 500,
+    });
+  });
+
+  it("normalizes timezone-offset datetimes to UTC before proxying creates", async () => {
+    createVenueEvent.mockResolvedValue({ id: "event-1" });
+
+    const response = await POST(
+      createRequest(
+        JSON.stringify({
+          name: "Friday Opening",
+          startsAt: "2026-06-20T20:00:00-03:00",
+          endsAt: "2026-06-21T02:00:00-03:00",
+        }),
+      ),
+    );
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ ok: true });
+    expect(createVenueEvent).toHaveBeenCalledWith("admin-token", "venue-1", {
+      name: "Friday Opening",
+      startsAt: "2026-06-20T23:00:00.000Z",
+      endsAt: "2026-06-21T05:00:00.000Z",
     });
   });
 
@@ -125,6 +166,24 @@ describe("/api/venue/events", () => {
           name: "Friday Opening",
           startsAt: "2026-02-30T23:00:00.000Z",
           endsAt: "2026-03-01T05:00:00.000Z",
+        }),
+      ),
+    );
+
+    expect(response.status).toBe(400);
+    expect(await response.json()).toEqual({
+      message: "Event start and end must be valid ISO datetimes with a timezone.",
+    });
+    expect(createVenueEvent).not.toHaveBeenCalled();
+  });
+
+  it("rejects impossible timezone offsets even when the string matches ISO format", async () => {
+    const response = await POST(
+      createRequest(
+        JSON.stringify({
+          name: "Friday Opening",
+          startsAt: "2026-06-20T23:00:00+24:00",
+          endsAt: "2026-06-21T05:00:00.000Z",
         }),
       ),
     );
@@ -275,6 +334,7 @@ describe("/api/venue/events", () => {
     expect(response.status).toBe(200);
     expect(createVenueEvent).toHaveBeenCalledWith(
       "admin-token",
+      "venue-1",
       expect.objectContaining({ minAge: 18 }),
     );
   });
@@ -297,9 +357,52 @@ describe("/api/venue/events", () => {
     expect(response.status).toBe(200);
     expect(createVenueEvent).toHaveBeenCalledWith(
       "admin-token",
+      "venue-1",
       expect.objectContaining({ allowManualDniCheck: false, requireGuestList: true }),
     );
   });
+
+  it("rejects non-numeric minAge instead of silently dropping it", async () => {
+    const response = await POST(
+      createRequest(
+        JSON.stringify({
+          name: "Friday Opening",
+          startsAt: "2026-06-20T23:00:00.000Z",
+          endsAt: "2026-06-21T05:00:00.000Z",
+          minAge: "18",
+        }),
+      ),
+    );
+
+    expect(response.status).toBe(400);
+    expect(await response.json()).toEqual({
+      message: "Minimum age must be an integer between 0 and 120.",
+    });
+    expect(createVenueEvent).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ["allowManualDniCheck", "yes", "allowManualDniCheck must be a boolean."],
+    ["requireGuestList", "true", "requireGuestList must be a boolean."],
+  ])(
+    "rejects wrong-type %s instead of silently dropping it",
+    async (field, value, message) => {
+      const response = await POST(
+        createRequest(
+          JSON.stringify({
+            name: "Friday Opening",
+            startsAt: "2026-06-20T23:00:00.000Z",
+            endsAt: "2026-06-21T05:00:00.000Z",
+            [field]: value,
+          }),
+        ),
+      );
+
+      expect(response.status).toBe(400);
+      expect(await response.json()).toEqual({ message });
+      expect(createVenueEvent).not.toHaveBeenCalled();
+    },
+  );
 
   it("preserves auth redirects raised before proxying", async () => {
     const redirectError = createRedirectError();

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { requireBackendSession } from "@/lib/auth-session";
+import { requireBackendProfile } from "@/lib/auth-session";
 import { BackendApiError, updateVenueEvent } from "@/lib/idnight-backend";
 import { normalizeEventInstant } from "@/lib/venue-events";
 
@@ -28,7 +28,12 @@ function routeErrorResponse(error: unknown, fallbackMessage: string) {
 
 export async function PATCH(request: Request, props: { params: Promise<{ id: string }> }) {
   const params = await props.params;
-  const session = await requireBackendSession();
+  const { session, profile } = await requireBackendProfile();
+  const venueId = profile.venueId;
+
+  if (!venueId) {
+    return NextResponse.json({ message: "No venue associated." }, { status: 404 });
+  }
 
   try {
     const payload = await parseJson(request);
@@ -122,7 +127,7 @@ export async function PATCH(request: Request, props: { params: Promise<{ id: str
       return errorResponse("At least one field must be provided.");
     }
 
-    await updateVenueEvent(session.accessToken, params.id, {
+    await updateVenueEvent(session.accessToken, venueId, params.id, {
       ...data,
       ...(minAge !== undefined ? { minAge } : {}),
       ...(allowManualDniCheck !== undefined ? { allowManualDniCheck } : {}),

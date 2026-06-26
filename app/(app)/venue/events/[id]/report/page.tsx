@@ -1,7 +1,7 @@
 import { ArrowLeft, BarChart3 } from "lucide-react";
 import Link from "next/link";
 
-import { requireBackendSession } from "@/lib/auth-session";
+import { requireBackendProfile } from "@/lib/auth-session";
 import { fetchEventReport } from "@/lib/idnight-backend";
 import { Badge, EmptyState, SectionHeader, Surface } from "@/components/ui-kit";
 import { formatEventDateTime } from "@/lib/venue-events";
@@ -19,12 +19,13 @@ export default async function EventReportPage({
   params: Promise<{ id: string }>;
 }) {
   const { id: eventId } = await params;
-  const session = await requireBackendSession();
+  const { session, profile } = await requireBackendProfile();
+  const venueId = profile.venueId || "00000000-0000-0000-0000-000000000000";
 
   let report = null;
   let reportError: string | null = null;
   try {
-    report = await fetchEventReport(session.accessToken, eventId);
+    report = await fetchEventReport(session.accessToken, venueId, eventId);
   } catch (error) {
     reportError = error instanceof Error ? error.message : "Could not load the event report.";
   }
@@ -126,3 +127,4 @@ export default async function EventReportPage({
     </div>
   );
 }
+

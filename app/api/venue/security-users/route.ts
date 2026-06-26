@@ -1,12 +1,17 @@
 import { NextResponse } from "next/server";
 
-import { requireBackendSession } from "@/lib/auth-session";
+import { requireBackendProfile } from "@/lib/auth-session";
 import { createSecurityUser } from "@/lib/idnight-backend";
 
 export async function POST(request: Request) {
-  try {
-    const session = await requireBackendSession();
+  const { session, profile } = await requireBackendProfile();
+  const venueId = profile.venueId;
 
+  if (!venueId) {
+    return NextResponse.json({ message: "No venue associated." }, { status: 404 });
+  }
+
+  try {
     let body;
     try {
       body = await request.json();
@@ -30,7 +35,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const user = await createSecurityUser(session.accessToken, {
+    const user = await createSecurityUser(session.accessToken, venueId, {
       firstName,
       lastName,
       email,
@@ -42,3 +47,4 @@ export async function POST(request: Request) {
     return NextResponse.json({ message }, { status: 400 });
   }
 }
+

@@ -3,7 +3,7 @@ import { ArrowLeft, ShieldAlert } from "lucide-react";
 
 import { SectionHeader, Surface, Badge, ErrorPanel } from "@/components/ui-kit";
 import { VenueIncidentForm } from "@/components/venue-incident-form";
-import { requireBackendSession } from "@/lib/auth-session";
+import { requireBackendProfile } from "@/lib/auth-session";
 import { fetchVenueIncident, fetchVenueEvents } from "@/lib/idnight-backend";
 
 function formatDateTime(value: string | null) {
@@ -43,24 +43,26 @@ export default async function VenueIncidentDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const resolvedParams = await params;
-  const session = await requireBackendSession();
+  const { session, profile } = await requireBackendProfile();
+  const venueId = profile.venueId || "00000000-0000-0000-0000-000000000000";
 
   let incident = null;
   let incidentError = null;
 
   try {
-    incident = await fetchVenueIncident(session.accessToken, resolvedParams.id);
+    incident = await fetchVenueIncident(session.accessToken, venueId, resolvedParams.id);
   } catch (error) {
     incidentError = error instanceof Error ? error.message : "No se pudo cargar el incidente.";
   }
 
   let events: Array<{ id: string; name: string }> = [];
   try {
-    const raw = await fetchVenueEvents(session.accessToken);
+    const raw = await fetchVenueEvents(session.accessToken, venueId);
     events = raw.map((e) => ({ id: e.id, name: e.name }));
   } catch {
     events = [];
   }
+
 
   if (incidentError || !incident) {
     return (

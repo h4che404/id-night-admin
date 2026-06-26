@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { requireBackendSession } from "@/lib/auth-session";
+import { requireBackendProfile } from "@/lib/auth-session";
 import {
   activateVenueEvent,
   BackendApiError,
@@ -11,7 +11,7 @@ import {
 const VALID_ACTIONS = ["activate", "finish", "cancel"] as const;
 type ValidAction = (typeof VALID_ACTIONS)[number];
 
-const BACKEND_ACTION: Record<ValidAction, (token: string, id: string) => Promise<unknown>> = {
+const BACKEND_ACTION: Record<ValidAction, (token: string, venueId: string, id: string) => Promise<unknown>> = {
   activate: activateVenueEvent,
   finish: finishVenueEvent,
   cancel: cancelVenueEvent,
@@ -32,7 +32,6 @@ export async function POST(
   props: { params: Promise<{ id: string; action: string }> },
 ) {
   const params = await props.params;
-  const session = await requireBackendSession();
 
   if (!(VALID_ACTIONS as readonly string[]).includes(params.action)) {
     return NextResponse.json({ message: `Invalid action: ${params.action}.` }, { status: 400 });
@@ -40,10 +39,18 @@ export async function POST(
 
   const action = params.action as ValidAction;
 
+  const { session, profile } = await requireBackendProfile();
+  const venueId = profile.venueId;
+
+  if (!venueId) {
+    return NextResponse.json({ message: "No venue associated." }, { status: 404 });
+  }
+
   try {
-    await BACKEND_ACTION[action](session.accessToken, params.id);
+    await BACKEND_ACTION[action](session.accessToken, venueId, params.id);
     return NextResponse.json({ ok: true });
   } catch (error) {
     return routeErrorResponse(error, `Could not ${action} the event.`);
   }
 }
+

@@ -22,6 +22,25 @@ const { MockBackendApiError, requireBackendSession, fetchEventReport } = vi.hois
 
 vi.mock("@/lib/auth-session", () => ({
   requireBackendSession,
+  requireBackendProfile: async () => {
+    const session = await requireBackendSession();
+    return {
+      session,
+      profile: {
+        id: "admin-1",
+        email: "admin@idnight.app",
+        fullName: "Admin User",
+        role: "Owner",
+        active: true,
+        venueId: "venue-1",
+        venueName: "My Venue",
+        organizationId: "org-1",
+        organizationName: "My Org",
+        membershipRole: "Owner",
+        membershipActive: true,
+      },
+    };
+  },
 }));
 
 vi.mock("@/lib/idnight-backend", () => ({
@@ -75,7 +94,7 @@ describe("/api/venue/events/[id]/report", () => {
 
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual(mockReport);
-    expect(fetchEventReport).toHaveBeenCalledWith("admin-token", "event-123");
+    expect(fetchEventReport).toHaveBeenCalledWith("admin-token", "venue-1", "event-123");
   });
 
   it("preserves backend 4xx error when event not found", async () => {

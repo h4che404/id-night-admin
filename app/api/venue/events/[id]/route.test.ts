@@ -22,6 +22,25 @@ const { MockBackendApiError, requireBackendSession, updateVenueEvent } = vi.hois
 
 vi.mock("@/lib/auth-session", () => ({
   requireBackendSession,
+  requireBackendProfile: async () => {
+    const session = await requireBackendSession();
+    return {
+      session,
+      profile: {
+        id: "admin-1",
+        email: "admin@idnight.app",
+        fullName: "Admin User",
+        role: "Owner",
+        active: true,
+        venueId: "venue-1",
+        venueName: "My Venue",
+        organizationId: "org-1",
+        organizationName: "My Org",
+        membershipRole: "Owner",
+        membershipActive: true,
+      },
+    };
+  },
 }));
 
 vi.mock("@/lib/idnight-backend", () => ({
@@ -54,6 +73,14 @@ describe("/api/venue/events/[id]", () => {
     requireBackendSession.mockReset();
     requireBackendSession.mockResolvedValue({ accessToken: "admin-token", refreshToken: null });
     updateVenueEvent.mockReset();
+  });
+
+  it("rejects invalid JSON bodies", async () => {
+    const response = await PATCH(createRequest("{", "event-1"), createParams("event-1"));
+
+    expect(response.status).toBe(400);
+    expect(await response.json()).toEqual({ message: "The request body must be valid JSON." });
+    expect(updateVenueEvent).not.toHaveBeenCalled();
   });
 
   it("rejects when no fields are provided", async () => {
@@ -99,6 +126,24 @@ describe("/api/venue/events/[id]", () => {
     expect(updateVenueEvent).not.toHaveBeenCalled();
   });
 
+  it("rejects impossible timezone offsets on update", async () => {
+    const response = await PATCH(
+      createRequest(
+        JSON.stringify({
+          startsAt: "2026-06-20T23:00:00+00:99",
+        }),
+        "event-1",
+      ),
+      createParams("event-1"),
+    );
+
+    expect(response.status).toBe(400);
+    expect(await response.json()).toEqual({
+      message: "Event start must be a valid ISO datetime with a timezone.",
+    });
+    expect(updateVenueEvent).not.toHaveBeenCalled();
+  });
+
   it("rejects non-integer maxCapacity", async () => {
     const response = await PATCH(
       createRequest(
@@ -115,6 +160,26 @@ describe("/api/venue/events/[id]", () => {
     expect(updateVenueEvent).not.toHaveBeenCalled();
   });
 
+  it("accepts null maxCapacity so capacity can be cleared", async () => {
+    updateVenueEvent.mockResolvedValue({ id: "event-1" });
+
+    const response = await PATCH(
+      createRequest(
+        JSON.stringify({
+          maxCapacity: null,
+        }),
+        "event-1",
+      ),
+      createParams("event-1"),
+    );
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ ok: true });
+    expect(updateVenueEvent).toHaveBeenCalledWith("admin-token", "venue-1", "event-1", {
+      maxCapacity: null,
+    });
+  });
+
   it("accepts a partial update with only name", async () => {
     updateVenueEvent.mockResolvedValue({ id: "event-1" });
 
@@ -125,7 +190,7 @@ describe("/api/venue/events/[id]", () => {
 
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({ ok: true });
-    expect(updateVenueEvent).toHaveBeenCalledWith("admin-token", "event-1", { name: "Saturday Night" });
+    expect(updateVenueEvent).toHaveBeenCalledWith("admin-token", "venue-1", "event-1", { name: "Saturday Night" });
   });
 
   it("forwards successful updates to the backend", async () => {
@@ -146,11 +211,33 @@ describe("/api/venue/events/[id]", () => {
 
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({ ok: true });
-    expect(updateVenueEvent).toHaveBeenCalledWith("admin-token", "event-1", {
+    expect(updateVenueEvent).toHaveBeenCalledWith("admin-token", "venue-1", "event-1", {
       name: "Friday Opening",
       startsAt: "2026-06-20T23:00:00.000Z",
       endsAt: "2026-06-21T05:00:00.000Z",
       maxCapacity: 500,
+    });
+  });
+
+  it("normalizes timezone-offset datetimes to UTC before proxying updates", async () => {
+    updateVenueEvent.mockResolvedValue({ id: "event-1" });
+
+    const response = await PATCH(
+      createRequest(
+        JSON.stringify({
+          startsAt: "2026-06-20T20:00:00-03:00",
+          endsAt: "2026-06-21T02:00:00-03:00",
+        }),
+        "event-1",
+      ),
+      createParams("event-1"),
+    );
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ ok: true });
+    expect(updateVenueEvent).toHaveBeenCalledWith("admin-token", "venue-1", "event-1", {
+      startsAt: "2026-06-20T23:00:00.000Z",
+      endsAt: "2026-06-21T05:00:00.000Z",
     });
   });
 
@@ -191,6 +278,28 @@ describe("/api/venue/events/[id]", () => {
     expect(updateVenueEvent).not.toHaveBeenCalled();
   });
 
+  it("forwards false boolean fields through the update route boundary", async () => {
+    updateVenueEvent.mockResolvedValue({ id: "event-1" });
+
+    const response = await PATCH(
+      createRequest(
+        JSON.stringify({
+          allowManualDniCheck: false,
+          requireGuestList: false,
+        }),
+        "event-1",
+      ),
+      createParams("event-1"),
+    );
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ ok: true });
+    expect(updateVenueEvent).toHaveBeenCalledWith("admin-token", "venue-1", "event-1", {
+      allowManualDniCheck: false,
+      requireGuestList: false,
+    });
+  });
+
   it("accepts a partial update with only minAge", async () => {
     updateVenueEvent.mockResolvedValue({ id: "event-1" });
 
@@ -201,7 +310,7 @@ describe("/api/venue/events/[id]", () => {
 
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({ ok: true });
-    expect(updateVenueEvent).toHaveBeenCalledWith("admin-token", "event-1", { minAge: 21 });
+    expect(updateVenueEvent).toHaveBeenCalledWith("admin-token", "venue-1", "event-1", { minAge: 21 });
   });
 
   it("preserves backend 4xx error status and message", async () => {

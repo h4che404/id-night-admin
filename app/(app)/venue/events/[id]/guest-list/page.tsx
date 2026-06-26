@@ -2,7 +2,7 @@ import { Users } from "lucide-react";
 
 import { GuestListSection } from "@/components/guest-list-section";
 import { EmptyState, SectionHeader } from "@/components/ui-kit";
-import { requireBackendSession } from "@/lib/auth-session";
+import { requireBackendProfile } from "@/lib/auth-session";
 import { fetchEventGuestList, fetchVenueEvents } from "@/lib/idnight-backend";
 
 export default async function EventGuestListPage({
@@ -11,11 +11,12 @@ export default async function EventGuestListPage({
   params: Promise<{ id: string }>;
 }) {
   const { id: eventId } = await params;
-  const session = await requireBackendSession();
+  const { session, profile } = await requireBackendProfile();
+  const venueId = profile.venueId || "00000000-0000-0000-0000-000000000000";
 
   let eventName = "Event";
   try {
-    const events = await fetchVenueEvents(session.accessToken);
+    const events = await fetchVenueEvents(session.accessToken, venueId);
     const event = events.find((e) => e.id === eventId);
     if (event) eventName = event.name;
   } catch { /* ignore, use fallback */ }
@@ -23,7 +24,7 @@ export default async function EventGuestListPage({
   let initialEntries: Awaited<ReturnType<typeof fetchEventGuestList>> = [];
   let initialEntriesError: string | null = null;
   try {
-    initialEntries = await fetchEventGuestList(session.accessToken, eventId);
+    initialEntries = await fetchEventGuestList(session.accessToken, venueId, eventId);
   } catch (error) {
     initialEntriesError =
       error instanceof Error ? error.message : "Could not load the guest list.";
@@ -45,3 +46,4 @@ export default async function EventGuestListPage({
     </div>
   );
 }
+

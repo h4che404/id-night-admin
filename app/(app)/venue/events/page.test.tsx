@@ -22,6 +22,25 @@ const { MockBackendApiError, requireBackendSession, fetchMyVenue, fetchVenueEven
 
 vi.mock("@/lib/auth-session", () => ({
   requireBackendSession,
+  requireBackendProfile: async () => {
+    const session = await requireBackendSession();
+    return {
+      session,
+      profile: {
+        id: "admin-1",
+        email: "admin@idnight.app",
+        fullName: "Admin User",
+        role: "Owner",
+        active: true,
+        venueId: "venue-1",
+        venueName: "My Venue",
+        organizationId: "org-1",
+        organizationName: "My Org",
+        membershipRole: "Owner",
+        membershipActive: true,
+      },
+    };
+  },
 }));
 
 vi.mock("@/lib/idnight-backend", () => ({
@@ -88,6 +107,16 @@ describe("VenueEventsPage", () => {
     expect(screen.getByText("Could not load venue events. Please try again.")).toBeInTheDocument();
   });
 
+  it("preserves visible backend 4xx event-load messages", async () => {
+    fetchMyVenue.mockResolvedValue({ id: "venue-1", name: "ID Night", address: null, city: null, active: true });
+    fetchVenueEvents.mockRejectedValue(new MockBackendApiError("This venue cannot access that event.", 403));
+
+    render(await VenueEventsPage());
+
+    expect(screen.getByText("Could not load events")).toBeInTheDocument();
+    expect(screen.getByText("This venue cannot access that event.")).toBeInTheDocument();
+  });
+
   it("renders the event list with deterministic UTC schedule text", async () => {
     fetchMyVenue.mockResolvedValue({ id: "venue-1", name: "ID Night", address: null, city: null, active: true });
     fetchVenueEvents.mockResolvedValue([
@@ -104,7 +133,9 @@ describe("VenueEventsPage", () => {
     render(await VenueEventsPage());
 
     expect(screen.getByText("Friday Opening")).toBeInTheDocument();
-    expect(screen.getByText(/UTC/)).toBeInTheDocument();
+    expect(
+      screen.getByText("Jun 20, 2026, 11:00 PM UTC → Jun 21, 2026, 5:00 AM UTC"),
+    ).toBeInTheDocument();
     expect(screen.getByText("500 people")).toBeInTheDocument();
   });
 });

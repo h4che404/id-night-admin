@@ -98,7 +98,7 @@ export default async function VenuePage() {
   };
   let metricsError: string | null = null;
   try {
-    metrics = await fetchDashboardMetrics(session.accessToken);
+    metrics = await fetchDashboardMetrics(session.accessToken, venue.id);
   } catch {
     metricsError = "Metrics unavailable — backend not connected yet.";
   }

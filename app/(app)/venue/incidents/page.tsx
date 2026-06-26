@@ -2,7 +2,7 @@ import { FileWarning, ShieldAlert } from "lucide-react";
 import Link from "next/link";
 
 import { Badge, DataShell, DataTable, EmptyState, SectionHeader, SecondaryButton } from "@/components/ui-kit";
-import { requireBackendSession } from "@/lib/auth-session";
+import { requireBackendProfile } from "@/lib/auth-session";
 import { fetchMyVenue, fetchVenueIncidents } from "@/lib/idnight-backend";
 
 function formatDateTime(value: string | null) {
@@ -37,7 +37,7 @@ function statusTone(status: string) {
 }
 
 export default async function VenueIncidentsPage() {
-  const session = await requireBackendSession();
+  const { session, profile } = await requireBackendProfile();
 
   let venue = null;
   try {
@@ -66,7 +66,7 @@ export default async function VenueIncidentsPage() {
   let incidents: Awaited<ReturnType<typeof fetchVenueIncidents>> = [];
   let incidentsError: string | null = null;
   try {
-    incidents = await fetchVenueIncidents(session.accessToken);
+    incidents = await fetchVenueIncidents(session.accessToken, venue.id);
   } catch (error) {
     incidentsError = error instanceof Error ? error.message : "No se pudieron cargar los incidentes.";
   }

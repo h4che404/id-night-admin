@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { requireBackendSession } from "@/lib/auth-session";
+import { requireBackendProfile } from "@/lib/auth-session";
 import { BackendApiError, createVenueEvent } from "@/lib/idnight-backend";
 import { normalizeEventInstant } from "@/lib/venue-events";
 
@@ -26,7 +26,12 @@ function routeErrorResponse(error: unknown, fallbackMessage: string) {
 }
 
 export async function POST(request: Request) {
-  const session = await requireBackendSession();
+  const { session, profile } = await requireBackendProfile();
+  const venueId = profile.venueId;
+
+  if (!venueId) {
+    return NextResponse.json({ message: "No venue associated." }, { status: 404 });
+  }
 
   try {
     const payload = await parseJson(request);
@@ -63,17 +68,34 @@ export async function POST(request: Request) {
       maxCapacity = maxCapacityValue;
     }
 
-    const minAge = typeof payload.minAge === "number" ? payload.minAge : undefined;
-    const allowManualDniCheck =
-      typeof payload.allowManualDniCheck === "boolean" ? payload.allowManualDniCheck : undefined;
-    const requireGuestList =
-      typeof payload.requireGuestList === "boolean" ? payload.requireGuestList : undefined;
+    let minAge: number | undefined;
+    if (payload.minAge !== undefined) {
+      if (typeof payload.minAge !== "number" || !Number.isInteger(payload.minAge) || payload.minAge < 0 || payload.minAge > 120) {
+        return errorResponse("Minimum age must be an integer between 0 and 120.");
+      }
 
-    if (minAge !== undefined && (!Number.isInteger(minAge) || minAge < 0 || minAge > 120)) {
-      return errorResponse("Minimum age must be an integer between 0 and 120.");
+      minAge = payload.minAge;
     }
 
-    await createVenueEvent(session.accessToken, {
+    let allowManualDniCheck: boolean | undefined;
+    if (payload.allowManualDniCheck !== undefined) {
+      if (typeof payload.allowManualDniCheck !== "boolean") {
+        return errorResponse("allowManualDniCheck must be a boolean.");
+      }
+
+      allowManualDniCheck = payload.allowManualDniCheck;
+    }
+
+    let requireGuestList: boolean | undefined;
+    if (payload.requireGuestList !== undefined) {
+      if (typeof payload.requireGuestList !== "boolean") {
+        return errorResponse("requireGuestList must be a boolean.");
+      }
+
+      requireGuestList = payload.requireGuestList;
+    }
+
+    await createVenueEvent(session.accessToken, venueId, {
       name,
       startsAt: normalizedStartsAt,
       endsAt: normalizedEndsAt,

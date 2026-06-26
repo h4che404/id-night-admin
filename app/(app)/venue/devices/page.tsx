@@ -3,7 +3,7 @@ import { Smartphone, SmartphoneCharging } from "lucide-react";
 import { Badge, DataShell, DataTable, EmptyState, SectionHeader } from "@/components/ui-kit";
 import { VenueDeviceActions } from "@/components/venue-device-actions";
 import { VenueDeviceForm } from "@/components/venue-device-form";
-import { requireBackendSession } from "@/lib/auth-session";
+import { requireBackendProfile } from "@/lib/auth-session";
 import { fetchMyVenue, fetchVenueDevices } from "@/lib/idnight-backend";
 
 function formatDateTime(value: string | null) {
@@ -35,7 +35,7 @@ function statusTone(status: string) {
 }
 
 export default async function VenueDevicesPage() {
-  const session = await requireBackendSession();
+  const { session, profile } = await requireBackendProfile();
 
   let venue = null;
   try {
@@ -64,10 +64,11 @@ export default async function VenueDevicesPage() {
   let devices: Awaited<ReturnType<typeof fetchVenueDevices>> = [];
   let devicesError: string | null = null;
   try {
-    devices = await fetchVenueDevices(session.accessToken);
+    devices = await fetchVenueDevices(session.accessToken, venue.id);
   } catch (error) {
     devicesError = error instanceof Error ? error.message : "No se pudieron cargar los dispositivos autorizados.";
   }
+
 
   return (
     <div className="space-y-6">

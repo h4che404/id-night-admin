@@ -1,12 +1,20 @@
 import { NextResponse } from "next/server";
 
-import { requireBackendSession } from "@/lib/auth-session";
+import { requireBackendProfile } from "@/lib/auth-session";
 import { updateVenue } from "@/lib/idnight-backend";
 
 export async function PUT(request: Request) {
-  try {
-    const session = await requireBackendSession();
+  const { session, profile } = await requireBackendProfile();
+  const venueId = profile.venueId;
 
+  if (!venueId) {
+    return NextResponse.json(
+      { message: "No hay ningún boliche asociado a tu cuenta." },
+      { status: 404 },
+    );
+  }
+
+  try {
     const { name, address, city } = (await request.json()) as {
       name?: string;
       address?: string;
@@ -20,7 +28,7 @@ export async function PUT(request: Request) {
       );
     }
 
-    await updateVenue(session.accessToken, { name, address, city });
+    await updateVenue(session.accessToken, venueId, { name, address, city });
 
     return NextResponse.json({ ok: true });
   } catch (error) {
@@ -28,3 +36,4 @@ export async function PUT(request: Request) {
     return NextResponse.json({ message }, { status: 400 });
   }
 }
+
