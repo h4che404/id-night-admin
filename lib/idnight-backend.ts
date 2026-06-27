@@ -190,6 +190,7 @@ type RequestOptions = {
   body?: unknown;
   headers?: HeadersInit;
   isBodyJson?: boolean;
+  timeoutMs?: number;
 };
 
 function extractBackendErrorMessage(
@@ -252,7 +253,7 @@ async function readBackendErrorMessage(response: Response) {
 
 async function performBackendFetch(path: string, options: RequestOptions = {}) {
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 5000);
+  const timeoutId = setTimeout(() => controller.abort(), options.timeoutMs ?? 5000);
 
   try {
     return await fetch(`${IDNIGHT_BACKEND_URL}${path}`, {
@@ -303,6 +304,7 @@ export function bootstrapMe(token: string) {
     token,
     method: "POST",
     headers: { "X-Client-Type": "admin" },
+    timeoutMs: 15000,
   });
 }
 
