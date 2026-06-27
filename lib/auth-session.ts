@@ -52,33 +52,7 @@ export async function requireBackendSession(): Promise<BackendSession> {
 }
 
 export const getCachedProfile = cache(async (accessToken: string): Promise<ResolvedAdminSessionAccess> => {
-  const store = await cookies();
-  const cached = store.get(PROFILE_COOKIE)?.value;
-
-  if (cached) {
-    try {
-      const parsed = JSON.parse(cached) as ResolvedAdminSessionAccess;
-      if (parsed && typeof parsed === "object" && "state" in parsed) {
-        return parsed;
-      }
-    } catch {
-      // invalid cache, proceed to fetch
-    }
-  }
-
-  const access = await resolveAdminSessionAccess(accessToken);
-
-  if (access.state === "ready" || access.state === "onboarding-needed") {
-    store.set(PROFILE_COOKIE, JSON.stringify(access), {
-      maxAge: 15 * 60,
-      path: "/",
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-    });
-  }
-
-  return access;
+  return await resolveAdminSessionAccess(accessToken);
 });
 
 export async function readAdminAccess(session?: BackendSession | null): Promise<{

@@ -32,7 +32,6 @@ vi.mock("@/lib/admin-session-access", () => ({
 
 import {
   getCachedProfile,
-  PROFILE_COOKIE,
   requireReadyBackendProfile,
   requireReadyPageAccess,
 } from "@/lib/auth-session";
@@ -56,41 +55,13 @@ describe("getCachedProfile", () => {
     });
   });
 
-  it("returns cached profile if present and valid in cookies", async () => {
-    const validProfile = { state: "ready", profile: { id: "123" } };
-    storeGetMock.mockReturnValue({ value: JSON.stringify(validProfile) });
-
-    const result = await getCachedProfile("token-123");
-
-    expect(storeGetMock).toHaveBeenCalledWith(PROFILE_COOKIE);
-    expect(result).toEqual(validProfile);
-    expect(resolveAdminSessionAccessMock).not.toHaveBeenCalled();
-  });
-
-  it("fetches fresh profile on cache miss and writes to cookie with 15m TTL", async () => {
-    storeGetMock.mockReturnValue(undefined);
-    const freshProfile = { state: "ready", profile: { id: "fresh-123" } };
-    resolveAdminSessionAccessMock.mockResolvedValue(freshProfile);
-
-    const result = await getCachedProfile("token-123");
-
-    expect(storeGetMock).toHaveBeenCalledWith(PROFILE_COOKIE);
-    expect(resolveAdminSessionAccessMock).toHaveBeenCalledWith("token-123");
-    expect(storeSetMock).toHaveBeenCalledWith(PROFILE_COOKIE, JSON.stringify(freshProfile), expect.objectContaining({
-      maxAge: 15 * 60,
-    }));
-    expect(result).toEqual(freshProfile);
-  });
-
-  it("fetches fresh profile if cached profile is invalid JSON", async () => {
-    storeGetMock.mockReturnValue({ value: "invalid-json" });
+  it("fetches fresh profile bypassing persistent cookies (uses React cache)", async () => {
     const freshProfile = { state: "ready", profile: { id: "fresh-123" } };
     resolveAdminSessionAccessMock.mockResolvedValue(freshProfile);
 
     const result = await getCachedProfile("token-123");
 
     expect(resolveAdminSessionAccessMock).toHaveBeenCalledWith("token-123");
-    expect(storeSetMock).toHaveBeenCalled();
     expect(result).toEqual(freshProfile);
   });
 
