@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { requireBackendProfile } from "@/lib/auth-session";
+import { readReadyVenueApiAccess } from "@/lib/auth-session";
 import { BackendApiError, createVenueEvent } from "@/lib/idnight-backend";
 import { normalizeEventInstant } from "@/lib/venue-events";
 
@@ -26,12 +26,13 @@ function routeErrorResponse(error: unknown, fallbackMessage: string) {
 }
 
 export async function POST(request: Request) {
-  const { session, profile } = await requireBackendProfile();
-  const venueId = profile.venueId;
+  const auth = await readReadyVenueApiAccess();
 
-  if (!venueId) {
-    return NextResponse.json({ message: "No venue associated." }, { status: 404 });
+  if ("response" in auth) {
+    return auth.response;
   }
+
+  const { session } = auth;
 
   try {
     const payload = await parseJson(request);
@@ -95,7 +96,7 @@ export async function POST(request: Request) {
       requireGuestList = payload.requireGuestList;
     }
 
-    await createVenueEvent(session.accessToken, venueId, {
+    await createVenueEvent(session.accessToken, {
       name,
       startsAt: normalizedStartsAt,
       endsAt: normalizedEndsAt,

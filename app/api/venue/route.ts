@@ -1,11 +1,17 @@
 import { NextResponse } from "next/server";
 
-import { requireBackendProfile } from "@/lib/auth-session";
+import { readReadyVenueApiAccess } from "@/lib/auth-session";
 import { createVenue } from "@/lib/idnight-backend";
 
 export async function POST(request: Request) {
   try {
-    const { session, profile } = await requireBackendProfile();
+    const auth = await readReadyVenueApiAccess();
+
+    if ("response" in auth) {
+      return auth.response;
+    }
+
+    const { session } = auth;
 
     const { name, address, city } = (await request.json()) as {
       name?: string;
@@ -20,7 +26,7 @@ export async function POST(request: Request) {
       );
     }
 
-    await createVenue(session.accessToken, profile.organizationId || "", { name, address, city });
+    await createVenue(session.accessToken, { name, address, city });
 
     return NextResponse.json({ ok: true });
   } catch (error) {

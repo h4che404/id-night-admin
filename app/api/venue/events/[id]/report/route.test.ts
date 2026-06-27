@@ -2,7 +2,7 @@
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { MockBackendApiError, requireBackendSession, fetchEventReport } = vi.hoisted(() => {
+const { MockBackendApiError, readReadyVenueApiAccess, fetchEventReport } = vi.hoisted(() => {
   class MockBackendApiError extends Error {
     status: number;
 
@@ -15,32 +15,13 @@ const { MockBackendApiError, requireBackendSession, fetchEventReport } = vi.hois
 
   return {
     MockBackendApiError,
-    requireBackendSession: vi.fn(),
+    readReadyVenueApiAccess: vi.fn(),
     fetchEventReport: vi.fn(),
   };
 });
 
 vi.mock("@/lib/auth-session", () => ({
-  requireBackendSession,
-  requireBackendProfile: async () => {
-    const session = await requireBackendSession();
-    return {
-      session,
-      profile: {
-        id: "admin-1",
-        email: "admin@idnight.app",
-        fullName: "Admin User",
-        role: "Owner",
-        active: true,
-        venueId: "venue-1",
-        venueName: "My Venue",
-        organizationId: "org-1",
-        organizationName: "My Org",
-        membershipRole: "Owner",
-        membershipActive: true,
-      },
-    };
-  },
+  readReadyVenueApiAccess,
 }));
 
 vi.mock("@/lib/idnight-backend", () => ({
@@ -56,12 +37,6 @@ function createRequest() {
 
 function createProps(id: string) {
   return { params: Promise.resolve({ id }) };
-}
-
-function createRedirectError() {
-  return Object.assign(new Error("NEXT_REDIRECT"), {
-    digest: "NEXT_REDIRECT;replace;/login;307;",
-  });
 }
 
 const mockReport = {
@@ -82,8 +57,23 @@ const mockReport = {
 
 describe("/api/venue/events/[id]/report", () => {
   beforeEach(() => {
-    requireBackendSession.mockReset();
-    requireBackendSession.mockResolvedValue({ accessToken: "admin-token", refreshToken: null });
+    readReadyVenueApiAccess.mockReset();
+    readReadyVenueApiAccess.mockResolvedValue({
+      session: { accessToken: "admin-token", refreshToken: null },
+      profile: {
+        id: "admin-1",
+        email: "admin@idnight.app",
+        fullName: "Admin User",
+        role: "Owner",
+        active: true,
+        venueId: "venue-1",
+        venueName: "My Venue",
+        organizationId: "org-1",
+        organizationName: "My Org",
+        membershipRole: "Owner",
+        membershipActive: true,
+      },
+    });
     fetchEventReport.mockReset();
   });
 
@@ -128,11 +118,4 @@ describe("/api/venue/events/[id]/report", () => {
     expect(await response.json()).toEqual({ message: "Could not load the event report." });
   });
 
-  it("rethrows auth redirect", async () => {
-    const redirectError = createRedirectError();
-    requireBackendSession.mockRejectedValue(redirectError);
-
-    await expect(GET(createRequest(), createProps("event-123"))).rejects.toBe(redirectError);
-    expect(fetchEventReport).not.toHaveBeenCalled();
-  });
 });

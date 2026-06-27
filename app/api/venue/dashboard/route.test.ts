@@ -2,7 +2,7 @@
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { MockBackendApiError, requireBackendSession, fetchDashboardMetrics } = vi.hoisted(() => {
+const { MockBackendApiError, readReadyVenueApiAccess, fetchDashboardMetrics } = vi.hoisted(() => {
   class MockBackendApiError extends Error {
     status: number;
 
@@ -15,17 +15,36 @@ const { MockBackendApiError, requireBackendSession, fetchDashboardMetrics } = vi
 
   return {
     MockBackendApiError,
-    requireBackendSession: vi.fn(),
+    readReadyVenueApiAccess: vi.fn(),
     fetchDashboardMetrics: vi.fn(),
   };
 });
 
 vi.mock("@/lib/auth-session", () => ({
-  requireBackendSession,
-  requireBackendProfile: async () => {
-    const session = await requireBackendSession();
-    return {
-      session,
+  readReadyVenueApiAccess,
+}));
+
+vi.mock("@/lib/idnight-backend", () => ({
+  BackendApiError: MockBackendApiError,
+  fetchDashboardMetrics,
+}));
+
+import { GET } from "@/app/api/venue/dashboard/route";
+
+const mockMetrics = {
+  eventsToday: 2,
+  activeEventsNow: 1,
+  admissionsToday: 120,
+  rejectionsToday: 5,
+  warningsToday: 3,
+  openIncidents: 1,
+};
+
+describe("/api/venue/dashboard", () => {
+  beforeEach(() => {
+    readReadyVenueApiAccess.mockReset();
+    readReadyVenueApiAccess.mockResolvedValue({
+      session: { accessToken: "admin-token", refreshToken: null },
       profile: {
         id: "admin-1",
         email: "admin@idnight.app",
@@ -39,36 +58,7 @@ vi.mock("@/lib/auth-session", () => ({
         membershipRole: "Owner",
         membershipActive: true,
       },
-    };
-  },
-}));
-
-vi.mock("@/lib/idnight-backend", () => ({
-  BackendApiError: MockBackendApiError,
-  fetchDashboardMetrics,
-}));
-
-import { GET } from "@/app/api/venue/dashboard/route";
-
-function createRedirectError() {
-  return Object.assign(new Error("NEXT_REDIRECT"), {
-    digest: "NEXT_REDIRECT;replace;/login;307;",
-  });
-}
-
-const mockMetrics = {
-  eventsToday: 2,
-  activeEventsNow: 1,
-  admissionsToday: 120,
-  rejectionsToday: 5,
-  warningsToday: 3,
-  openIncidents: 1,
-};
-
-describe("/api/venue/dashboard", () => {
-  beforeEach(() => {
-    requireBackendSession.mockReset();
-    requireBackendSession.mockResolvedValue({ accessToken: "admin-token", refreshToken: null });
+    });
     fetchDashboardMetrics.mockReset();
   });
 
@@ -113,11 +103,4 @@ describe("/api/venue/dashboard", () => {
     expect(await response.json()).toEqual({ message: "Could not load dashboard metrics." });
   });
 
-  it("rethrows auth redirect", async () => {
-    const redirectError = createRedirectError();
-    requireBackendSession.mockRejectedValue(redirectError);
-
-    await expect(GET()).rejects.toBe(redirectError);
-    expect(fetchDashboardMetrics).not.toHaveBeenCalled();
-  });
 });

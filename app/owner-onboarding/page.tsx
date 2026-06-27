@@ -10,11 +10,11 @@ export default async function OwnerOnboardingPage() {
   const session = await requireBackendSession();
   const access = await resolveAdminSessionAccess(session.accessToken);
 
-  if (access.kind === "admin") {
+  if (access.state === "ready" || access.state === "degraded") {
     redirect("/venue");
   }
 
-  if (access.kind === "login" || access.kind === "degraded") {
+  if (access.state === "unauthorized") {
     redirect("/login");
   }
 

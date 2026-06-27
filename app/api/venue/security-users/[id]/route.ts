@@ -1,21 +1,21 @@
 import { NextResponse } from "next/server";
 
-import { requireBackendProfile } from "@/lib/auth-session";
+import { readReadyVenueApiAccess } from "@/lib/auth-session";
 import { toggleSecurityUserStatus, updateSecurityUser } from "@/lib/idnight-backend";
 
 export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { session, profile } = await requireBackendProfile();
-  const venueId = profile.venueId;
+  const auth = await readReadyVenueApiAccess();
 
-  if (!venueId) {
-    return NextResponse.json({ message: "No venue associated." }, { status: 404 });
+  if ("response" in auth) {
+    return auth.response;
   }
 
+  const { session } = auth;
+
   try {
-    
     const { id } = await params;
 
     let body;
@@ -37,7 +37,7 @@ export async function PATCH(
       );
     }
 
-    await toggleSecurityUserStatus(session.accessToken, venueId, id, active);
+    await toggleSecurityUserStatus(session.accessToken, id, active);
 
     return NextResponse.json({ ok: true });
   } catch (error) {
@@ -50,15 +50,15 @@ export async function PUT(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { session, profile } = await requireBackendProfile();
-  const venueId = profile.venueId;
+  const auth = await readReadyVenueApiAccess();
 
-  if (!venueId) {
-    return NextResponse.json({ message: "No venue associated." }, { status: 404 });
+  if ("response" in auth) {
+    return auth.response;
   }
 
-  try {
+  const { session } = auth;
 
+  try {
     const { id } = await params;
 
     let body;
@@ -84,7 +84,7 @@ export async function PUT(
       );
     }
 
-    const user = await updateSecurityUser(session.accessToken, venueId, id, {
+    const user = await updateSecurityUser(session.accessToken, id, {
       firstName,
       lastName,
       email,

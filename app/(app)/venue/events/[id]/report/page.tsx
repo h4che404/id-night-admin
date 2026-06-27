@@ -1,15 +1,15 @@
 import { ArrowLeft, BarChart3 } from "lucide-react";
 import Link from "next/link";
 
-import { requireBackendProfile } from "@/lib/auth-session";
+import { requireReadyPageAccess } from "@/lib/auth-session";
 import { fetchEventReport } from "@/lib/idnight-backend";
 import { Badge, EmptyState, SectionHeader, Surface } from "@/components/ui-kit";
 import { formatEventDateTime } from "@/lib/venue-events";
 
 function eventStatusTone(status: string) {
-  if (status === "ACTIVE") return "success" as const;
-  if (status === "CANCELLED") return "danger" as const;
-  if (status === "FINISHED") return "neutral" as const;
+  if (status === "Active") return "success" as const;
+  if (status === "Cancelled") return "danger" as const;
+  if (status === "Finished") return "neutral" as const;
   return "info" as const;
 }
 
@@ -19,13 +19,18 @@ export default async function EventReportPage({
   params: Promise<{ id: string }>;
 }) {
   const { id: eventId } = await params;
-  const { session, profile } = await requireBackendProfile();
-  const venueId = profile.venueId || "00000000-0000-0000-0000-000000000000";
+  const readyAccess = await requireReadyPageAccess();
+
+  if (!readyAccess) {
+    return null;
+  }
+
+  const { session } = readyAccess;
 
   let report = null;
   let reportError: string | null = null;
   try {
-    report = await fetchEventReport(session.accessToken, venueId, eventId);
+    report = await fetchEventReport(session.accessToken, eventId);
   } catch (error) {
     reportError = error instanceof Error ? error.message : "Could not load the event report.";
   }
@@ -45,7 +50,7 @@ export default async function EventReportPage({
         title={report?.eventName ?? "Event report"}
         description={
           report
-            ? `${formatEventDateTime(report.startsAt)} → ${formatEventDateTime(report.endsAt)}`
+            ? formatEventDateTime(report.startsAt)
             : "Loading event details…"
         }
       />
@@ -66,65 +71,40 @@ export default async function EventReportPage({
             </div>
           </Surface>
 
-          {/* Entry outcomes grid */}
-          <div>
-            <h3 className="mb-3 text-sm font-semibold uppercase tracking-[0.14em] text-slate-500">
-              Entry outcomes
-            </h3>
-            <div className="grid gap-4 grid-cols-2 md:grid-cols-4">
-              <Surface className="p-5">
-                <p className="text-xs font-medium uppercase tracking-[0.14em] text-slate-500">Total entries</p>
-                <p className="mt-3 text-3xl font-semibold tabular-nums text-slate-200">{report.totalEntries}</p>
-              </Surface>
-              <Surface className="p-5">
-                <p className="text-xs font-medium uppercase tracking-[0.14em] text-slate-500">Allowed</p>
-                <p className="mt-3 text-3xl font-semibold tabular-nums text-emerald-300">{report.allowedCount}</p>
-              </Surface>
-              <Surface className="p-5">
-                <p className="text-xs font-medium uppercase tracking-[0.14em] text-slate-500">Allowed w/ warning</p>
-                <p className="mt-3 text-3xl font-semibold tabular-nums text-amber-300">{report.allowedWithWarningCount}</p>
-              </Surface>
-              <Surface className="p-5">
-                <p className="text-xs font-medium uppercase tracking-[0.14em] text-slate-500">Rejected</p>
-                <p className="mt-3 text-3xl font-semibold tabular-nums text-rose-300">{report.rejectedCount}</p>
-              </Surface>
-            </div>
-          </div>
-
           {/* Guest list summary */}
           <div>
             <h3 className="mb-3 text-sm font-semibold uppercase tracking-[0.14em] text-slate-500">
               Guest list
             </h3>
-            <div className="grid gap-4 grid-cols-3">
+            <div className="grid gap-4 grid-cols-2 md:grid-cols-3">
               <Surface className="p-5">
-                <p className="text-xs font-medium uppercase tracking-[0.14em] text-slate-500">Total imported</p>
-                <p className="mt-3 text-3xl font-semibold tabular-nums text-slate-200">{report.guestListTotal}</p>
-              </Surface>
-              <Surface className="p-5">
-                <p className="text-xs font-medium uppercase tracking-[0.14em] text-slate-500">Used</p>
-                <p className="mt-3 text-3xl font-semibold tabular-nums text-sky-300">{report.guestListUsed}</p>
+                <p className="text-xs font-medium uppercase tracking-[0.14em] text-slate-500">Total entries</p>
+                <p className="mt-3 text-3xl font-semibold tabular-nums text-slate-200">{report.totalGuestEntries}</p>
               </Surface>
               <Surface className="p-5">
                 <p className="text-xs font-medium uppercase tracking-[0.14em] text-slate-500">Cancelled</p>
-                <p className="mt-3 text-3xl font-semibold tabular-nums text-slate-400">{report.guestListCancelled}</p>
+                <p className="mt-3 text-3xl font-semibold tabular-nums text-slate-400">{report.cancelledGuestEntries}</p>
+              </Surface>
+              <Surface className="p-5">
+                <p className="text-xs font-medium uppercase tracking-[0.14em] text-slate-500">Access sessions</p>
+                <p className="mt-3 text-3xl font-semibold tabular-nums text-sky-300">{report.accessSessionCount}</p>
               </Surface>
             </div>
           </div>
 
-          {/* Incidents */}
-          <Surface className="p-5">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-slate-200">Incidents</p>
-                <p className="mt-1 text-xs text-slate-500">Incidents linked to this event</p>
+          {/* Last session */}
+          {report.lastSessionOpenedAt && (
+            <Surface className="p-5">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-slate-200">Last session opened</p>
+                  <p className="mt-1 text-xs text-slate-500">{formatEventDateTime(report.lastSessionOpenedAt)}</p>
+                </div>
               </div>
-              <p className="text-2xl font-semibold tabular-nums text-slate-200">{report.incidentCount}</p>
-            </div>
-          </Surface>
+            </Surface>
+          )}
         </div>
       )}
     </div>
   );
 }
-

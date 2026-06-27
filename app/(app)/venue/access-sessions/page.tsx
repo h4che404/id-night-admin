@@ -1,16 +1,22 @@
 import { ClipboardList } from "lucide-react";
 
-import { requireBackendProfile } from "@/lib/auth-session";
+import { requireReadyPageAccess } from "@/lib/auth-session";
 import { fetchAccessSessions, fetchMyVenue, fetchVenueEvents } from "@/lib/idnight-backend";
 import { EmptyState, SectionHeader } from "@/components/ui-kit";
 import { AccessSessionsSection } from "@/components/access-sessions-section";
 
 export default async function AccessSessionsPage() {
-  const { session, profile } = await requireBackendProfile();
+  const readyAccess = await requireReadyPageAccess();
+
+  if (!readyAccess) {
+    return null;
+  }
+
+  const { session } = readyAccess;
 
   let venue = null;
   try {
-    venue = await fetchMyVenue(session.accessToken, profile.organizationId);
+    venue = await fetchMyVenue(session.accessToken);
   } catch {
     venue = null;
   }
@@ -34,7 +40,7 @@ export default async function AccessSessionsPage() {
 
   let events: Array<{ id: string; name: string }> = [];
   try {
-    const raw = await fetchVenueEvents(session.accessToken, venue.id);
+    const raw = await fetchVenueEvents(session.accessToken);
     events = raw.map((e) => ({ id: e.id, name: e.name }));
   } catch {
     events = [];
@@ -43,7 +49,7 @@ export default async function AccessSessionsPage() {
   let initialSessions: Awaited<ReturnType<typeof fetchAccessSessions>> = [];
   let initialError: string | null = null;
   try {
-    initialSessions = await fetchAccessSessions(session.accessToken, venue.id);
+    initialSessions = await fetchAccessSessions(session.accessToken);
   } catch (error) {
     initialError =
       error instanceof Error ? error.message : "Could not load access sessions.";
@@ -64,4 +70,3 @@ export default async function AccessSessionsPage() {
     </div>
   );
 }
-

@@ -1,10 +1,16 @@
-import { requireBackendSession } from "@/lib/auth-session";
+import { requireReadyPageAccess } from "@/lib/auth-session";
 import { fetchAdminProfile } from "@/lib/idnight-backend";
 import { OrganizationMembershipDetails } from "@/components/organization-membership-details";
 import { Badge, SectionHeader, Surface } from "@/components/ui-kit";
 
 export default async function AccountPage() {
-  const session = await requireBackendSession();
+  const readyAccess = await requireReadyPageAccess();
+
+  if (!readyAccess) {
+    return null;
+  }
+
+  const { session } = readyAccess;
   const profile = await fetchAdminProfile(session.accessToken);
 
   return (

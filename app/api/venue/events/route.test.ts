@@ -2,7 +2,7 @@
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { MockBackendApiError, requireBackendSession, createVenueEvent } = vi.hoisted(() => {
+const { MockBackendApiError, readReadyVenueApiAccess, createVenueEvent } = vi.hoisted(() => {
   class MockBackendApiError extends Error {
     status: number;
 
@@ -15,32 +15,13 @@ const { MockBackendApiError, requireBackendSession, createVenueEvent } = vi.hois
 
   return {
     MockBackendApiError,
-    requireBackendSession: vi.fn(),
+    readReadyVenueApiAccess: vi.fn(),
     createVenueEvent: vi.fn(),
   };
 });
 
 vi.mock("@/lib/auth-session", () => ({
-  requireBackendSession,
-  requireBackendProfile: async () => {
-    const session = await requireBackendSession();
-    return {
-      session,
-      profile: {
-        id: "admin-1",
-        email: "admin@idnight.app",
-        fullName: "Admin User",
-        role: "Owner",
-        active: true,
-        venueId: "venue-1",
-        venueName: "My Venue",
-        organizationId: "org-1",
-        organizationName: "My Org",
-        membershipRole: "Owner",
-        membershipActive: true,
-      },
-    };
-  },
+  readReadyVenueApiAccess,
 }));
 
 vi.mock("@/lib/idnight-backend", () => ({
@@ -58,16 +39,25 @@ function createRequest(body: BodyInit) {
   });
 }
 
-function createRedirectError() {
-  return Object.assign(new Error("NEXT_REDIRECT"), {
-    digest: "NEXT_REDIRECT;replace;/login;307;",
-  });
-}
-
 describe("/api/venue/events", () => {
   beforeEach(() => {
-    requireBackendSession.mockReset();
-    requireBackendSession.mockResolvedValue({ accessToken: "admin-token", refreshToken: null });
+    readReadyVenueApiAccess.mockReset();
+    readReadyVenueApiAccess.mockResolvedValue({
+      session: { accessToken: "admin-token", refreshToken: null },
+      profile: {
+        id: "admin-1",
+        email: "admin@idnight.app",
+        fullName: "Admin User",
+        role: "Owner",
+        active: true,
+        venueId: "venue-1",
+        venueName: "My Venue",
+        organizationId: "org-1",
+        organizationName: "My Org",
+        membershipRole: "Owner",
+        membershipActive: true,
+      },
+    });
     createVenueEvent.mockReset();
   });
 
@@ -404,22 +394,4 @@ describe("/api/venue/events", () => {
     },
   );
 
-  it("preserves auth redirects raised before proxying", async () => {
-    const redirectError = createRedirectError();
-    requireBackendSession.mockRejectedValue(redirectError);
-
-    await expect(
-      POST(
-        createRequest(
-          JSON.stringify({
-            name: "Friday Opening",
-            startsAt: "2026-06-20T23:00:00.000Z",
-            endsAt: "2026-06-21T05:00:00.000Z",
-          }),
-        ),
-      ),
-    ).rejects.toBe(redirectError);
-
-    expect(createVenueEvent).not.toHaveBeenCalled();
-  });
 });

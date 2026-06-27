@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { MockBackendApiError, requireBackendSession, fetchMyVenue, fetchVenueEvents } = vi.hoisted(() => {
+const { MockBackendApiError, requireBackendProfile, requireReadyPageAccess, fetchMyVenue, fetchVenueEvents } = vi.hoisted(() => {
   class MockBackendApiError extends Error {
     status: number;
 
@@ -14,33 +14,18 @@ const { MockBackendApiError, requireBackendSession, fetchMyVenue, fetchVenueEven
 
   return {
     MockBackendApiError,
-    requireBackendSession: vi.fn(),
+    requireBackendProfile: vi.fn(() => {
+      throw new Error("Legacy ready-only helper should not be used by venue events page");
+    }),
+    requireReadyPageAccess: vi.fn(),
     fetchMyVenue: vi.fn(),
     fetchVenueEvents: vi.fn(),
   };
 });
 
 vi.mock("@/lib/auth-session", () => ({
-  requireBackendSession,
-  requireBackendProfile: async () => {
-    const session = await requireBackendSession();
-    return {
-      session,
-      profile: {
-        id: "admin-1",
-        email: "admin@idnight.app",
-        fullName: "Admin User",
-        role: "Owner",
-        active: true,
-        venueId: "venue-1",
-        venueName: "My Venue",
-        organizationId: "org-1",
-        organizationName: "My Org",
-        membershipRole: "Owner",
-        membershipActive: true,
-      },
-    };
-  },
+  requireBackendProfile,
+  requireReadyPageAccess,
 }));
 
 vi.mock("@/lib/idnight-backend", () => ({
@@ -61,10 +46,37 @@ import VenueEventsPage from "@/app/(app)/venue/events/page";
 
 describe("VenueEventsPage", () => {
   beforeEach(() => {
-    requireBackendSession.mockReset();
-    requireBackendSession.mockResolvedValue({ accessToken: "admin-token", refreshToken: null });
+    requireBackendProfile.mockClear();
+    requireReadyPageAccess.mockReset();
+    requireReadyPageAccess.mockResolvedValue({
+      session: { accessToken: "admin-token", refreshToken: null },
+      profile: {
+        id: "admin-1",
+        email: "admin@idnight.app",
+        fullName: "Admin User",
+        role: "Owner",
+        active: true,
+        venueId: "venue-1",
+        venueName: "My Venue",
+        organizationId: "org-1",
+        organizationName: "My Org",
+        membershipRole: "Owner",
+        membershipActive: true,
+      },
+    });
+    requireBackendProfile.mockReset();
     fetchMyVenue.mockReset();
     fetchVenueEvents.mockReset();
+  });
+
+  it("stops before venue work when access is degraded so the layout limited shell stays in control", async () => {
+    requireReadyPageAccess.mockResolvedValue(null);
+
+    const { container } = render(await VenueEventsPage());
+
+    expect(container).toBeEmptyDOMElement();
+    expect(fetchMyVenue).not.toHaveBeenCalled();
+    expect(fetchVenueEvents).not.toHaveBeenCalled();
   });
 
   it("shows the no-venue empty state when the venue does not exist", async () => {

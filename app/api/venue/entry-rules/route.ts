@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { requireBackendProfile } from "@/lib/auth-session";
+import { readReadyVenueApiAccess } from "@/lib/auth-session";
 import { BackendApiError, fetchMyVenueEntryRules, updateMyVenueEntryRules } from "@/lib/idnight-backend";
 
 function routeErrorResponse(error: unknown, fallbackMessage: string) {
@@ -11,15 +11,16 @@ function routeErrorResponse(error: unknown, fallbackMessage: string) {
 }
 
 export async function GET() {
-  const { session, profile } = await requireBackendProfile();
-  const venueId = profile.venueId;
+  const auth = await readReadyVenueApiAccess();
 
-  if (!venueId) {
-    return NextResponse.json({ message: "No venue associated." }, { status: 404 });
+  if ("response" in auth) {
+    return auth.response;
   }
 
+  const { session } = auth;
+
   try {
-    const rules = await fetchMyVenueEntryRules(session.accessToken, venueId);
+    const rules = await fetchMyVenueEntryRules(session.accessToken);
     return NextResponse.json(rules);
   } catch (error) {
     return routeErrorResponse(error, "No se pudieron cargar los requisitos de ingreso.");
@@ -91,19 +92,19 @@ export async function PUT(request: Request) {
     notes: body.notes,
   };
 
-  const { session, profile } = await requireBackendProfile();
-  const venueId = profile.venueId;
+  const auth = await readReadyVenueApiAccess();
 
-  if (!venueId) {
-    return NextResponse.json({ message: "No venue associated." }, { status: 404 });
+  if ("response" in auth) {
+    return auth.response;
   }
 
+  const { session } = auth;
+
   try {
-    await updateMyVenueEntryRules(session.accessToken, venueId, payload);
+    await updateMyVenueEntryRules(session.accessToken, payload);
 
     return NextResponse.json({ ok: true });
   } catch (error) {
     return routeErrorResponse(error, "No se pudieron guardar los requisitos de ingreso.");
   }
 }
-

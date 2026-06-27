@@ -2,7 +2,7 @@
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { MockBackendApiError, requireBackendSession, createVenueDevice, updateVenueDevice, toggleVenueDeviceStatus } = vi.hoisted(() => {
+const { MockBackendApiError, readReadyVenueApiAccess, createVenueDevice, updateVenueDevice, toggleVenueDeviceStatus } = vi.hoisted(() => {
   class MockBackendApiError extends Error {
     status: number;
 
@@ -15,7 +15,7 @@ const { MockBackendApiError, requireBackendSession, createVenueDevice, updateVen
 
   return {
     MockBackendApiError,
-    requireBackendSession: vi.fn(),
+    readReadyVenueApiAccess: vi.fn(),
     createVenueDevice: vi.fn(),
     updateVenueDevice: vi.fn(),
     toggleVenueDeviceStatus: vi.fn(),
@@ -23,26 +23,7 @@ const { MockBackendApiError, requireBackendSession, createVenueDevice, updateVen
 });
 
 vi.mock("@/lib/auth-session", () => ({
-  requireBackendSession,
-  requireBackendProfile: async () => {
-    const session = await requireBackendSession();
-    return {
-      session,
-      profile: {
-        id: "admin-1",
-        email: "admin@idnight.app",
-        fullName: "Admin User",
-        role: "Owner",
-        active: true,
-        venueId: "venue-1",
-        venueName: "My Venue",
-        organizationId: "org-1",
-        organizationName: "My Org",
-        membershipRole: "Owner",
-        membershipActive: true,
-      },
-    };
-  },
+  readReadyVenueApiAccess,
 }));
 
 vi.mock("@/lib/idnight-backend", () => ({
@@ -62,16 +43,25 @@ function createRequest(method: "POST" | "PUT" | "PATCH", body: BodyInit) {
   });
 }
 
-function createRedirectError() {
-  return Object.assign(new Error("NEXT_REDIRECT"), {
-    digest: "NEXT_REDIRECT;replace;/login;307;",
-  });
-}
-
 describe("/api/venue/devices", () => {
   beforeEach(() => {
-    requireBackendSession.mockReset();
-    requireBackendSession.mockResolvedValue({ accessToken: "admin-token", refreshToken: null });
+    readReadyVenueApiAccess.mockReset();
+    readReadyVenueApiAccess.mockResolvedValue({
+      session: { accessToken: "admin-token", refreshToken: null },
+      profile: {
+        id: "admin-1",
+        email: "admin@idnight.app",
+        fullName: "Admin User",
+        role: "Owner",
+        active: true,
+        venueId: "venue-1",
+        venueName: "My Venue",
+        organizationId: "org-1",
+        organizationName: "My Org",
+        membershipRole: "Owner",
+        membershipActive: true,
+      },
+    });
     createVenueDevice.mockReset();
     updateVenueDevice.mockReset();
     toggleVenueDeviceStatus.mockReset();
@@ -101,22 +91,6 @@ describe("/api/venue/devices", () => {
       name: "Tablet puerta",
       serialNumber: "door-01",
     });
-  });
-
-  it("preserves auth redirects raised before proxying", async () => {
-    const redirectError = createRedirectError();
-    requireBackendSession.mockRejectedValue(redirectError);
-
-    await expect(
-      POST(
-        createRequest(
-          "POST",
-          JSON.stringify({ name: "Tablet puerta", deviceKey: "door-01" }),
-        ),
-      ),
-    ).rejects.toBe(redirectError);
-
-    expect(createVenueDevice).not.toHaveBeenCalled();
   });
 
   it("preserves backend error status on update", async () => {

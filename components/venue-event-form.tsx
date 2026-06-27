@@ -32,11 +32,11 @@ export function VenueEventForm({ event, onClose }: VenueEventFormProps = {}) {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState(event?.name ?? "");
   const [startsAt, setStartsAt] = useState(event ? isoToUtcDateTimeInput(event.startsAt) : "");
-  const [endsAt, setEndsAt] = useState(event ? isoToUtcDateTimeInput(event.endsAt) : "");
+  const [endsAt, setEndsAt] = useState(event ? isoToUtcDateTimeInput(event.endsAt ?? "") : "");
   const [maxCapacity, setMaxCapacity] = useState(
     event?.maxCapacity != null ? String(event.maxCapacity) : "",
   );
-  const [minAge, setMinAge] = useState(event?.minAge !== undefined ? String(event.minAge) : "0");
+  const [minAge, setMinAge] = useState(event?.minAge != null ? String(event.minAge) : "0");
   const [allowManualDniCheck, setAllowManualDniCheck] = useState(
     event?.allowManualDniCheck ?? true,
   );

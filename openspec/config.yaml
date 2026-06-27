@@ -1,0 +1,49 @@
+schema: spec-driven
+project: id-night-admin
+version: 1.0.0
+strict_tdd: true
+context: |
+  Stack: Next.js 16.2.6 App Router with React 19.2.0 and TypeScript 6.0.3.
+  Styling: Tailwind CSS 4.2.4 with globals.css.
+  Architecture: server-first app routes and layouts with shared backend-session helpers.
+  Testing: Vitest 3.2.4 with jsdom defaults and node-environment route-handler tests.
+  Quality: ESLint 9.39.4, strict TypeScript, @/* path alias to repo root.
+  SDD mode: hybrid; all technical artifacts remain in English.
+rules:
+  proposal:
+    - Include rollback notes for risky auth/session changes.
+  specs:
+    - Use Given/When/Then scenarios.
+    - Use RFC 2119 language for requirements.
+  design:
+    - Explain the server/client boundary and auth flow impact.
+    - Document tradeoffs for cache, cookies, and backend calls.
+  tasks:
+    - Group work by phase with small, reviewable steps.
+  apply:
+    - Follow existing code patterns.
+    - Keep strict TDD enabled unless a future init explicitly changes it.
+  verify:
+    test_command: npm run test
+    build_command: npm run build
+    lint_command: npm run lint
+  archive:
+    - Preserve audit trail by moving completed changes into openspec/changes/archive/YYYY-MM-DD-{change-name}/.
+testing:
+  runner: vitest
+  environment: jsdom
+  test_command: npm run test
+  coverage_command: npm run test -- --coverage
+  watch_command: npm run test:watch
+  setup_file: ./vitest.setup.ts
+  config_file: ./vitest.config.ts
+  capabilities:
+    unit_testing: true
+    component_testing: true
+    route_handler_contract_tests: true
+    node_env_tests: true
+    dom_assertions: true
+    mock_clearing: true
+    auto_cleanup: true
+    integration_harness: false
+    e2e_testing: false

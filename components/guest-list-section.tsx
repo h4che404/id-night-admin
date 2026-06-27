@@ -97,7 +97,7 @@ export function GuestListSection({
     return (
       entry.firstName.toLowerCase().includes(q) ||
       entry.lastName.toLowerCase().includes(q) ||
-      entry.dniSuffix.includes(q)
+      entry.dni.includes(q)
     );
   });
 
@@ -137,7 +137,7 @@ export function GuestListSection({
                 <ul className="mt-2 space-y-1">
                   {uploadResult.errors.map((err, i) => (
                     <li key={i} className="text-xs text-rose-300">
-                      Row {err.row} — {err.field}: {err.reason}
+                      Row {err.row} — {err.reason}
                     </li>
                   ))}
                 </ul>
@@ -194,7 +194,7 @@ export function GuestListSection({
                     </p>
                   </td>
                   <td className="px-5 py-4 font-mono text-sm text-slate-300">
-                    {maskDni(entry.dniSuffix)}
+                    {maskDni(entry.dni)}
                   </td>
                   <td className="px-5 py-4 text-sm text-slate-300">
                     {entry.category ?? <span className="text-slate-600">—</span>}
@@ -207,7 +207,7 @@ export function GuestListSection({
                   </td>
                   <td className="px-5 py-4">
                     <div className="flex flex-wrap items-center gap-2">
-                      {entry.status === "ACTIVE" && (
+                      {entry.status === "active" && (
                         <button
                           onClick={() => handleCancel(entry.id)}
                           disabled={cancellingId === entry.id}

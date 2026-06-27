@@ -3,7 +3,7 @@ import { Smartphone, SmartphoneCharging } from "lucide-react";
 import { Badge, DataShell, DataTable, EmptyState, SectionHeader } from "@/components/ui-kit";
 import { VenueDeviceActions } from "@/components/venue-device-actions";
 import { VenueDeviceForm } from "@/components/venue-device-form";
-import { requireBackendProfile } from "@/lib/auth-session";
+import { requireReadyPageAccess } from "@/lib/auth-session";
 import { fetchMyVenue, fetchVenueDevices } from "@/lib/idnight-backend";
 
 function formatDateTime(value: string | null) {
@@ -22,24 +22,18 @@ function formatDateTime(value: string | null) {
   }).format(date);
 }
 
-function statusTone(status: string) {
-  if (status === "ACTIVE") {
-    return "success" as const;
-  }
-
-  if (status === "REVOKED") {
-    return "danger" as const;
-  }
-
-  return "warning" as const;
-}
-
 export default async function VenueDevicesPage() {
-  const { session, profile } = await requireBackendProfile();
+  const readyAccess = await requireReadyPageAccess();
+
+  if (!readyAccess) {
+    return null;
+  }
+
+  const { session } = readyAccess;
 
   let venue = null;
   try {
-    venue = await fetchMyVenue(session.accessToken, profile.organizationId);
+    venue = await fetchMyVenue(session.accessToken);
   } catch {
     venue = null;
   }
@@ -64,7 +58,7 @@ export default async function VenueDevicesPage() {
   let devices: Awaited<ReturnType<typeof fetchVenueDevices>> = [];
   let devicesError: string | null = null;
   try {
-    devices = await fetchVenueDevices(session.accessToken, venue.id);
+    devices = await fetchVenueDevices(session.accessToken);
   } catch (error) {
     devicesError = error instanceof Error ? error.message : "No se pudieron cargar los dispositivos autorizados.";
   }
@@ -98,14 +92,11 @@ export default async function VenueDevicesPage() {
           subtitle={`${devices.length} dispositivo${devices.length === 1 ? "" : "s"} autorizado${devices.length === 1 ? "" : "s"}`}
         >
           <DataTable
-            columns={["Dispositivo", "Clave", "Estado", "Última actividad", "Acciones"]}
+            columns={["Dispositivo", "Clave", "Estado", "Registrado", "Acciones"]}
             rows={devices.map((device) => (
               <tr key={device.id} className="align-top hover:bg-slate-950/20">
                 <td className="px-5 py-4">
                   <p className="font-medium text-slate-100">{device.name}</p>
-                  <p className="mt-1 text-xs text-slate-500">
-                    {device.accessPointName ? `Último punto: ${device.accessPointName}` : "Sin punto de acceso asociado"}
-                  </p>
                 </td>
                 <td className="px-5 py-4">
                   <code className="rounded-xl border border-slate-800 bg-slate-950/40 px-3 py-1.5 text-xs text-sky-100">
@@ -113,9 +104,12 @@ export default async function VenueDevicesPage() {
                   </code>
                 </td>
                 <td className="px-5 py-4">
-                  <Badge label={device.statusLabel} tone={statusTone(device.status)} />
+                  <Badge
+                    label={device.active ? "Activo" : "Inactivo"}
+                    tone={device.active ? "success" : "warning"}
+                  />
                 </td>
-                <td className="px-5 py-4 text-sm text-slate-300">{formatDateTime(device.lastActivityAt)}</td>
+                <td className="px-5 py-4 text-sm text-slate-300">{formatDateTime(device.createdAt)}</td>
                 <td className="px-5 py-4">
                   <VenueDeviceActions
                     deviceId={device.id}

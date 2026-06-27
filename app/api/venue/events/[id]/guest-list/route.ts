@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireBackendProfile } from "@/lib/auth-session";
+import { readReadyVenueApiAccess } from "@/lib/auth-session";
 import { BackendApiError, fetchEventGuestList, uploadEventGuestList } from "@/lib/idnight-backend";
 
 function routeErrorResponse(error: unknown, fallbackMessage: string) {
@@ -13,15 +13,16 @@ function routeErrorResponse(error: unknown, fallbackMessage: string) {
 
 export async function GET(request: Request, props: { params: Promise<{ id: string }> }) {
   const params = await props.params;
-  const { session, profile } = await requireBackendProfile();
-  const venueId = profile.venueId;
+  const auth = await readReadyVenueApiAccess();
 
-  if (!venueId) {
-    return NextResponse.json({ message: "No venue associated." }, { status: 404 });
+  if ("response" in auth) {
+    return auth.response;
   }
 
+  const { session } = auth;
+
   try {
-    const entries = await fetchEventGuestList(session.accessToken, venueId, params.id);
+    const entries = await fetchEventGuestList(session.accessToken, params.id);
     return NextResponse.json(entries);
   } catch (error) {
     return routeErrorResponse(error, "Could not load the guest list.");
@@ -30,6 +31,14 @@ export async function GET(request: Request, props: { params: Promise<{ id: strin
 
 export async function POST(request: Request, props: { params: Promise<{ id: string }> }) {
   const params = await props.params;
+
+  const auth = await readReadyVenueApiAccess();
+
+  if ("response" in auth) {
+    return auth.response;
+  }
+
+  const { session } = auth;
 
   let formData: FormData;
   try {
@@ -60,18 +69,10 @@ export async function POST(request: Request, props: { params: Promise<{ id: stri
     return NextResponse.json({ message: "The file is empty." }, { status: 400 });
   }
 
-  const { session, profile } = await requireBackendProfile();
-  const venueId = profile.venueId;
-
-  if (!venueId) {
-    return NextResponse.json({ message: "No venue associated." }, { status: 404 });
-  }
-
   try {
-    const result = await uploadEventGuestList(session.accessToken, venueId, params.id, formData);
+    const result = await uploadEventGuestList(session.accessToken, params.id, formData);
     return NextResponse.json(result);
   } catch (error) {
     return routeErrorResponse(error, "Could not import the guest list.");
   }
 }
-

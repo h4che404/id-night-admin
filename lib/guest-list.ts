@@ -12,13 +12,13 @@ export function isValidGuestListFile(file: File): boolean {
   return (hasValidExt || hasValidMime) && file.size > 0;
 }
 
-export function maskDni(dniSuffix: string): string {
-  return `****${dniSuffix}`;
+export function maskDni(dni: string): string {
+  return `****${dni.slice(-4)}`;
 }
 
 export function guestListStatusTone(status: string) {
-  if (status === "ACTIVE") return "success" as const;
-  if (status === "USED") return "neutral" as const;
-  if (status === "CANCELLED") return "danger" as const;
+  if (status === "active") return "success" as const;
+  if (status === "used") return "neutral" as const;
+  if (status === "cancelled") return "danger" as const;
   return "info" as const;
 }

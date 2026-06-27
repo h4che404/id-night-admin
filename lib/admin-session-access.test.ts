@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { MockBackendApiError, requireBackendSession, bootstrapMe, fetchVenues } = vi.hoisted(() => {
+const { MockBackendApiError, bootstrapMe, fetchVenues } = vi.hoisted(() => {
   class MockBackendApiError extends Error {
     status: number;
 
@@ -13,7 +13,6 @@ const { MockBackendApiError, requireBackendSession, bootstrapMe, fetchVenues } =
 
   return {
     MockBackendApiError,
-    requireBackendSession: vi.fn(),
     bootstrapMe: vi.fn(),
     fetchVenues: vi.fn(),
   };
@@ -25,7 +24,17 @@ vi.mock("@/lib/idnight-backend", () => ({
   fetchVenues,
 }));
 
-import { resolveAdminSessionAccess } from "@/lib/admin-session-access";
+import {
+  resolveAdminSessionAccess,
+  resolveAdminSessionAccessUncached,
+} from "@/lib/admin-session-access";
+
+function createAccessToken(payload: Record<string, unknown>) {
+  const encode = (value: Record<string, unknown>) =>
+    Buffer.from(JSON.stringify(value)).toString("base64url");
+
+  return `${encode({ alg: "HS256", typ: "JWT" })}.${encode(payload)}.signature`;
+}
 
 describe("resolveAdminSessionAccess", () => {
   beforeEach(() => {
@@ -33,7 +42,7 @@ describe("resolveAdminSessionAccess", () => {
     fetchVenues.mockReset();
   });
 
-  it("returns admin access when the operator profile exists", async () => {
+  it("returns a ready state with legacy venue fallback when organization and venue exist", async () => {
     bootstrapMe.mockResolvedValue({
       id: "operator-1",
       email: "owner@example.com",
@@ -42,12 +51,20 @@ describe("resolveAdminSessionAccess", () => {
     });
     fetchVenues.mockResolvedValue([{ id: "venue-1", name: "My Venue" }]);
 
-    await expect(resolveAdminSessionAccess("valid-token")).resolves.toMatchObject({
-      kind: "admin",
+    await expect(
+      resolveAdminSessionAccessUncached(
+        createAccessToken({
+          email: "owner@example.com",
+          user_metadata: { firstName: "Ada", lastName: "Lovelace" },
+        }),
+      ),
+    ).resolves.toMatchObject({
+      state: "ready",
+      venueSource: "legacy-fallback",
       profile: {
         id: "operator-1",
         email: "owner@example.com",
-        fullName: "owner@example.com",
+        fullName: "Ada Lovelace",
         role: "Owner",
         active: true,
         venueId: "venue-1",
@@ -58,7 +75,7 @@ describe("resolveAdminSessionAccess", () => {
     });
   });
 
-  it("routes authenticated users without operators to onboarding", async () => {
+  it("routes authenticated users without an organization to onboarding-needed", async () => {
     bootstrapMe.mockResolvedValue({
       id: "operator-1",
       email: "owner@example.com",
@@ -66,34 +83,89 @@ describe("resolveAdminSessionAccess", () => {
       organization: null,
     });
 
-    await expect(resolveAdminSessionAccess("pending-owner-token")).resolves.toMatchObject({
-      kind: "onboarding",
+    await expect(
+      resolveAdminSessionAccessUncached(createAccessToken({ email: "owner@example.com" })),
+    ).resolves.toMatchObject({
+      state: "onboarding-needed",
       onboarding: { needsOnboarding: true, hasOperatorProfile: true },
     });
   });
 
-  it("keeps invalid sessions on login instead of looping", async () => {
+  it("returns unauthorized for expired sessions instead of forcing a login kind", async () => {
     bootstrapMe.mockRejectedValue(new MockBackendApiError("Unauthorized", 401));
 
-    await expect(resolveAdminSessionAccess("expired-token")).resolves.toEqual({ kind: "login" });
+    await expect(
+      resolveAdminSessionAccessUncached(createAccessToken({ email: "owner@example.com" })),
+    ).resolves.toEqual({ state: "unauthorized" });
   });
 
-  it("keeps non-onboarding access failures on login", async () => {
-    bootstrapMe.mockRejectedValue(new MockBackendApiError("Forbidden", 403));
-
-    await expect(resolveAdminSessionAccess("guard-token")).resolves.toEqual({ kind: "login" });
-  });
-
-  it("returns degraded kind for server errors", async () => {
+  it("returns degraded bootstrap access with derived identity when backend bootstrap fails", async () => {
     bootstrapMe.mockRejectedValue(new MockBackendApiError("Internal Server Error", 500));
 
-    await expect(resolveAdminSessionAccess("broken-token")).resolves.toEqual({ kind: "degraded" });
+    await expect(
+      resolveAdminSessionAccessUncached(
+        createAccessToken({
+          email: "owner@example.com",
+          user_metadata: { firstName: "Ada", lastName: "Lovelace" },
+        }),
+      ),
+    ).resolves.toMatchObject({
+      state: "degraded",
+      reason: "bootstrap",
+      identity: {
+        email: "owner@example.com",
+        firstName: "Ada",
+        lastName: "Lovelace",
+        fullName: "Ada Lovelace",
+      },
+    });
+  });
+
+  it("returns degraded venue-fallback access when venue lookup fails after bootstrap succeeds", async () => {
+    bootstrapMe.mockResolvedValue({
+      id: "operator-1",
+      email: "owner@example.com",
+      status: "active",
+      organization: { id: "org-1", name: "My Org" },
+    });
+    fetchVenues.mockRejectedValue(new MockBackendApiError("Venue lookup unavailable", 503));
+
+    await expect(
+      resolveAdminSessionAccessUncached(createAccessToken({ email: "owner@example.com" })),
+    ).resolves.toMatchObject({
+      state: "degraded",
+      reason: "venue-fallback",
+    });
+  });
+
+  it("deduplicates repeated resolution calls for the same request token", async () => {
+    bootstrapMe.mockResolvedValue({
+      id: "operator-1",
+      email: "owner@example.com",
+      status: "active",
+      organization: { id: "org-1", name: "My Org" },
+    });
+    fetchVenues.mockResolvedValue([{ id: "venue-1", name: "My Venue" }]);
+
+    const accessToken = createAccessToken({ email: "owner@example.com" });
+
+    const [first, second] = await Promise.all([
+      resolveAdminSessionAccess(accessToken),
+      resolveAdminSessionAccess(accessToken),
+    ]);
+
+    expect(first).toMatchObject({ state: "ready" });
+    expect(second).toMatchObject({ state: "ready" });
+    expect(bootstrapMe).toHaveBeenCalledTimes(1);
+    expect(fetchVenues).toHaveBeenCalledTimes(1);
   });
 
   it("rethrows unexpected admin profile errors", async () => {
     bootstrapMe.mockRejectedValue(new MockBackendApiError("Bad Request", 400));
 
-    await expect(resolveAdminSessionAccess("broken-token")).rejects.toMatchObject({
+    await expect(
+      resolveAdminSessionAccessUncached(createAccessToken({ email: "owner@example.com" })),
+    ).rejects.toMatchObject({
       message: "Bad Request",
       status: 400,
     });

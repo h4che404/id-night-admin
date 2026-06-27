@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { requireBackendProfile } from "@/lib/auth-session";
+import { readReadyVenueApiAccess } from "@/lib/auth-session";
 import { BackendApiError, fetchAccessSessions } from "@/lib/idnight-backend";
 
 function routeErrorResponse(error: unknown, fallbackMessage: string) {
@@ -17,24 +17,22 @@ export async function GET(request: Request) {
 
   const params = {
     eventId: searchParams.get("eventId") ?? undefined,
-    method: searchParams.get("method") ?? undefined,
-    result: searchParams.get("result") ?? undefined,
-    fromDate: searchParams.get("fromDate") ?? undefined,
-    toDate: searchParams.get("toDate") ?? undefined,
+    operatorId: searchParams.get("operatorId") ?? undefined,
+    status: searchParams.get("status") ?? undefined,
   };
 
-  const { session, profile } = await requireBackendProfile();
-  const venueId = profile.venueId;
+  const auth = await readReadyVenueApiAccess();
 
-  if (!venueId) {
-    return NextResponse.json({ message: "No venue associated." }, { status: 404 });
+  if ("response" in auth) {
+    return auth.response;
   }
 
+  const { session } = auth;
+
   try {
-    const sessions = await fetchAccessSessions(session.accessToken, venueId, params);
+    const sessions = await fetchAccessSessions(session.accessToken, params);
     return NextResponse.json(sessions);
   } catch (error) {
     return routeErrorResponse(error, "Could not load access sessions.");
   }
 }
-

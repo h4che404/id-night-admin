@@ -2,7 +2,7 @@
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { MockBackendApiError, requireBackendSession, updateVenueEvent } = vi.hoisted(() => {
+const { MockBackendApiError, readReadyVenueApiAccess, updateVenueEvent } = vi.hoisted(() => {
   class MockBackendApiError extends Error {
     status: number;
 
@@ -15,32 +15,13 @@ const { MockBackendApiError, requireBackendSession, updateVenueEvent } = vi.hois
 
   return {
     MockBackendApiError,
-    requireBackendSession: vi.fn(),
+    readReadyVenueApiAccess: vi.fn(),
     updateVenueEvent: vi.fn(),
   };
 });
 
 vi.mock("@/lib/auth-session", () => ({
-  requireBackendSession,
-  requireBackendProfile: async () => {
-    const session = await requireBackendSession();
-    return {
-      session,
-      profile: {
-        id: "admin-1",
-        email: "admin@idnight.app",
-        fullName: "Admin User",
-        role: "Owner",
-        active: true,
-        venueId: "venue-1",
-        venueName: "My Venue",
-        organizationId: "org-1",
-        organizationName: "My Org",
-        membershipRole: "Owner",
-        membershipActive: true,
-      },
-    };
-  },
+  readReadyVenueApiAccess,
 }));
 
 vi.mock("@/lib/idnight-backend", () => ({
@@ -62,17 +43,71 @@ function createParams(id: string) {
   return { params: Promise.resolve({ id }) };
 }
 
-function createRedirectError() {
-  return Object.assign(new Error("NEXT_REDIRECT"), {
-    digest: "NEXT_REDIRECT;replace;/login;307;",
-  });
-}
-
 describe("/api/venue/events/[id]", () => {
   beforeEach(() => {
-    requireBackendSession.mockReset();
-    requireBackendSession.mockResolvedValue({ accessToken: "admin-token", refreshToken: null });
+    readReadyVenueApiAccess.mockReset();
+    readReadyVenueApiAccess.mockResolvedValue({
+      session: { accessToken: "admin-token", refreshToken: null },
+      profile: {
+        id: "admin-1",
+        email: "admin@idnight.app",
+        fullName: "Admin User",
+        role: "Owner",
+        active: true,
+        venueId: "venue-1",
+        venueName: "My Venue",
+        organizationId: "org-1",
+        organizationName: "My Org",
+        membershipRole: "Owner",
+        membershipActive: true,
+      },
+    });
     updateVenueEvent.mockReset();
+  });
+
+  it("returns 401 JSON when venue event updates are unauthenticated", async () => {
+    readReadyVenueApiAccess.mockResolvedValue({
+      response: new Response(JSON.stringify({ message: "Authentication required." }), {
+        status: 401,
+        headers: { "Content-Type": "application/json" },
+      }),
+    });
+
+    const response = await PATCH(createRequest(JSON.stringify({ name: "Friday Opening" }), "event-1"), createParams("event-1"));
+
+    expect(response.status).toBe(401);
+    expect(await response.json()).toEqual({ message: "Authentication required." });
+    expect(updateVenueEvent).not.toHaveBeenCalled();
+  });
+
+  it("returns 403 JSON when venue event updates are blocked by incomplete admin setup", async () => {
+    readReadyVenueApiAccess.mockResolvedValue({
+      response: new Response(JSON.stringify({ message: "Complete organization setup before using venue APIs." }), {
+        status: 403,
+        headers: { "Content-Type": "application/json" },
+      }),
+    });
+
+    const response = await PATCH(createRequest(JSON.stringify({ name: "Friday Opening" }), "event-1"), createParams("event-1"));
+
+    expect(response.status).toBe(403);
+    expect(await response.json()).toEqual({ message: "Complete organization setup before using venue APIs." });
+    expect(updateVenueEvent).not.toHaveBeenCalled();
+  });
+
+  it("returns 503 JSON when venue event updates are blocked by degraded admin context", async () => {
+    readReadyVenueApiAccess.mockResolvedValue({
+      response: new Response(JSON.stringify({ message: "Admin context is temporarily unavailable. Please retry shortly." }), {
+        status: 503,
+        headers: { "Content-Type": "application/json" },
+      }),
+    });
+
+    const response = await PATCH(createRequest(JSON.stringify({ name: "Friday Opening" }), "event-1"), createParams("event-1"));
+
+    expect(response.status).toBe(503);
+    expect(await response.json()).toEqual({ message: "Admin context is temporarily unavailable. Please retry shortly." });
+    expect(updateVenueEvent).not.toHaveBeenCalled();
   });
 
   it("rejects invalid JSON bodies", async () => {
@@ -349,14 +384,4 @@ describe("/api/venue/events/[id]", () => {
     expect(await response.json()).toEqual({ message: "Could not update the event." });
   });
 
-  it("rethrows auth redirects", async () => {
-    const redirectError = createRedirectError();
-    requireBackendSession.mockRejectedValue(redirectError);
-
-    await expect(
-      PATCH(createRequest(JSON.stringify({ name: "Friday Opening" }), "event-1"), createParams("event-1")),
-    ).rejects.toBe(redirectError);
-
-    expect(updateVenueEvent).not.toHaveBeenCalled();
-  });
 });

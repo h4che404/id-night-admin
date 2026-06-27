@@ -1,7 +1,8 @@
 import { Shield, Settings2, Smartphone, Building2 } from "lucide-react";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 
-import { requireBackendProfile } from "@/lib/auth-session";
+import { requireAdminAccess } from "@/lib/auth-session";
 import {
   fetchMyVenue,
   fetchDashboardMetrics,
@@ -37,11 +38,25 @@ function MetricCard({
 }
 
 export default async function VenuePage() {
-  const { session, profile } = await requireBackendProfile();
+  const { session, access } = await requireAdminAccess();
+
+  if (access.state === "onboarding-needed") {
+    redirect("/owner-onboarding");
+  }
+
+  if (access.state === "unauthorized") {
+    redirect("/login");
+  }
+
+  if (access.state === "degraded") {
+    return null;
+  }
+
+  const { profile } = access;
 
   let venue = null;
   try {
-    venue = await fetchMyVenue(session.accessToken, profile.organizationId);
+    venue = await fetchMyVenue(session.accessToken);
   } catch (error) {
     if (error instanceof BackendApiError && error.status === 404) {
       venue = null;
@@ -69,16 +84,19 @@ export default async function VenuePage() {
 
   /* ── Fetch metrics with graceful fallback ────────────────────── */
   let metrics: BackendDashboardMetrics = {
-    eventsToday: 0,
-    activeEventsNow: 0,
-    admissionsToday: 0,
-    rejectionsToday: 0,
-    warningsToday: 0,
+    venueId: "",
+    totalEvents: 0,
+    upcomingEvents: 0,
+    activeEvents: 0,
+    totalOperators: 0,
+    activeDevices: 0,
     openIncidents: 0,
+    totalGuestEntriesAllEvents: 0,
+    admissionsToday: 0,
   };
   let metricsError: string | null = null;
   try {
-    metrics = await fetchDashboardMetrics(session.accessToken, venue.id);
+    metrics = await fetchDashboardMetrics(session.accessToken);
   } catch {
     metricsError = "Metrics unavailable — backend not connected yet.";
   }
@@ -94,11 +112,11 @@ export default async function VenuePage() {
 
       {/* Operational metrics */}
       <div className="grid gap-4 grid-cols-2 md:grid-cols-3">
-        <MetricCard label="Events today" value={metrics.eventsToday} tone="info" />
-        <MetricCard label="Active now" value={metrics.activeEventsNow} tone="success" />
+        <MetricCard label="Total events" value={metrics.totalEvents} tone="info" />
+        <MetricCard label="Active now" value={metrics.activeEvents} tone="success" />
         <MetricCard label="Admissions today" value={metrics.admissionsToday} tone="success" />
-        <MetricCard label="Rejections today" value={metrics.rejectionsToday} tone="danger" />
-        <MetricCard label="Warnings today" value={metrics.warningsToday} tone="warning" />
+        <MetricCard label="Active devices" value={metrics.activeDevices} tone="info" />
+        <MetricCard label="Operators" value={metrics.totalOperators} tone="neutral" />
         <MetricCard label="Open incidents" value={metrics.openIncidents} tone="neutral" />
       </div>
 

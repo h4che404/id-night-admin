@@ -2,7 +2,7 @@
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { MockBackendApiError, requireBackendSession, fetchEventGuestList, uploadEventGuestList } =
+const { MockBackendApiError, readReadyVenueApiAccess, fetchEventGuestList, uploadEventGuestList } =
   vi.hoisted(() => {
     class MockBackendApiError extends Error {
       status: number;
@@ -16,33 +16,14 @@ const { MockBackendApiError, requireBackendSession, fetchEventGuestList, uploadE
 
     return {
       MockBackendApiError,
-      requireBackendSession: vi.fn(),
+      readReadyVenueApiAccess: vi.fn(),
       fetchEventGuestList: vi.fn(),
       uploadEventGuestList: vi.fn(),
     };
   });
 
 vi.mock("@/lib/auth-session", () => ({
-  requireBackendSession,
-  requireBackendProfile: async () => {
-    const session = await requireBackendSession();
-    return {
-      session,
-      profile: {
-        id: "admin-1",
-        email: "admin@idnight.app",
-        fullName: "Admin User",
-        role: "Owner",
-        active: true,
-        venueId: "venue-1",
-        venueName: "My Venue",
-        organizationId: "org-1",
-        organizationName: "My Org",
-        membershipRole: "Owner",
-        membershipActive: true,
-      },
-    };
-  },
+  readReadyVenueApiAccess,
 }));
 
 vi.mock("@/lib/idnight-backend", () => ({
@@ -66,18 +47,27 @@ function createGetRequest(id: string) {
   return new Request(`http://localhost/api/venue/events/${id}/guest-list`);
 }
 
-function createRedirectError() {
-  return Object.assign(new Error("NEXT_REDIRECT"), {
-    digest: "NEXT_REDIRECT;replace;/login;307;",
-  });
-}
-
 const mockParams = (id: string) => ({ params: Promise.resolve({ id }) });
 
 describe("/api/venue/events/[id]/guest-list POST", () => {
   beforeEach(() => {
-    requireBackendSession.mockReset();
-    requireBackendSession.mockResolvedValue({ accessToken: "admin-token", refreshToken: null });
+    readReadyVenueApiAccess.mockReset();
+    readReadyVenueApiAccess.mockResolvedValue({
+      session: { accessToken: "admin-token", refreshToken: null },
+      profile: {
+        id: "admin-1",
+        email: "admin@idnight.app",
+        fullName: "Admin User",
+        role: "Owner",
+        active: true,
+        venueId: "venue-1",
+        venueName: "My Venue",
+        organizationId: "org-1",
+        organizationName: "My Org",
+        membershipRole: "Owner",
+        membershipActive: true,
+      },
+    });
     uploadEventGuestList.mockReset();
   });
 
@@ -161,21 +151,27 @@ describe("/api/venue/events/[id]/guest-list POST", () => {
     expect(await response.json()).toEqual({ message: "Could not import the guest list." });
   });
 
-  it("rethrows auth redirects", async () => {
-    const redirectError = createRedirectError();
-    requireBackendSession.mockRejectedValue(redirectError);
-
-    const file = new File(["data"], "guests.csv", { type: "text/csv" });
-    await expect(POST(createUploadRequest(file, "evt-1"), mockParams("evt-1"))).rejects.toBe(
-      redirectError,
-    );
-  });
 });
 
 describe("/api/venue/events/[id]/guest-list GET", () => {
   beforeEach(() => {
-    requireBackendSession.mockReset();
-    requireBackendSession.mockResolvedValue({ accessToken: "admin-token", refreshToken: null });
+    readReadyVenueApiAccess.mockReset();
+    readReadyVenueApiAccess.mockResolvedValue({
+      session: { accessToken: "admin-token", refreshToken: null },
+      profile: {
+        id: "admin-1",
+        email: "admin@idnight.app",
+        fullName: "Admin User",
+        role: "Owner",
+        active: true,
+        venueId: "venue-1",
+        venueName: "My Venue",
+        organizationId: "org-1",
+        organizationName: "My Org",
+        membershipRole: "Owner",
+        membershipActive: true,
+      },
+    });
     fetchEventGuestList.mockReset();
   });
 

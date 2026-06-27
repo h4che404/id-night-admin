@@ -4,27 +4,24 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { PrimaryButton, Surface } from "@/components/ui-kit";
-import { BackendIncidentDetail } from "@/lib/idnight-backend";
+import type { BackendIncidentDetail } from "@/lib/idnight-backend";
 
 export function VenueIncidentForm({
   incident,
-  events = [],
 }: {
   incident: BackendIncidentDetail;
-  events?: Array<{ id: string; name: string }>;
 }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const [severity, setSeverity] = useState(incident.severity);
-  const [status, setStatus] = useState(incident.status);
-  const [category, setCategory] = useState(incident.category ?? "");
-  const [eventId, setEventId] = useState(incident.eventId ?? "");
-  const [description, setDescription] = useState(incident.description || "");
+  const [title, setTitle] = useState(incident.title);
+  const [status, setStatus] = useState<"open" | "closed">(incident.status);
+  const [description, setDescription] = useState(incident.description ?? "");
+  const [resolution, setResolution] = useState(incident.resolution ?? "");
 
-  async function handleSubmit(event: React.FormEvent) {
-    event.preventDefault();
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
     setLoading(true);
     setError(null);
 
@@ -33,11 +30,10 @@ export function VenueIncidentForm({
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          severity,
+          title: title || undefined,
           status,
-          category: category || null,
-          eventId: eventId || null,
-          description,
+          description: description || null,
+          resolution: resolution || null,
         }),
       });
 
@@ -48,8 +44,8 @@ export function VenueIncidentForm({
           if (payload.message) {
             errorMessage = payload.message;
           }
-        } catch (e) {
-          // Fall back to default error message if JSON parsing fails
+        } catch {
+          // Fall back to default error message
         }
         throw new Error(errorMessage);
       }
@@ -73,77 +69,32 @@ export function VenueIncidentForm({
           </div>
         ) : null}
 
-        <div className="grid gap-6 md:grid-cols-2">
-          <div>
-            <label htmlFor="status" className="mb-2 block text-sm font-medium text-slate-300">Estado</label>
-            <select
-              id="status"
-              value={status}
-              onChange={(e) => setStatus(e.target.value)}
-              className="w-full rounded-2xl border border-slate-800 bg-slate-950/40 px-4 py-3.5 text-slate-100 outline-none focus:border-sky-400/30 transition"
-            >
-              <option value="REPORTED">Reportado</option>
-              <option value="REVIEWED">Revisado</option>
-              <option value="DISMISSED">Desestimado</option>
-            </select>
-          </div>
-
-          <div>
-            <label htmlFor="severity" className="mb-2 block text-sm font-medium text-slate-300">Severidad</label>
-            <select
-              id="severity"
-              value={severity}
-              onChange={(e) => setSeverity(e.target.value)}
-              className="w-full rounded-2xl border border-slate-800 bg-slate-950/40 px-4 py-3.5 text-slate-100 outline-none focus:border-sky-400/30 transition"
-            >
-              <option value="LOW">Baja</option>
-              <option value="MEDIUM">Media</option>
-              <option value="HIGH">Alta</option>
-              <option value="CRITICAL">Crítica</option>
-            </select>
-          </div>
+        <div>
+          <label htmlFor="title" className="mb-2 block text-sm font-medium text-slate-300">Título</label>
+          <input
+            id="title"
+            type="text"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            className="w-full rounded-2xl border border-slate-800 bg-slate-950/40 px-4 py-3.5 text-slate-100 outline-none focus:border-sky-400/30 transition"
+          />
         </div>
 
         <div>
-          <label htmlFor="category" className="mb-2 block text-sm font-medium text-slate-300">Categoría</label>
+          <label htmlFor="status" className="mb-2 block text-sm font-medium text-slate-300">Estado</label>
           <select
-            id="category"
-            value={category}
-            onChange={(e) => setCategory(e.target.value)}
+            id="status"
+            value={status}
+            onChange={(e) => setStatus(e.target.value as "open" | "closed")}
             className="w-full rounded-2xl border border-slate-800 bg-slate-950/40 px-4 py-3.5 text-slate-100 outline-none focus:border-sky-400/30 transition"
           >
-            <option value="">Sin categoría</option>
-            <option value="ACCESS_ISSUE">Problema de acceso</option>
-            <option value="DOCUMENT_OR_IDENTITY_ISSUE">Problema de documento / identidad</option>
-            <option value="TICKET_OR_GUEST_LIST_ISSUE">Problema con ticket / lista</option>
-            <option value="AGGRESSIVE_BEHAVIOR">Comportamiento agresivo</option>
-            <option value="PHYSICAL_ALTERCATION">Altercado físico</option>
-            <option value="HARASSMENT_OR_THREAT">Acoso o amenaza</option>
-            <option value="INTOXICATION_OR_MEDICAL_ASSISTANCE">Intoxicación / asistencia médica</option>
-            <option value="PROPERTY_DAMAGE_OR_REPORTED_THEFT">Daño a la propiedad / robo denunciado</option>
-            <option value="OTHER">Otro</option>
+            <option value="open">Abierto</option>
+            <option value="closed">Cerrado</option>
           </select>
         </div>
 
-        {events.length > 0 && (
-          <div>
-            <label htmlFor="eventId" className="mb-2 block text-sm font-medium text-slate-300">Vincular a evento</label>
-            <select
-              id="eventId"
-              value={eventId}
-              onChange={(e) => setEventId(e.target.value)}
-              className="w-full rounded-2xl border border-slate-800 bg-slate-950/40 px-4 py-3.5 text-slate-100 outline-none focus:border-sky-400/30 transition"
-            >
-              <option value="">Sin evento</option>
-              {events.map((ev) => (
-                <option key={ev.id} value={ev.id}>{ev.name}</option>
-              ))}
-            </select>
-          </div>
-        )}
-
         <div>
-          <label htmlFor="description" className="mb-2 block text-sm font-medium text-slate-300">Descripción detallada</label>
+          <label htmlFor="description" className="mb-2 block text-sm font-medium text-slate-300">Descripción</label>
           <textarea
             id="description"
             value={description}
@@ -151,6 +102,18 @@ export function VenueIncidentForm({
             rows={4}
             className="w-full rounded-2xl border border-slate-800 bg-slate-950/40 px-4 py-3.5 text-slate-100 outline-none focus:border-sky-400/30 transition resize-none"
             placeholder="Añadir detalles adicionales del incidente..."
+          />
+        </div>
+
+        <div>
+          <label htmlFor="resolution" className="mb-2 block text-sm font-medium text-slate-300">Resolución</label>
+          <textarea
+            id="resolution"
+            value={resolution}
+            onChange={(e) => setResolution(e.target.value)}
+            rows={3}
+            className="w-full rounded-2xl border border-slate-800 bg-slate-950/40 px-4 py-3.5 text-slate-100 outline-none focus:border-sky-400/30 transition resize-none"
+            placeholder="Describir cómo se resolvió el incidente..."
           />
         </div>
 

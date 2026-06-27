@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireBackendProfile } from "@/lib/auth-session";
+import { readReadyVenueApiAccess } from "@/lib/auth-session";
 import { BackendApiError, cancelGuestListEntry } from "@/lib/idnight-backend";
 
 function routeErrorResponse(error: unknown, fallbackMessage: string) {
@@ -16,18 +16,18 @@ export async function PATCH(
   props: { params: Promise<{ id: string; entryId: string }> },
 ) {
   const params = await props.params;
-  const { session, profile } = await requireBackendProfile();
-  const venueId = profile.venueId;
+  const auth = await readReadyVenueApiAccess();
 
-  if (!venueId) {
-    return NextResponse.json({ message: "No venue associated." }, { status: 404 });
+  if ("response" in auth) {
+    return auth.response;
   }
 
+  const { session } = auth;
+
   try {
-    const entry = await cancelGuestListEntry(session.accessToken, venueId, params.id, params.entryId);
+    const entry = await cancelGuestListEntry(session.accessToken, params.id, params.entryId);
     return NextResponse.json(entry);
   } catch (error) {
     return routeErrorResponse(error, "Could not cancel the guest list entry.");
   }
 }
-

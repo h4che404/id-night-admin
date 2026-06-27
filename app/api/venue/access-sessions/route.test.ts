@@ -2,7 +2,7 @@
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { MockBackendApiError, requireBackendSession, fetchAccessSessions } = vi.hoisted(() => {
+const { MockBackendApiError, readReadyVenueApiAccess, fetchAccessSessions } = vi.hoisted(() => {
   class MockBackendApiError extends Error {
     status: number;
 
@@ -15,32 +15,13 @@ const { MockBackendApiError, requireBackendSession, fetchAccessSessions } = vi.h
 
   return {
     MockBackendApiError,
-    requireBackendSession: vi.fn(),
+    readReadyVenueApiAccess: vi.fn(),
     fetchAccessSessions: vi.fn(),
   };
 });
 
 vi.mock("@/lib/auth-session", () => ({
-  requireBackendSession,
-  requireBackendProfile: async () => {
-    const session = await requireBackendSession();
-    return {
-      session,
-      profile: {
-        id: "admin-1",
-        email: "admin@idnight.app",
-        fullName: "Admin User",
-        role: "Owner",
-        active: true,
-        venueId: "venue-1",
-        venueName: "My Venue",
-        organizationId: "org-1",
-        organizationName: "My Org",
-        membershipRole: "Owner",
-        membershipActive: true,
-      },
-    };
-  },
+  readReadyVenueApiAccess,
 }));
 
 vi.mock("@/lib/idnight-backend", () => ({
@@ -52,12 +33,6 @@ import { GET } from "@/app/api/venue/access-sessions/route";
 
 function createRequest(search = "") {
   return new Request(`http://localhost/api/venue/access-sessions${search}`);
-}
-
-function createRedirectError() {
-  return Object.assign(new Error("NEXT_REDIRECT"), {
-    digest: "NEXT_REDIRECT;replace;/login;307;",
-  });
 }
 
 const SESSION_FIXTURE = [
@@ -76,8 +51,23 @@ const SESSION_FIXTURE = [
 
 describe("/api/venue/access-sessions", () => {
   beforeEach(() => {
-    requireBackendSession.mockReset();
-    requireBackendSession.mockResolvedValue({ accessToken: "admin-token", refreshToken: null });
+    readReadyVenueApiAccess.mockReset();
+    readReadyVenueApiAccess.mockResolvedValue({
+      session: { accessToken: "admin-token", refreshToken: null },
+      profile: {
+        id: "admin-1",
+        email: "admin@idnight.app",
+        fullName: "Admin User",
+        role: "Owner",
+        active: true,
+        venueId: "venue-1",
+        venueName: "My Venue",
+        organizationId: "org-1",
+        organizationName: "My Org",
+        membershipRole: "Owner",
+        membershipActive: true,
+      },
+    });
     fetchAccessSessions.mockReset();
   });
 
@@ -177,12 +167,4 @@ describe("/api/venue/access-sessions", () => {
     expect(await response.json()).toEqual({ message: "Could not load access sessions." });
   });
 
-  it("rethrows NEXT_REDIRECT raised by requireBackendSession", async () => {
-    const redirectError = createRedirectError();
-    requireBackendSession.mockRejectedValue(redirectError);
-
-    await expect(GET(createRequest())).rejects.toBe(redirectError);
-
-    expect(fetchAccessSessions).not.toHaveBeenCalled();
-  });
 });

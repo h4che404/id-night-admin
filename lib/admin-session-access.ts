@@ -1,104 +1,200 @@
+import { cache } from "react";
+
 import {
   BackendApiError,
   bootstrapMe,
-  fetchVenues,
+  fetchMyVenue,
   type BackendAdminMe,
   type BackendOwnerOnboardingStatus,
 } from "@/lib/idnight-backend";
 
+const inFlightAccessResolutions = new Map<string, Promise<ResolvedAdminSessionAccess>>();
+
+export type JwtIdentity = {
+  email: string | null;
+  firstName: string;
+  lastName: string;
+  fullName: string;
+};
+
 export type ResolvedAdminSessionAccess =
   | {
-      kind: "admin";
+      state: "ready";
       profile: BackendAdminMe;
+      venueSource: "legacy-fallback";
     }
   | {
-      kind: "onboarding";
+      state: "onboarding-needed";
       onboarding: BackendOwnerOnboardingStatus;
     }
   | {
-      kind: "degraded";
+      state: "degraded";
+      identity: JwtIdentity | null;
+      reason: "bootstrap" | "venue-fallback";
     }
   | {
-      kind: "login";
+      state: "unauthorized";
     };
 
-function parseJwt(token: string) {
+type JwtPayload = {
+  email?: string;
+  user_metadata?: {
+    firstName?: string;
+    lastName?: string;
+  };
+};
+
+function parseJwt(token: string): JwtPayload | null {
   try {
     const base64Url = token.split(".")[1];
+
+    if (!base64Url) {
+      return null;
+    }
+
     const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
     const jsonPayload = Buffer.from(base64, "base64").toString("utf8");
-    return JSON.parse(jsonPayload);
+    return JSON.parse(jsonPayload) as JwtPayload;
   } catch {
     return null;
   }
 }
 
-export async function resolveAdminSessionAccess(
+function deriveIdentity(token: string, fallbackEmail?: string): JwtIdentity | null {
+  const jwt = parseJwt(token);
+
+  if (!jwt?.email && !fallbackEmail) {
+    return null;
+  }
+
+  const firstName = jwt?.user_metadata?.firstName?.trim() ?? "";
+  const lastName = jwt?.user_metadata?.lastName?.trim() ?? "";
+  const email = jwt?.email ?? fallbackEmail ?? null;
+  const fullName = [firstName, lastName].filter(Boolean).join(" ") || email || "Authenticated admin";
+
+  return {
+    email,
+    firstName,
+    lastName,
+    fullName,
+  };
+}
+
+function buildReadyProfile(
+  accessToken: string,
+  bootstrap: Awaited<ReturnType<typeof bootstrapMe>>,
+  venue: { id: string; name: string },
+) {
+  const identity = deriveIdentity(accessToken, bootstrap.email);
+
+  return {
+    id: bootstrap.id,
+    email: bootstrap.email,
+    firstName: identity?.firstName ?? "",
+    lastName: identity?.lastName ?? "",
+    fullName: identity?.fullName ?? bootstrap.email,
+    role: bootstrap.membershipRole ?? "Owner",
+    active: bootstrap.status === "active",
+    venueId: venue.id,
+    venueName: venue.name,
+    organizationId: bootstrap.organizationId,
+    organizationName: bootstrap.organizationName,
+    membershipRole: bootstrap.membershipRole,
+    membershipActive: bootstrap.status === "active",
+  } satisfies BackendAdminMe;
+}
+
+function buildOnboardingAccess(
+  bootstrap: Awaited<ReturnType<typeof bootstrapMe>>,
+): Extract<ResolvedAdminSessionAccess, { state: "onboarding-needed" }> {
+  return {
+    state: "onboarding-needed",
+    onboarding: {
+      needsOnboarding: true,
+      hasOperatorProfile: true,
+      operatorRole: bootstrap.membershipRole ?? "Owner",
+      organizationId: bootstrap.organizationId,
+      organizationName: bootstrap.organizationName,
+      venueId: null,
+      venueName: null,
+    },
+  };
+}
+
+export async function resolveAdminSessionAccessUncached(
   accessToken: string,
 ): Promise<ResolvedAdminSessionAccess> {
+  const fallbackIdentity = deriveIdentity(accessToken);
+
   try {
     const bootstrap = await bootstrapMe(accessToken);
-    const jwt = parseJwt(accessToken);
 
-    const firstName = jwt?.user_metadata?.firstName || "";
-    const lastName = jwt?.user_metadata?.lastName || "";
-    const fullName = [firstName, lastName].filter(Boolean).join(" ") || jwt?.email || bootstrap.email;
-
-    if (!bootstrap.organization) {
-      return {
-        kind: "onboarding",
-        onboarding: {
-          needsOnboarding: true,
-          hasOperatorProfile: true,
-          operatorRole: "Owner",
-          organizationId: null,
-          organizationName: null,
-          venueId: null,
-          venueName: null,
-        },
-      };
+    if (bootstrap.organizationId === null) {
+      return buildOnboardingAccess(bootstrap);
     }
-
-    let venueId: string | null = null;
-    let venueName: string | null = null;
 
     try {
-      const venues = await fetchVenues(accessToken, bootstrap.organization.id);
-      if (venues && venues.length > 0) {
-        venueId = venues[0].id;
-        venueName = venues[0].name;
+      const venue = await fetchMyVenue(accessToken);
+
+      return {
+        state: "ready",
+        profile: buildReadyProfile(accessToken, bootstrap, venue),
+        venueSource: "legacy-fallback",
+      };
+    } catch (error) {
+      if (error instanceof BackendApiError) {
+        if (error.status === 404) {
+          return buildOnboardingAccess(bootstrap);
+        }
+
+        if (error.status === 401 || error.status === 403) {
+          return { state: "unauthorized" };
+        }
+
+        if (error.status >= 500) {
+          return {
+            state: "degraded",
+            identity: deriveIdentity(accessToken, bootstrap.email),
+            reason: "venue-fallback",
+          };
+        }
       }
-    } catch {
-      // Ignorar fallo de listado de venues y permitir inicialización degradada o creación de venue
+
+      throw error;
     }
-
-    const profile: BackendAdminMe = {
-      id: bootstrap.id,
-      email: bootstrap.email,
-      firstName,
-      lastName,
-      fullName,
-      role: "Owner",
-      active: bootstrap.status === "active",
-      venueId,
-      venueName,
-      organizationId: bootstrap.organization.id,
-      organizationName: bootstrap.organization.name,
-      membershipRole: "Owner",
-      membershipActive: true,
-    };
-
-    return { kind: "admin", profile };
   } catch (error) {
     if (error instanceof BackendApiError) {
       if (error.status >= 500) {
-        return { kind: "degraded" };
+        return {
+          state: "degraded",
+          identity: fallbackIdentity,
+          reason: "bootstrap",
+        };
       }
+
       if (error.status === 401 || error.status === 403) {
-        return { kind: "login" };
+        return { state: "unauthorized" };
       }
     }
+
     throw error;
   }
 }
 
+async function resolveAdminSessionAccessCached(accessToken: string) {
+  const existingResolution = inFlightAccessResolutions.get(accessToken);
+
+  if (existingResolution) {
+    return existingResolution;
+  }
+
+  const resolution = resolveAdminSessionAccessUncached(accessToken).finally(() => {
+    inFlightAccessResolutions.delete(accessToken);
+  });
+
+  inFlightAccessResolutions.set(accessToken, resolution);
+
+  return resolution;
+}
+
+export const resolveAdminSessionAccess = cache(resolveAdminSessionAccessCached);

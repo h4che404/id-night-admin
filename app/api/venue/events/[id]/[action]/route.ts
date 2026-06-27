@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { requireBackendProfile } from "@/lib/auth-session";
+import { readReadyVenueApiAccess } from "@/lib/auth-session";
 import {
   activateVenueEvent,
   BackendApiError,
@@ -11,7 +11,7 @@ import {
 const VALID_ACTIONS = ["activate", "finish", "cancel"] as const;
 type ValidAction = (typeof VALID_ACTIONS)[number];
 
-const BACKEND_ACTION: Record<ValidAction, (token: string, venueId: string, id: string) => Promise<unknown>> = {
+const BACKEND_ACTION: Record<ValidAction, (token: string, id: string) => Promise<unknown>> = {
   activate: activateVenueEvent,
   finish: finishVenueEvent,
   cancel: cancelVenueEvent,
@@ -39,18 +39,18 @@ export async function POST(
 
   const action = params.action as ValidAction;
 
-  const { session, profile } = await requireBackendProfile();
-  const venueId = profile.venueId;
+  const auth = await readReadyVenueApiAccess();
 
-  if (!venueId) {
-    return NextResponse.json({ message: "No venue associated." }, { status: 404 });
+  if ("response" in auth) {
+    return auth.response;
   }
 
+  const { session } = auth;
+
   try {
-    await BACKEND_ACTION[action](session.accessToken, venueId, params.id);
+    await BACKEND_ACTION[action](session.accessToken, params.id);
     return NextResponse.json({ ok: true });
   } catch (error) {
     return routeErrorResponse(error, `Could not ${action} the event.`);
   }
 }
-

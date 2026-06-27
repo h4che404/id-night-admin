@@ -13,11 +13,11 @@ export default async function RegisterPage() {
   if (session) {
     const access = await resolveAdminSessionAccess(session.accessToken);
 
-    if (access.kind === "admin") {
+    if (access.state === "ready" || access.state === "degraded") {
       redirect("/venue");
     }
 
-    if (access.kind === "onboarding") {
+    if (access.state === "onboarding-needed") {
       redirect("/owner-onboarding");
     }
   }

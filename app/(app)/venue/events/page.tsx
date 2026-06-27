@@ -2,18 +2,24 @@ import { CalendarDays, CalendarRange } from "lucide-react";
 
 import { EmptyState, SectionHeader } from "@/components/ui-kit";
 import { VenueEventsSection } from "@/components/venue-events-section";
-import { requireBackendProfile } from "@/lib/auth-session";
+import { requireReadyPageAccess } from "@/lib/auth-session";
 import { fetchMyVenue, fetchVenueEvents } from "@/lib/idnight-backend";
 import { getSafeEventErrorMessage, isVenueMissingError } from "@/lib/venue-events";
 
 export default async function VenueEventsPage() {
-  const { session, profile } = await requireBackendProfile();
+  const readyAccess = await requireReadyPageAccess();
+
+  if (!readyAccess) {
+    return null;
+  }
+
+  const { session } = readyAccess;
 
   let venue: Awaited<ReturnType<typeof fetchMyVenue>> | null = null;
   let venueError: string | null = null;
 
   try {
-    venue = await fetchMyVenue(session.accessToken, profile.organizationId);
+    venue = await fetchMyVenue(session.accessToken);
   } catch (error) {
     if (isVenueMissingError(error)) {
       venue = null;
@@ -59,7 +65,7 @@ export default async function VenueEventsPage() {
   let events: Awaited<ReturnType<typeof fetchVenueEvents>> = [];
   let eventsError: string | null = null;
   try {
-    events = await fetchVenueEvents(session.accessToken, venue.id);
+    events = await fetchVenueEvents(session.accessToken);
   } catch (error) {
     eventsError = getSafeEventErrorMessage(error, "Could not load venue events. Please try again.");
   }

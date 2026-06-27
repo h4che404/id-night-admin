@@ -2,7 +2,7 @@
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { MockBackendApiError, requireBackendSession, cancelGuestListEntry } = vi.hoisted(() => {
+const { MockBackendApiError, readReadyVenueApiAccess, cancelGuestListEntry } = vi.hoisted(() => {
   class MockBackendApiError extends Error {
     status: number;
 
@@ -15,32 +15,13 @@ const { MockBackendApiError, requireBackendSession, cancelGuestListEntry } = vi.
 
   return {
     MockBackendApiError,
-    requireBackendSession: vi.fn(),
+    readReadyVenueApiAccess: vi.fn(),
     cancelGuestListEntry: vi.fn(),
   };
 });
 
 vi.mock("@/lib/auth-session", () => ({
-  requireBackendSession,
-  requireBackendProfile: async () => {
-    const session = await requireBackendSession();
-    return {
-      session,
-      profile: {
-        id: "admin-1",
-        email: "admin@idnight.app",
-        fullName: "Admin User",
-        role: "Owner",
-        active: true,
-        venueId: "venue-1",
-        venueName: "My Venue",
-        organizationId: "org-1",
-        organizationName: "My Org",
-        membershipRole: "Owner",
-        membershipActive: true,
-      },
-    };
-  },
+  readReadyVenueApiAccess,
 }));
 
 vi.mock("@/lib/idnight-backend", () => ({
@@ -56,20 +37,29 @@ function createPatchRequest(id: string, entryId: string) {
   });
 }
 
-function createRedirectError() {
-  return Object.assign(new Error("NEXT_REDIRECT"), {
-    digest: "NEXT_REDIRECT;replace;/login;307;",
-  });
-}
-
 const mockParams = (id: string, entryId: string) => ({
   params: Promise.resolve({ id, entryId }),
 });
 
 describe("/api/venue/events/[id]/guest-list/[entryId] PATCH", () => {
   beforeEach(() => {
-    requireBackendSession.mockReset();
-    requireBackendSession.mockResolvedValue({ accessToken: "admin-token", refreshToken: null });
+    readReadyVenueApiAccess.mockReset();
+    readReadyVenueApiAccess.mockResolvedValue({
+      session: { accessToken: "admin-token", refreshToken: null },
+      profile: {
+        id: "admin-1",
+        email: "admin@idnight.app",
+        fullName: "Admin User",
+        role: "Owner",
+        active: true,
+        venueId: "venue-1",
+        venueName: "My Venue",
+        organizationId: "org-1",
+        organizationName: "My Org",
+        membershipRole: "Owner",
+        membershipActive: true,
+      },
+    });
     cancelGuestListEntry.mockReset();
   });
 
@@ -133,12 +123,4 @@ describe("/api/venue/events/[id]/guest-list/[entryId] PATCH", () => {
     expect(await response.json()).toEqual({ message: "Could not cancel the guest list entry." });
   });
 
-  it("rethrows auth redirects", async () => {
-    const redirectError = createRedirectError();
-    requireBackendSession.mockRejectedValue(redirectError);
-
-    await expect(
-      PATCH(createPatchRequest("evt-1", "entry-1"), mockParams("evt-1", "entry-1")),
-    ).rejects.toBe(redirectError);
-  });
 });

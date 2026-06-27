@@ -144,7 +144,8 @@ export function formatEventDateTime(value: string) {
   }).format(date);
 }
 
-export function formatEventSchedule(startsAt: string, endsAt: string) {
+export function formatEventSchedule(startsAt: string, endsAt: string | null) {
+  if (!endsAt) return formatEventDateTime(startsAt);
   return `${formatEventDateTime(startsAt)} → ${formatEventDateTime(endsAt)}`;
 }
 

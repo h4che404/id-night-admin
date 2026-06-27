@@ -1,18 +1,24 @@
 import { Shield, UserPlus } from "lucide-react";
 
-import { requireBackendProfile } from "@/lib/auth-session";
-import { fetchSecurityUsers, fetchMyVenue, BackendApiError } from "@/lib/idnight-backend";
+import { requireReadyPageAccess } from "@/lib/auth-session";
+import { fetchSecurityUsers, fetchMyVenue } from "@/lib/idnight-backend";
 import { Badge, DataShell, DataTable, EmptyState, SectionHeader } from "@/components/ui-kit";
 import { SecurityUserForm } from "@/components/security-user-form";
 import { SecurityUserActions } from "@/components/security-user-actions";
 
 export default async function SecurityPage() {
-  const { session, profile } = await requireBackendProfile();
+  const readyAccess = await requireReadyPageAccess();
+
+  if (!readyAccess) {
+    return null;
+  }
+
+  const { session } = readyAccess;
 
   /* Check venue exists */
   let venue = null;
   try {
-    venue = await fetchMyVenue(session.accessToken, profile.organizationId);
+    venue = await fetchMyVenue(session.accessToken);
   } catch {
     venue = null;
   }
@@ -37,7 +43,7 @@ export default async function SecurityPage() {
   /* Fetch security users */
   let users: Awaited<ReturnType<typeof fetchSecurityUsers>> = [];
   try {
-    users = await fetchSecurityUsers(session.accessToken, venue.id);
+    users = await fetchSecurityUsers(session.accessToken);
   } catch {
     users = [];
   }
@@ -89,4 +95,3 @@ export default async function SecurityPage() {
     </div>
   );
 }
-

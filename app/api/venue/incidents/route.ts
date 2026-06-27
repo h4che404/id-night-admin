@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { requireBackendProfile } from "@/lib/auth-session";
+import { readReadyVenueApiAccess } from "@/lib/auth-session";
 import { BackendApiError, fetchVenueIncidents } from "@/lib/idnight-backend";
 
 function routeErrorResponse(error: unknown, fallbackMessage: string) {
@@ -11,18 +11,18 @@ function routeErrorResponse(error: unknown, fallbackMessage: string) {
 }
 
 export async function GET() {
-  const { session, profile } = await requireBackendProfile();
-  const venueId = profile.venueId;
+  const auth = await readReadyVenueApiAccess();
 
-  if (!venueId) {
-    return NextResponse.json({ message: "No venue associated." }, { status: 404 });
+  if ("response" in auth) {
+    return auth.response;
   }
 
+  const { session } = auth;
+
   try {
-    const data = await fetchVenueIncidents(session.accessToken, venueId);
+    const data = await fetchVenueIncidents(session.accessToken);
     return NextResponse.json(data);
   } catch (error) {
     return routeErrorResponse(error, "No se pudieron obtener los incidentes.");
   }
 }
-
