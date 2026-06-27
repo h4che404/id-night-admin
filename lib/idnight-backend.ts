@@ -29,6 +29,15 @@ export type BackendVenue = {
   active: boolean;
 };
 
+export type BackendVenueSummary = {
+  id: string;
+  name: string;
+  slug: string | null;
+  address: string | null;
+  city: string | null;
+  active: boolean;
+};
+
 export type BackendVenueEvent = {
   id: string;
   venueId: string;
@@ -107,6 +116,11 @@ export type BackendOwnerOnboardingResponse = {
   operatorRole: string;
 };
 
+export type BackendReactivateResponse = {
+  venueId: string;
+  venueName: string;
+};
+
 export type BackendGuestListEntry = {
   id: string;
   eventId: string;
@@ -163,22 +177,37 @@ export type BackendBootstrapResponse = {
   id: string;
   supabaseId: string | null;
   email: string;
+  adminContextMode?: BackendBootstrapAdminContextMode | null;
   status: "active" | "PENDING_ACTIVATION";
   createdAt: string;
   organizationId: string | null;
   organizationName: string | null;
   membershipRole: string | null;
+  primaryVenue?: BackendBootstrapPrimaryVenue | null;
+};
+
+export type BackendBootstrapAdminContextMode = "legacy-fallback" | "enriched";
+
+export type BackendBootstrapPrimaryVenue = {
+  id: string;
+  name: string;
+  slug?: string | null;
+  address?: string | null;
+  city?: string | null;
+  active: boolean;
 };
 
 /* ── API error ─────────────────────────────────────────────────── */
 
 export class BackendApiError extends Error {
   status: number;
+  code: string | null;
 
-  constructor(message: string, status: number) {
+  constructor(message: string, status: number, code: string | null = null) {
     super(message);
     this.name = "BackendApiError";
     this.status = status;
+    this.code = code;
   }
 }
 
@@ -251,6 +280,45 @@ async function readBackendErrorMessage(response: Response) {
   }
 }
 
+async function readBackendError(response: Response): Promise<{ message: string; code: string | null }> {
+  const fallbackMessage = `Backend request failed (${response.status})`;
+  let code: string | null = null;
+
+  let rawBody = "";
+  try {
+    rawBody = await response.text();
+  } catch {
+    return { message: fallbackMessage, code };
+  }
+
+  const normalizedBody = rawBody.trim();
+  if (!normalizedBody) {
+    return { message: fallbackMessage, code };
+  }
+
+  try {
+    const payload = JSON.parse(normalizedBody) as
+      | { message?: unknown; detail?: unknown; error?: unknown; title?: unknown; code?: unknown }
+      | string;
+
+    if (typeof payload === "string" && payload.trim()) {
+      return { message: payload.trim(), code };
+    }
+
+    if (typeof payload === "object" && payload !== null) {
+      if (typeof payload.code === "string" && payload.code.trim()) {
+        code = payload.code.trim();
+      }
+      const message = extractBackendErrorMessage(payload) ?? normalizedBody;
+      return { message, code };
+    }
+
+    return { message: normalizedBody, code };
+  } catch {
+    return { message: normalizedBody, code };
+  }
+}
+
 async function performBackendFetch(path: string, options: RequestOptions = {}) {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), options.timeoutMs ?? 5000);
@@ -286,8 +354,8 @@ async function backendRequest<T>(path: string, options: RequestOptions = {}): Pr
   const response = await performBackendFetch(path, options);
 
   if (!response.ok) {
-    const message = await readBackendErrorMessage(response);
-    throw new BackendApiError(message, response.status);
+    const { message, code } = await readBackendError(response);
+    throw new BackendApiError(message, response.status, code);
   }
 
   if (response.status === 204) {
@@ -295,6 +363,43 @@ async function backendRequest<T>(path: string, options: RequestOptions = {}): Pr
   }
 
   return (await response.json()) as T;
+}
+
+type VenueSummarySource = Pick<BackendBootstrapPrimaryVenue, "id" | "name" | "active"> & {
+  slug?: string | null;
+  address?: string | null;
+  city?: string | null;
+};
+
+export function resolveBootstrapAdminContextMode(
+  bootstrap: Pick<BackendBootstrapResponse, "adminContextMode">,
+): BackendBootstrapAdminContextMode {
+  return bootstrap.adminContextMode === "enriched" ? "enriched" : "legacy-fallback";
+}
+
+export function normalizeVenueSummary(venue: VenueSummarySource | null | undefined): BackendVenueSummary | null {
+  if (!venue) {
+    return null;
+  }
+
+  return {
+    id: venue.id,
+    name: venue.name,
+    slug: venue.slug ?? null,
+    address: venue.address ?? null,
+    city: venue.city ?? null,
+    active: venue.active,
+  };
+}
+
+export function resolveBootstrapPrimaryVenueSummary(
+  bootstrap: BackendBootstrapResponse,
+): BackendVenueSummary | null {
+  if (resolveBootstrapAdminContextMode(bootstrap) !== "enriched") {
+    return null;
+  }
+
+  return normalizeVenueSummary(bootstrap.primaryVenue);
 }
 
 /* ── Bootstrap / Auth ───────────────────────────────────────────── */
@@ -310,6 +415,8 @@ export function bootstrapMe(token: string) {
 
 export async function fetchAdminProfile(token: string): Promise<BackendAdminMe> {
   const bootstrap = await bootstrapMe(token);
+  const venueSummary = resolveBootstrapPrimaryVenueSummary(bootstrap);
+
   return {
     id: bootstrap.id,
     email: bootstrap.email,
@@ -318,8 +425,8 @@ export async function fetchAdminProfile(token: string): Promise<BackendAdminMe> 
     fullName: bootstrap.email,
     role: bootstrap.membershipRole ?? "Owner",
     active: bootstrap.status === "active",
-    venueId: null,
-    venueName: null,
+    venueId: venueSummary?.id ?? null,
+    venueName: venueSummary?.name ?? null,
     organizationId: bootstrap.organizationId,
     organizationName: bootstrap.organizationName,
     membershipRole: bootstrap.membershipRole,
@@ -348,6 +455,13 @@ export function createOwnerOnboarding(
     token,
     method: "POST",
     body: data,
+  });
+}
+
+export function reactivateOperator(token: string) {
+  return backendRequest<BackendReactivateResponse>("/organizations/onboarding/reactivate", {
+    token,
+    method: "POST",
   });
 }
 
@@ -500,8 +614,8 @@ export async function uploadEventGuestList(
   );
 
   if (!response.ok) {
-    const message = await readBackendErrorMessage(response);
-    throw new BackendApiError(message, response.status);
+    const { message, code } = await readBackendError(response);
+    throw new BackendApiError(message, response.status, code);
   }
 
   return response.json() as Promise<BackendGuestListImportResult>;

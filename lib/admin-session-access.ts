@@ -6,9 +6,15 @@ import {
   fetchMyVenue,
   type BackendAdminMe,
   type BackendOwnerOnboardingStatus,
+  type BackendVenueSummary,
+  normalizeVenueSummary,
+  resolveBootstrapAdminContextMode,
+  resolveBootstrapPrimaryVenueSummary,
 } from "@/lib/idnight-backend";
 
 const inFlightAccessResolutions = new Map<string, Promise<ResolvedAdminSessionAccess>>();
+
+export type AdminVenueSummary = BackendVenueSummary;
 
 export type JwtIdentity = {
   email: string | null;
@@ -21,7 +27,8 @@ export type ResolvedAdminSessionAccess =
   | {
       state: "ready";
       profile: BackendAdminMe;
-      venueSource: "legacy-fallback";
+      venueSummary: AdminVenueSummary;
+      venueSource: "bootstrap" | "legacy-fallback";
     }
   | {
       state: "onboarding-needed";
@@ -30,7 +37,7 @@ export type ResolvedAdminSessionAccess =
   | {
       state: "degraded";
       identity: JwtIdentity | null;
-      reason: "bootstrap" | "venue-fallback";
+      reason: "bootstrap" | "venue-fallback" | "operator-inactive";
     }
   | {
       state: "unauthorized";
@@ -83,7 +90,7 @@ function deriveIdentity(token: string, fallbackEmail?: string): JwtIdentity | nu
 function buildReadyProfile(
   accessToken: string,
   bootstrap: Awaited<ReturnType<typeof bootstrapMe>>,
-  venue: { id: string; name: string },
+  venueSummary: AdminVenueSummary,
 ) {
   const identity = deriveIdentity(accessToken, bootstrap.email);
 
@@ -95,13 +102,27 @@ function buildReadyProfile(
     fullName: identity?.fullName ?? bootstrap.email,
     role: bootstrap.membershipRole ?? "Owner",
     active: bootstrap.status === "active",
-    venueId: venue.id,
-    venueName: venue.name,
+    venueId: venueSummary.id,
+    venueName: venueSummary.name,
     organizationId: bootstrap.organizationId,
     organizationName: bootstrap.organizationName,
     membershipRole: bootstrap.membershipRole,
     membershipActive: bootstrap.status === "active",
   } satisfies BackendAdminMe;
+}
+
+function buildReadyAccess(
+  accessToken: string,
+  bootstrap: Awaited<ReturnType<typeof bootstrapMe>>,
+  venueSummary: AdminVenueSummary,
+  venueSource: Extract<ResolvedAdminSessionAccess, { state: "ready" }>["venueSource"],
+): Extract<ResolvedAdminSessionAccess, { state: "ready" }> {
+  return {
+    state: "ready",
+    profile: buildReadyProfile(accessToken, bootstrap, venueSummary),
+    venueSummary,
+    venueSource,
+  };
 }
 
 function buildOnboardingAccess(
@@ -133,18 +154,36 @@ export async function resolveAdminSessionAccessUncached(
       return buildOnboardingAccess(bootstrap);
     }
 
-    try {
-      const venue = await fetchMyVenue(accessToken);
+    if (resolveBootstrapAdminContextMode(bootstrap) === "enriched") {
+      const venueSummary = resolveBootstrapPrimaryVenueSummary(bootstrap);
 
-      return {
-        state: "ready",
-        profile: buildReadyProfile(accessToken, bootstrap, venue),
-        venueSource: "legacy-fallback",
-      };
+      if (!venueSummary) {
+        return buildOnboardingAccess(bootstrap);
+      }
+
+      return buildReadyAccess(accessToken, bootstrap, venueSummary, "bootstrap");
+    }
+
+    try {
+      const venueSummary = normalizeVenueSummary(await fetchMyVenue(accessToken));
+
+      if (!venueSummary) {
+        return buildOnboardingAccess(bootstrap);
+      }
+
+      return buildReadyAccess(accessToken, bootstrap, venueSummary, "legacy-fallback");
     } catch (error) {
       if (error instanceof BackendApiError) {
         if (error.status === 404) {
           return buildOnboardingAccess(bootstrap);
+        }
+
+        if (error.status === 403 && error.code === "OPERATOR_INACTIVE") {
+          return {
+            state: "degraded",
+            identity: deriveIdentity(accessToken, bootstrap.email),
+            reason: "operator-inactive",
+          };
         }
 
         if (error.status === 401 || error.status === 403) {
