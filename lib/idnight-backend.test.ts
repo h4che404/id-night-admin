@@ -87,7 +87,7 @@ describe("idnight backend error parsing", () => {
     );
 
     await expect(
-      createVenueEvent("admin-token", "venue-1", {
+      createVenueEvent("admin-token", {
         name: "Friday Opening",
         startsAt: "2026-06-20T23:00:00.000Z",
         endsAt: "2026-06-21T05:00:00.000Z",
@@ -98,7 +98,7 @@ describe("idnight backend error parsing", () => {
       }),
     ).resolves.toEqual(createdEvent);
 
-    expect(fetchSpy).toHaveBeenCalledWith(`${IDNIGHT_BACKEND_URL}/admin/venues/venue-1/events`, {
+    expect(fetchSpy).toHaveBeenCalledWith(`${IDNIGHT_BACKEND_URL}/admin/venues/mine/events`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -139,14 +139,14 @@ describe("idnight backend error parsing", () => {
     );
 
     await expect(
-      updateVenueEvent("admin-token", "venue-1", "event-1", {
+      updateVenueEvent("admin-token", "event-1", {
         maxCapacity: null,
         allowManualDniCheck: false,
         requireGuestList: false,
       }),
     ).resolves.toEqual(updatedEvent);
 
-    expect(fetchSpy).toHaveBeenCalledWith(`${IDNIGHT_BACKEND_URL}/admin/venues/venue-1/events/event-1`, {
+    expect(fetchSpy).toHaveBeenCalledWith(`${IDNIGHT_BACKEND_URL}/admin/venues/mine/events/event-1`, {
       method: "PATCH",
       headers: {
         "Content-Type": "application/json",
@@ -171,7 +171,7 @@ describe("idnight backend error parsing", () => {
     );
 
     await expect(
-      uploadEventGuestList("admin-token", "venue-1", "event-1", createGuestListFormData()),
+      uploadEventGuestList("admin-token", "event-1", createGuestListFormData()),
     ).rejects.toMatchObject<Partial<BackendApiError>>({
       name: "BackendApiError",
       message: "Guest list upload gateway exploded",
@@ -188,7 +188,7 @@ describe("idnight backend error parsing", () => {
     );
 
     await expect(
-      uploadEventGuestList("admin-token", "venue-1", "event-1", createGuestListFormData()),
+      uploadEventGuestList("admin-token", "event-1", createGuestListFormData()),
     ).rejects.toMatchObject<Partial<BackendApiError>>({
       name: "BackendApiError",
       message: '{"message":',
@@ -215,13 +215,13 @@ describe("idnight backend error parsing", () => {
     );
 
     await expect(
-      cancelGuestListEntry("admin-token", "venue-1", "event-1", "entry-1"),
+      cancelGuestListEntry("admin-token", "event-1", "entry-1"),
     ).resolves.toEqual(cancelled);
 
     expect(fetchSpy).toHaveBeenCalledWith(
-      expect.stringContaining("/admin/venues/venue-1/events/event-1/guest-list/entries/entry-1"),
+      expect.stringContaining("/admin/venues/mine/events/event-1/guest-list/entry-1"),
       expect.objectContaining({
-        method: "DELETE",
+        method: "PATCH",
         headers: expect.objectContaining({
           Authorization: "Bearer admin-token",
         }),
@@ -242,7 +242,7 @@ describe("idnight backend error parsing", () => {
           }),
       );
 
-      const uploadPromise = uploadEventGuestList("admin-token", "venue-1", "event-1", createGuestListFormData());
+      const uploadPromise = uploadEventGuestList("admin-token", "event-1", createGuestListFormData());
       const uploadExpectation = expect(uploadPromise).rejects.toMatchObject<Partial<BackendApiError>>({
         name: "BackendApiError",
         message: "El servicio no está disponible en este momento.",
@@ -253,7 +253,7 @@ describe("idnight backend error parsing", () => {
 
       await uploadExpectation;
       expect(fetchMock).toHaveBeenCalledWith(
-        expect.stringContaining("/admin/venues/venue-1/events/event-1/guest-list"),
+        expect.stringContaining("/admin/venues/mine/events/event-1/guest-list"),
         expect.objectContaining({ signal: expect.any(AbortSignal) }),
       );
     } finally {
@@ -265,7 +265,7 @@ describe("idnight backend error parsing", () => {
     const networkError = new Error("socket hang up");
     vi.spyOn(globalThis, "fetch").mockRejectedValue(networkError);
 
-    await expect(uploadEventGuestList("admin-token", "venue-1", "event-1", createGuestListFormData())).rejects.toBe(
+    await expect(uploadEventGuestList("admin-token", "event-1", createGuestListFormData())).rejects.toBe(
       networkError,
     );
   });

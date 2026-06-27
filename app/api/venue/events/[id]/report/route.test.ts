@@ -84,7 +84,7 @@ describe("/api/venue/events/[id]/report", () => {
 
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual(mockReport);
-    expect(fetchEventReport).toHaveBeenCalledWith("admin-token", "venue-1", "event-123");
+    expect(fetchEventReport).toHaveBeenCalledWith("admin-token", "event-123");
   });
 
   it("preserves backend 4xx error when event not found", async () => {

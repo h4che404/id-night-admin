@@ -99,7 +99,7 @@ describe("/api/venue", () => {
 
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({ ok: true });
-    expect(createVenue).toHaveBeenCalledWith("admin-token", "org-1", {
+    expect(createVenue).toHaveBeenCalledWith("admin-token", {
       name: "ID Night",
       address: "Main St",
       city: "Buenos Aires",

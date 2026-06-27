@@ -82,7 +82,7 @@ describe("/api/venue/events/[id]/guest-list/[entryId] PATCH", () => {
 
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual(cancelled);
-    expect(cancelGuestListEntry).toHaveBeenCalledWith("admin-token", "venue-1", "evt-1", "entry-1");
+    expect(cancelGuestListEntry).toHaveBeenCalledWith("admin-token", "evt-1", "entry-1");
   });
 
   it("preserves backend 4xx error", async () => {

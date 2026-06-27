@@ -87,9 +87,9 @@ describe("/api/venue/devices", () => {
 
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({ ok: true });
-    expect(createVenueDevice).toHaveBeenCalledWith("admin-token", "venue-1", {
+    expect(createVenueDevice).toHaveBeenCalledWith("admin-token", {
       name: "Tablet puerta",
-      serialNumber: "door-01",
+      deviceKey: "door-01",
     });
   });
 
@@ -140,6 +140,6 @@ describe("/api/venue/devices", () => {
 
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({ ok: true });
-    expect(toggleVenueDeviceStatus).toHaveBeenCalledWith("admin-token", "venue-1", "device-1", false);
+    expect(toggleVenueDeviceStatus).toHaveBeenCalledWith("admin-token", "device-1", false);
   });
 });

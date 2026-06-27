@@ -78,51 +78,44 @@ describe("/api/venue/access-sessions", () => {
 
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual(SESSION_FIXTURE);
-    expect(fetchAccessSessions).toHaveBeenCalledWith("admin-token", "venue-1", {
+    expect(fetchAccessSessions).toHaveBeenCalledWith("admin-token", {
       eventId: undefined,
-      method: undefined,
-      result: undefined,
-      fromDate: undefined,
-      toDate: undefined,
+      operatorId: undefined,
+      status: undefined,
     });
   });
 
-  it("forwards method filter to fetchAccessSessions", async () => {
+  it("forwards operatorId filter to fetchAccessSessions", async () => {
     fetchAccessSessions.mockResolvedValue([]);
 
-    await GET(createRequest("?method=IDNIGHT_VERIFIED"));
+    await GET(createRequest("?operatorId=operator-1"));
 
     expect(fetchAccessSessions).toHaveBeenCalledWith(
       "admin-token",
-      "venue-1",
-      expect.objectContaining({ method: "IDNIGHT_VERIFIED" }),
+      expect.objectContaining({ operatorId: "operator-1" }),
     );
   });
 
-  it("forwards result filter to fetchAccessSessions", async () => {
+  it("forwards status filter to fetchAccessSessions", async () => {
     fetchAccessSessions.mockResolvedValue([]);
 
-    await GET(createRequest("?result=REJECTED"));
+    await GET(createRequest("?status=open"));
 
     expect(fetchAccessSessions).toHaveBeenCalledWith(
       "admin-token",
-      "venue-1",
-      expect.objectContaining({ result: "REJECTED" }),
+      expect.objectContaining({ status: "open" }),
     );
   });
 
-  it("forwards eventId, fromDate, toDate filters to fetchAccessSessions", async () => {
+  it("forwards eventId filter to fetchAccessSessions", async () => {
     fetchAccessSessions.mockResolvedValue([]);
 
-    await GET(createRequest("?eventId=event-1&fromDate=2026-06-01&toDate=2026-06-30"));
+    await GET(createRequest("?eventId=event-1"));
 
     expect(fetchAccessSessions).toHaveBeenCalledWith(
       "admin-token",
-      "venue-1",
       expect.objectContaining({
         eventId: "event-1",
-        fromDate: "2026-06-01",
-        toDate: "2026-06-30",
       }),
     );
   });

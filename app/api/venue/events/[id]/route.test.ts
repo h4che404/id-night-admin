@@ -210,7 +210,7 @@ describe("/api/venue/events/[id]", () => {
 
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({ ok: true });
-    expect(updateVenueEvent).toHaveBeenCalledWith("admin-token", "venue-1", "event-1", {
+    expect(updateVenueEvent).toHaveBeenCalledWith("admin-token", "event-1", {
       maxCapacity: null,
     });
   });
@@ -225,7 +225,7 @@ describe("/api/venue/events/[id]", () => {
 
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({ ok: true });
-    expect(updateVenueEvent).toHaveBeenCalledWith("admin-token", "venue-1", "event-1", { name: "Saturday Night" });
+    expect(updateVenueEvent).toHaveBeenCalledWith("admin-token", "event-1", { name: "Saturday Night" });
   });
 
   it("forwards successful updates to the backend", async () => {
@@ -246,7 +246,7 @@ describe("/api/venue/events/[id]", () => {
 
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({ ok: true });
-    expect(updateVenueEvent).toHaveBeenCalledWith("admin-token", "venue-1", "event-1", {
+    expect(updateVenueEvent).toHaveBeenCalledWith("admin-token", "event-1", {
       name: "Friday Opening",
       startsAt: "2026-06-20T23:00:00.000Z",
       endsAt: "2026-06-21T05:00:00.000Z",
@@ -270,7 +270,7 @@ describe("/api/venue/events/[id]", () => {
 
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({ ok: true });
-    expect(updateVenueEvent).toHaveBeenCalledWith("admin-token", "venue-1", "event-1", {
+    expect(updateVenueEvent).toHaveBeenCalledWith("admin-token", "event-1", {
       startsAt: "2026-06-20T23:00:00.000Z",
       endsAt: "2026-06-21T05:00:00.000Z",
     });
@@ -329,7 +329,7 @@ describe("/api/venue/events/[id]", () => {
 
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({ ok: true });
-    expect(updateVenueEvent).toHaveBeenCalledWith("admin-token", "venue-1", "event-1", {
+    expect(updateVenueEvent).toHaveBeenCalledWith("admin-token", "event-1", {
       allowManualDniCheck: false,
       requireGuestList: false,
     });
@@ -345,7 +345,7 @@ describe("/api/venue/events/[id]", () => {
 
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({ ok: true });
-    expect(updateVenueEvent).toHaveBeenCalledWith("admin-token", "venue-1", "event-1", { minAge: 21 });
+    expect(updateVenueEvent).toHaveBeenCalledWith("admin-token", "event-1", { minAge: 21 });
   });
 
   it("preserves backend 4xx error status and message", async () => {

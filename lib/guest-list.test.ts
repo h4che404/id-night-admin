@@ -31,8 +31,8 @@ describe("guest-list utils", () => {
   });
 
   it("returns correct tone for each status", () => {
-    expect(guestListStatusTone("ACTIVE")).toBe("success");
-    expect(guestListStatusTone("USED")).toBe("neutral");
-    expect(guestListStatusTone("CANCELLED")).toBe("danger");
+    expect(guestListStatusTone("active")).toBe("success");
+    expect(guestListStatusTone("used")).toBe("neutral");
+    expect(guestListStatusTone("cancelled")).toBe("danger");
   });
 });

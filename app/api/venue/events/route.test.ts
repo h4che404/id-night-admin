@@ -101,7 +101,7 @@ describe("/api/venue/events", () => {
 
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({ ok: true });
-    expect(createVenueEvent).toHaveBeenCalledWith("admin-token", "venue-1", {
+    expect(createVenueEvent).toHaveBeenCalledWith("admin-token", {
       name: "Friday Opening",
       startsAt: "2026-06-20T23:00:00.000Z",
       endsAt: "2026-06-21T05:00:00.000Z",
@@ -124,7 +124,7 @@ describe("/api/venue/events", () => {
 
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({ ok: true });
-    expect(createVenueEvent).toHaveBeenCalledWith("admin-token", "venue-1", {
+    expect(createVenueEvent).toHaveBeenCalledWith("admin-token", {
       name: "Friday Opening",
       startsAt: "2026-06-20T23:00:00.000Z",
       endsAt: "2026-06-21T05:00:00.000Z",
@@ -324,7 +324,6 @@ describe("/api/venue/events", () => {
     expect(response.status).toBe(200);
     expect(createVenueEvent).toHaveBeenCalledWith(
       "admin-token",
-      "venue-1",
       expect.objectContaining({ minAge: 18 }),
     );
   });
@@ -347,7 +346,6 @@ describe("/api/venue/events", () => {
     expect(response.status).toBe(200);
     expect(createVenueEvent).toHaveBeenCalledWith(
       "admin-token",
-      "venue-1",
       expect.objectContaining({ allowManualDniCheck: false, requireGuestList: true }),
     );
   });

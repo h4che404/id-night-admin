@@ -113,6 +113,6 @@ describe("PUT /api/venue/entry-rules", () => {
 
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({ ok: true });
-    expect(updateMyVenueEntryRules).toHaveBeenCalledWith("admin-token", "venue-1", validPayload);
+    expect(updateMyVenueEntryRules).toHaveBeenCalledWith("admin-token", validPayload);
   });
 });

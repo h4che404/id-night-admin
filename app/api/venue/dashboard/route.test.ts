@@ -69,7 +69,7 @@ describe("/api/venue/dashboard", () => {
 
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual(mockMetrics);
-    expect(fetchDashboardMetrics).toHaveBeenCalledWith("admin-token", "venue-1");
+    expect(fetchDashboardMetrics).toHaveBeenCalledWith("admin-token");
   });
 
   it("preserves backend 4xx error", async () => {

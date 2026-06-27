@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { MockBackendApiError, bootstrapMe, fetchVenues } = vi.hoisted(() => {
+const { MockBackendApiError, bootstrapMe, fetchMyVenue } = vi.hoisted(() => {
   class MockBackendApiError extends Error {
     status: number;
 
@@ -14,14 +14,14 @@ const { MockBackendApiError, bootstrapMe, fetchVenues } = vi.hoisted(() => {
   return {
     MockBackendApiError,
     bootstrapMe: vi.fn(),
-    fetchVenues: vi.fn(),
+    fetchMyVenue: vi.fn(),
   };
 });
 
 vi.mock("@/lib/idnight-backend", () => ({
   BackendApiError: MockBackendApiError,
   bootstrapMe,
-  fetchVenues,
+  fetchMyVenue,
 }));
 
 import {
@@ -39,7 +39,7 @@ function createAccessToken(payload: Record<string, unknown>) {
 describe("resolveAdminSessionAccess", () => {
   beforeEach(() => {
     bootstrapMe.mockReset();
-    fetchVenues.mockReset();
+    fetchMyVenue.mockReset();
   });
 
   it("returns a ready state with legacy venue fallback when organization and venue exist", async () => {
@@ -47,9 +47,10 @@ describe("resolveAdminSessionAccess", () => {
       id: "operator-1",
       email: "owner@example.com",
       status: "active",
-      organization: { id: "org-1", name: "My Org" },
+      organizationId: "org-1",
+      organizationName: "My Org",
     });
-    fetchVenues.mockResolvedValue([{ id: "venue-1", name: "My Venue" }]);
+    fetchMyVenue.mockResolvedValue({ id: "venue-1", name: "My Venue" });
 
     await expect(
       resolveAdminSessionAccessUncached(
@@ -80,7 +81,7 @@ describe("resolveAdminSessionAccess", () => {
       id: "operator-1",
       email: "owner@example.com",
       status: "active",
-      organization: null,
+      organizationId: null,
     });
 
     await expect(
@@ -126,9 +127,10 @@ describe("resolveAdminSessionAccess", () => {
       id: "operator-1",
       email: "owner@example.com",
       status: "active",
-      organization: { id: "org-1", name: "My Org" },
+      organizationId: "org-1",
+      organizationName: "My Org",
     });
-    fetchVenues.mockRejectedValue(new MockBackendApiError("Venue lookup unavailable", 503));
+    fetchMyVenue.mockRejectedValue(new MockBackendApiError("Venue lookup unavailable", 503));
 
     await expect(
       resolveAdminSessionAccessUncached(createAccessToken({ email: "owner@example.com" })),
@@ -143,9 +145,10 @@ describe("resolveAdminSessionAccess", () => {
       id: "operator-1",
       email: "owner@example.com",
       status: "active",
-      organization: { id: "org-1", name: "My Org" },
+      organizationId: "org-1",
+      organizationName: "My Org",
     });
-    fetchVenues.mockResolvedValue([{ id: "venue-1", name: "My Venue" }]);
+    fetchMyVenue.mockResolvedValue({ id: "venue-1", name: "My Venue" });
 
     const accessToken = createAccessToken({ email: "owner@example.com" });
 
@@ -157,7 +160,7 @@ describe("resolveAdminSessionAccess", () => {
     expect(first).toMatchObject({ state: "ready" });
     expect(second).toMatchObject({ state: "ready" });
     expect(bootstrapMe).toHaveBeenCalledTimes(1);
-    expect(fetchVenues).toHaveBeenCalledTimes(1);
+    expect(fetchMyVenue).toHaveBeenCalledTimes(1);
   });
 
   it("rethrows unexpected admin profile errors", async () => {

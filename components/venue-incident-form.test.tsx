@@ -15,19 +15,13 @@ vi.mock("next/navigation", () => ({
 
 const mockIncident = {
   id: "inc_123",
-  createdAt: "2024-05-01T12:00:00Z",
-  severity: "LOW",
-  status: "REPORTED",
-  category: null,
-  eventId: null,
-  eventName: null,
-  venueName: "Test Venue",
-  operatorName: "Juan",
-  profileName: "Carlos",
-  summary: "Altercado menor",
+  venueId: "venue-1",
+  title: "Altercado menor",
   description: "Se le pidió a la persona que se retire.",
-  followUp: null,
-  evidence: null,
+  status: "open" as const,
+  createdAt: "2024-05-01T12:00:00Z",
+  resolvedAt: null,
+  resolution: null,
 };
 
 describe("VenueIncidentForm", () => {
@@ -46,17 +40,17 @@ describe("VenueIncidentForm", () => {
 
     render(<VenueIncidentForm incident={mockIncident} />);
 
-    // Change severity
-    fireEvent.change(screen.getByLabelText(/severidad/i), {
-      target: { value: "MEDIUM" },
-    });
     // Change status
     fireEvent.change(screen.getByLabelText(/estado/i), {
-      target: { value: "REVIEWED" },
+      target: { value: "closed" },
     });
     // Change description
-    fireEvent.change(screen.getByLabelText(/descripción detallada/i), {
+    fireEvent.change(screen.getByLabelText(/descripción/i), {
       target: { value: "El usuario se retiró pacíficamente." },
+    });
+    // Change resolution
+    fireEvent.change(screen.getByLabelText(/resolución/i), {
+      target: { value: "Incidente resuelto sin intervención policial." },
     });
 
     await user.click(screen.getByRole("button", { name: /guardar cambios/i }));
@@ -71,11 +65,10 @@ describe("VenueIncidentForm", () => {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          severity: "MEDIUM",
-          status: "REVIEWED",
-          category: null,
-          eventId: null,
+          title: "Altercado menor",
+          status: "closed",
           description: "El usuario se retiró pacíficamente.",
+          resolution: "Incidente resuelto sin intervención policial.",
         }),
       }),
     );
