@@ -2,7 +2,7 @@ import { AppShell } from "@/components/app-shell";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
-import { requireAdminAccess } from "@/lib/auth-session";
+import { requireAdminAccess, canRecoverVenueSetup } from "@/lib/auth-session";
 import { reactivateOperator, BackendApiError } from "@/lib/idnight-backend";
 import { ACCESS_COOKIE } from "@/lib/auth-session";
 
@@ -27,7 +27,20 @@ export default async function AuthenticatedLayout({ children }: { children: Reac
   const { access } = await requireAdminAccess();
 
   if (access.state === "onboarding-needed") {
-    redirect("/owner-onboarding");
+    if (!canRecoverVenueSetup(access)) {
+      redirect("/owner-onboarding");
+    }
+
+    return (
+      <AppShell
+        userName={access.onboarding.organizationName ?? "Authenticated admin"}
+        userEmail="Session available"
+        organizationName={access.onboarding.organizationName ?? undefined}
+        membershipRole={access.onboarding.operatorRole}
+      >
+        {children}
+      </AppShell>
+    );
   }
 
   if (access.state === "unauthorized") {

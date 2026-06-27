@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { OwnerOnboardingForm } from "@/components/owner-onboarding-form";
 import { SectionHeader, Surface } from "@/components/ui-kit";
 import { resolveAdminSessionAccess } from "@/lib/admin-session-access";
-import { requireBackendSession } from "@/lib/auth-session";
+import { canRecoverVenueSetup, requireBackendSession } from "@/lib/auth-session";
 
 export default async function OwnerOnboardingPage() {
   const session = await requireBackendSession();
@@ -16,6 +16,10 @@ export default async function OwnerOnboardingPage() {
 
   if (access.state === "unauthorized") {
     redirect("/login");
+  }
+
+  if (access.state === "onboarding-needed" && canRecoverVenueSetup(access)) {
+    redirect("/venue");
   }
 
   return (

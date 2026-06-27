@@ -3,7 +3,7 @@ import Link from "next/link";
 
 import { Badge, DataShell, DataTable, EmptyState, SectionHeader, SecondaryButton } from "@/components/ui-kit";
 import { requireReadyPageAccess } from "@/lib/auth-session";
-import { fetchMyVenue, fetchVenueIncidents } from "@/lib/idnight-backend";
+import { fetchVenueIncidents } from "@/lib/idnight-backend";
 
 function formatDateTime(value: string | null) {
   if (!value) {
@@ -34,31 +34,7 @@ export default async function VenueIncidentsPage() {
     return null;
   }
 
-  const { session } = readyAccess;
-
-  let venue = null;
-  try {
-    venue = await fetchMyVenue(session.accessToken);
-  } catch {
-    venue = null;
-  }
-
-  if (!venue) {
-    return (
-      <div className="space-y-6">
-        <SectionHeader
-          eyebrow="Incidentes"
-          title="Incidentes reportados"
-          description="Primero necesitás crear tu boliche para poder ver los incidentes."
-        />
-        <EmptyState
-          title="Sin boliche configurado"
-          description="Volvé al panel principal para crear tu boliche."
-          icon={<ShieldAlert className="h-5 w-5 text-sky-300" />}
-        />
-      </div>
-    );
-  }
+  const { session, venueSummary: venue } = readyAccess;
 
   let incidents: Awaited<ReturnType<typeof fetchVenueIncidents>> = [];
   let incidentsError: string | null = null;

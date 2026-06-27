@@ -2,11 +2,9 @@ import { Shield, Settings2, Smartphone, Building2 } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
-import { requireAdminAccess } from "@/lib/auth-session";
+import { canRecoverVenueSetup, requireAdminAccess } from "@/lib/auth-session";
 import {
-  fetchMyVenue,
   fetchDashboardMetrics,
-  BackendApiError,
   BackendDashboardMetrics,
 } from "@/lib/idnight-backend";
 import { Badge, EmptyState, SectionHeader, Surface } from "@/components/ui-kit";
@@ -41,36 +39,14 @@ export default async function VenuePage() {
   const { session, access } = await requireAdminAccess();
 
   if (access.state === "onboarding-needed") {
-    redirect("/owner-onboarding");
-  }
-
-  if (access.state === "unauthorized") {
-    redirect("/login");
-  }
-
-  if (access.state === "degraded") {
-    return null;
-  }
-
-  const { profile } = access;
-
-  let venue = null;
-  try {
-    venue = await fetchMyVenue(session.accessToken);
-  } catch (error) {
-    if (error instanceof BackendApiError && error.status === 404) {
-      venue = null;
-    } else {
-      venue = null;
+    if (!canRecoverVenueSetup(access)) {
+      redirect("/owner-onboarding");
     }
-  }
 
-  /* ── No venue yet → onboarding ──────────────────────────────── */
-  if (!venue) {
     return (
       <div className="space-y-6">
         <SectionHeader
-          eyebrow={`Hola, ${profile.firstName}`}
+          eyebrow="Último paso"
           title="Creá tu boliche"
           description="Para empezar a operar, necesitás crear tu boliche. Una vez creado, vas a poder agregar usuarios de seguridad que usarán la app mobile. Si hacés el onboarding de propietario desde cero, ese flujo ya crea automáticamente tu primera organización y boliche."
         />
@@ -81,6 +57,16 @@ export default async function VenuePage() {
       </div>
     );
   }
+
+  if (access.state === "unauthorized") {
+    redirect("/login");
+  }
+
+  if (access.state === "degraded") {
+    return null;
+  }
+
+  const venue = access.venueSummary;
 
   /* ── Fetch metrics with graceful fallback ────────────────────── */
   let metrics: BackendDashboardMetrics = {

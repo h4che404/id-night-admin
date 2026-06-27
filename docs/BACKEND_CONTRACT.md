@@ -39,6 +39,36 @@ https://<backend-host>/api/v1
 
 ### 1. Session & Auth
 
+#### POST /bootstrap/me
+Retrieves the authenticated admin bootstrap payload used for first-render session resolution.
+- **Response 200:**
+  ```json
+  {
+    "id": "uuid",
+    "supabaseId": "uuid | null",
+    "email": "string",
+    "adminContextMode": "legacy-fallback | enriched",
+    "organizationId": "uuid | null",
+    "organizationName": "string | null",
+    "membershipRole": "Owner | Admin | string | null",
+    "status": "active | inactive | string",
+    "primaryVenue": {
+      "id": "uuid",
+      "name": "string",
+      "slug": "string | null",
+      "address": "string | null",
+      "city": "string | null",
+      "active": true
+    }
+  }
+  ```
+
+Bootstrap semantics:
+- `organizationId: null` means the authenticated user still needs owner onboarding and MUST recover through `GET/POST /organizations/onboarding`.
+- `organizationId != null` with `adminContextMode: "enriched"` and `primaryVenue: null` means the user already has an organization but still needs venue setup and MUST recover through the existing venue-creation flow (`POST /admin/venues` surfaced in the frontend at `/venue`). This case MUST NOT be treated as owner onboarding.
+- `adminContextMode: "enriched"` with `primaryVenue` present means the frontend MUST use `primaryVenue` as the first-render venue identity and MUST NOT call `GET /admin/venues/mine` only to infer the initial venue.
+- `adminContextMode: "legacy-fallback"` keeps the temporary compatibility path where the frontend MAY still call `GET /admin/venues/mine` to synthesize first-render venue context until enriched bootstrap is fully rolled out.
+
 #### GET /admin/me
 Retrieves the current authenticated administrator's profile.
 - **Response 200:**

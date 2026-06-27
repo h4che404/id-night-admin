@@ -74,6 +74,25 @@ describe("PUT /api/venue/entry-rules", () => {
     updateMyVenueEntryRules.mockReset();
   });
 
+  it.each([
+    [401, "Authentication required."],
+    [403, "Complete organization setup before using venue APIs."],
+    [503, "Admin context is temporarily unavailable. Please retry shortly."],
+  ])("returns %s auth-state responses before parsing the request body", async (status, message) => {
+    readReadyVenueApiAccess.mockResolvedValue({
+      response: new Response(JSON.stringify({ message }), {
+        status,
+        headers: { "Content-Type": "application/json" },
+      }),
+    });
+
+    const response = await PUT(createRequest("{"));
+
+    expect(response.status).toBe(status);
+    expect(await response.json()).toEqual({ message });
+    expect(updateMyVenueEntryRules).not.toHaveBeenCalled();
+  });
+
   it("rejects invalid JSON payloads", async () => {
     const response = await PUT(createRequest("{"));
 

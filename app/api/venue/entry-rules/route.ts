@@ -28,6 +28,14 @@ export async function GET() {
 }
 
 export async function PUT(request: Request) {
+  const auth = await readReadyVenueApiAccess();
+
+  if ("response" in auth) {
+    return auth.response;
+  }
+
+  const { session } = auth;
+
   let body;
 
   try {
@@ -91,14 +99,6 @@ export async function PUT(request: Request) {
     allowManualReview: body.allowManualReview as boolean,
     notes: body.notes,
   };
-
-  const auth = await readReadyVenueApiAccess();
-
-  if ("response" in auth) {
-    return auth.response;
-  }
-
-  const { session } = auth;
 
   try {
     await updateMyVenueEntryRules(session.accessToken, payload);

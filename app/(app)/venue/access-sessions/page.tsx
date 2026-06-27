@@ -1,8 +1,6 @@
-import { ClipboardList } from "lucide-react";
-
 import { requireReadyPageAccess } from "@/lib/auth-session";
-import { fetchAccessSessions, fetchMyVenue, fetchVenueEvents } from "@/lib/idnight-backend";
-import { EmptyState, SectionHeader } from "@/components/ui-kit";
+import { fetchAccessSessions, fetchVenueEvents } from "@/lib/idnight-backend";
+import { SectionHeader } from "@/components/ui-kit";
 import { AccessSessionsSection } from "@/components/access-sessions-section";
 
 export default async function AccessSessionsPage() {
@@ -12,31 +10,7 @@ export default async function AccessSessionsPage() {
     return null;
   }
 
-  const { session } = readyAccess;
-
-  let venue = null;
-  try {
-    venue = await fetchMyVenue(session.accessToken);
-  } catch {
-    venue = null;
-  }
-
-  if (!venue) {
-    return (
-      <div className="space-y-6">
-        <SectionHeader
-          eyebrow="Entries"
-          title="Access history"
-          description="View access attempt records for your venue."
-        />
-        <EmptyState
-          title="No venue configured"
-          description="Set up your venue first to view access records."
-          icon={<ClipboardList className="h-5 w-5 text-sky-300" />}
-        />
-      </div>
-    );
-  }
+  const { session, venueSummary: venue } = readyAccess;
 
   let events: Array<{ id: string; name: string }> = [];
   try {

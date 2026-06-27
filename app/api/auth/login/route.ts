@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { ACCESS_COOKIE, REFRESH_COOKIE } from "@/lib/auth-session";
+import { ACCESS_COOKIE, REFRESH_COOKIE, PROFILE_COOKIE } from "@/lib/auth-session";
 import { loginWithSupabase } from "@/lib/supabase-auth";
 
 export async function POST(request: Request) {
@@ -18,6 +18,7 @@ export async function POST(request: Request) {
     const response = NextResponse.json({ ok: true });
 
     const secure = process.env.NODE_ENV === "production";
+    response.cookies.delete(PROFILE_COOKIE);
     response.cookies.set(ACCESS_COOKIE, session.access_token, {
       httpOnly: true,
       sameSite: "lax",

@@ -5,7 +5,7 @@ import Link from "next/link";
 import { Surface } from "@/components/ui-kit";
 import { RegisterForm } from "@/components/register-form";
 import { resolveAdminSessionAccess } from "@/lib/admin-session-access";
-import { readBackendSession } from "@/lib/auth-session";
+import { canRecoverVenueSetup, readBackendSession } from "@/lib/auth-session";
 
 export default async function RegisterPage() {
   const session = await readBackendSession();
@@ -18,7 +18,7 @@ export default async function RegisterPage() {
     }
 
     if (access.state === "onboarding-needed") {
-      redirect("/owner-onboarding");
+      redirect(canRecoverVenueSetup(access) ? "/venue" : "/owner-onboarding");
     }
   }
 

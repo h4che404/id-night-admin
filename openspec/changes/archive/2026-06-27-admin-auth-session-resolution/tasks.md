@@ -43,10 +43,10 @@ Chain strategy: feature-branch-chain
 
 ## Phase 3: Enriched Bootstrap Contract
 
-- [ ] 3.1 RED: extend `lib/idnight-backend.test.ts` and `lib/admin-session-access.test.ts` for `adminContextMode`, `primaryVenue`, non-ready enriched responses, normalized `ready.venueSummary`, and existing-org `/venue` recovery.
-- [ ] 3.2 GREEN: update `lib/idnight-backend.ts` and `lib/admin-session-access.ts` to normalize `primaryVenue` vs legacy fallback, preserve owner onboarding for missing org, and send existing-org missing-venue users to the `/venue` create-state.
+- [x] 3.1 RED: extend `lib/idnight-backend.test.ts` and `lib/admin-session-access.test.ts` for `adminContextMode`, `primaryVenue`, non-ready enriched responses, normalized `ready.venueSummary`, and existing-org `/venue` recovery.
+- [x] 3.2 GREEN: update `lib/idnight-backend.ts` and `lib/admin-session-access.ts` to normalize `primaryVenue` vs legacy fallback, preserve owner onboarding for missing org, and send existing-org missing-venue users to the `/venue` create-state.
 
 ## Phase 4: Waterfall Removal and Verification
 
-- [ ] 4.1 GREEN: replace first-render `fetchMyVenue()` dependency across `app/(app)/venue/**` with `ready.venueSummary`, while keeping the existing `/venue` create-state as the authenticated recovery surface when `organization` exists but `primaryVenue` does not.
-- [ ] 4.2 REFACTOR: update `docs/BACKEND_CONTRACT.md` with the missing-org vs existing-org recovery split, then run `npm run test`, `npm run lint`, and `npm run build` for each slice before promoting the next PR base.
+- [x] 4.1 GREEN: replace first-render `fetchMyVenue()` dependency across `app/(app)/venue/**` with `ready.venueSummary`, while keeping the existing `/venue` create-state as the authenticated recovery surface when `organization` exists but `primaryVenue` does not.
+- [x] 4.2 REFACTOR: update `docs/BACKEND_CONTRACT.md` with the missing-org vs existing-org recovery split, then run `npm run test`, `npm run lint`, and `npm run build` for each slice before promoting the next PR base.

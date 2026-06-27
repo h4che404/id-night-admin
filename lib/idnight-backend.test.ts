@@ -9,6 +9,9 @@ import {
   IDNIGHT_BACKEND_URL,
   cancelGuestListEntry,
   createVenueEvent,
+  fetchAdminProfile,
+  normalizeVenueSummary,
+  resolveBootstrapAdminContextMode,
   updateVenueEvent,
   uploadEventGuestList,
 } from "@/lib/idnight-backend";
@@ -268,5 +271,81 @@ describe("idnight backend error parsing", () => {
     await expect(uploadEventGuestList("admin-token", "event-1", createGuestListFormData())).rejects.toBe(
       networkError,
     );
+  });
+});
+
+describe("idnight backend bootstrap admin context helpers", () => {
+  beforeEach(() => {
+    vi.restoreAllMocks();
+  });
+  it("normalizes enriched bootstrap primaryVenue into a first-render venue summary", () => {
+    expect(
+      normalizeVenueSummary({
+        id: "venue-1",
+        name: "My Venue",
+        slug: "my-venue",
+        address: "Av. Siempre Viva 123",
+        city: "Buenos Aires",
+        active: true,
+      }),
+    ).toEqual({
+      id: "venue-1",
+      name: "My Venue",
+      slug: "my-venue",
+      address: "Av. Siempre Viva 123",
+      city: "Buenos Aires",
+      active: true,
+    });
+  });
+
+  it("defaults missing bootstrap adminContextMode to legacy-fallback", () => {
+    expect(
+      resolveBootstrapAdminContextMode({
+        id: "operator-1",
+        supabaseId: "supabase-1",
+        email: "owner@example.com",
+        status: "active",
+        createdAt: "2026-06-27T00:00:00.000Z",
+        organizationId: "org-1",
+        organizationName: "My Org",
+        membershipRole: "Owner",
+      }),
+    ).toBe("legacy-fallback");
+  });
+  it("maps enriched bootstrap primaryVenue into fetchAdminProfile venue fields", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          id: "operator-1",
+          supabaseId: "supabase-1",
+          email: "owner@example.com",
+          adminContextMode: "enriched",
+          status: "active",
+          createdAt: "2026-06-27T00:00:00.000Z",
+          organizationId: "org-1",
+          organizationName: "My Org",
+          membershipRole: "Owner",
+          primaryVenue: {
+            id: "venue-1",
+            name: "My Venue",
+            slug: "my-venue",
+            address: "Av. Siempre Viva 123",
+            city: "Buenos Aires",
+            active: true,
+          },
+        }),
+        {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        },
+      ),
+    );
+
+    await expect(fetchAdminProfile("admin-token")).resolves.toMatchObject({
+      venueId: "venue-1",
+      venueName: "My Venue",
+      organizationId: "org-1",
+      organizationName: "My Org",
+    });
   });
 });

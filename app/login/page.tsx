@@ -5,7 +5,7 @@ import Link from "next/link";
 import { LoginForm } from "@/components/login-form";
 import { resolveAdminSessionAccess } from "@/lib/admin-session-access";
 import { Surface } from "@/components/ui-kit";
-import { readBackendSession } from "@/lib/auth-session";
+import { canRecoverVenueSetup, readBackendSession } from "@/lib/auth-session";
 
 export default async function LoginPage() {
   const session = await readBackendSession();
@@ -18,7 +18,7 @@ export default async function LoginPage() {
     }
 
     if (access.state === "onboarding-needed") {
-      redirect("/owner-onboarding");
+      redirect(canRecoverVenueSetup(access) ? "/venue" : "/owner-onboarding");
     }
   }
 

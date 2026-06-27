@@ -50,6 +50,14 @@ describe("VenueEventsPage", () => {
     requireReadyPageAccess.mockReset();
     requireReadyPageAccess.mockResolvedValue({
       session: { accessToken: "admin-token", refreshToken: null },
+      venueSummary: {
+        id: "venue-1",
+        name: "ID Night",
+        slug: "id-night",
+        address: "Main St 123",
+        city: "Buenos Aires",
+        active: true,
+      },
       profile: {
         id: "admin-1",
         email: "admin@idnight.app",
@@ -79,58 +87,61 @@ describe("VenueEventsPage", () => {
     expect(fetchVenueEvents).not.toHaveBeenCalled();
   });
 
-  it("shows the no-venue empty state when the venue does not exist", async () => {
-    fetchMyVenue.mockRejectedValue(new MockBackendApiError("Venue not found", 404));
+  it("uses the ready venue summary in the page description without re-fetching venue details", async () => {
+    fetchMyVenue.mockRejectedValue(new MockBackendApiError("Venue lookup should not run", 503));
+    fetchVenueEvents.mockResolvedValue([]);
 
     render(await VenueEventsPage());
 
-    expect(screen.getByText("No venue configured")).toBeInTheDocument();
-    expect(screen.getByText(/create your venue before managing events/i)).toBeInTheDocument();
-    expect(fetchVenueEvents).not.toHaveBeenCalled();
+    expect(screen.getByText(/scheduled for ID Night/i)).toBeInTheDocument();
+    expect(fetchMyVenue).not.toHaveBeenCalled();
   });
 
-  it("shows a dedicated venue load error when venue lookup fails unexpectedly", async () => {
+  it("ignores legacy venue lookup failures when the page can render from ready venue summary", async () => {
     fetchMyVenue.mockRejectedValue(new MockBackendApiError("database timeout", 503));
+    fetchVenueEvents.mockResolvedValue([]);
 
     render(await VenueEventsPage());
 
-    expect(screen.getByText("Could not load venue details")).toBeInTheDocument();
-    expect(screen.getByText("Could not load venue details. Please try again.")).toBeInTheDocument();
-    expect(fetchVenueEvents).not.toHaveBeenCalled();
+    expect(screen.getByText("No events yet")).toBeInTheDocument();
+    expect(fetchMyVenue).not.toHaveBeenCalled();
   });
 
   it("shows the empty state when the venue has no events", async () => {
-    fetchMyVenue.mockResolvedValue({ id: "venue-1", name: "ID Night", address: null, city: null, active: true });
+    fetchMyVenue.mockRejectedValue(new MockBackendApiError("Venue lookup should not run", 503));
     fetchVenueEvents.mockResolvedValue([]);
 
     render(await VenueEventsPage());
 
     expect(screen.getByText("No events yet")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /create event/i })).toBeInTheDocument();
+    expect(fetchMyVenue).not.toHaveBeenCalled();
   });
 
   it("shows a safe events error state when event loading fails", async () => {
-    fetchMyVenue.mockResolvedValue({ id: "venue-1", name: "ID Night", address: null, city: null, active: true });
+    fetchMyVenue.mockRejectedValue(new MockBackendApiError("Venue lookup should not run", 503));
     fetchVenueEvents.mockRejectedValue(new MockBackendApiError("upstream leaked detail", 502));
 
     render(await VenueEventsPage());
 
     expect(screen.getByText("Could not load events")).toBeInTheDocument();
     expect(screen.getByText("Could not load venue events. Please try again.")).toBeInTheDocument();
+    expect(fetchMyVenue).not.toHaveBeenCalled();
   });
 
   it("preserves visible backend 4xx event-load messages", async () => {
-    fetchMyVenue.mockResolvedValue({ id: "venue-1", name: "ID Night", address: null, city: null, active: true });
+    fetchMyVenue.mockRejectedValue(new MockBackendApiError("Venue lookup should not run", 503));
     fetchVenueEvents.mockRejectedValue(new MockBackendApiError("This venue cannot access that event.", 403));
 
     render(await VenueEventsPage());
 
     expect(screen.getByText("Could not load events")).toBeInTheDocument();
     expect(screen.getByText("This venue cannot access that event.")).toBeInTheDocument();
+    expect(fetchMyVenue).not.toHaveBeenCalled();
   });
 
   it("renders the event list with deterministic UTC schedule text", async () => {
-    fetchMyVenue.mockResolvedValue({ id: "venue-1", name: "ID Night", address: null, city: null, active: true });
+    fetchMyVenue.mockRejectedValue(new MockBackendApiError("Venue lookup should not run", 503));
     fetchVenueEvents.mockResolvedValue([
       {
         id: "event-1",
@@ -149,5 +160,6 @@ describe("VenueEventsPage", () => {
       screen.getByText("Jun 20, 2026, 11:00 PM UTC → Jun 21, 2026, 5:00 AM UTC"),
     ).toBeInTheDocument();
     expect(screen.getByText("500 people")).toBeInTheDocument();
+    expect(fetchMyVenue).not.toHaveBeenCalled();
   });
 });

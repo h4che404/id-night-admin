@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { requireBackendSession } from "@/lib/auth-session";
+import { requireBackendSession, PROFILE_COOKIE } from "@/lib/auth-session";
 import { BackendApiError, createOwnerOnboarding } from "@/lib/idnight-backend";
 
 export async function POST(request: Request) {
@@ -23,7 +23,9 @@ export async function POST(request: Request) {
 
     await createOwnerOnboarding(session.accessToken, { organizationName, venueName, city, address });
 
-    return NextResponse.json({ ok: true });
+    const response = NextResponse.json({ ok: true });
+    response.cookies.delete(PROFILE_COOKIE);
+    return response;
   } catch (error) {
     const status = error instanceof BackendApiError ? error.status : 400;
     const message = error instanceof Error ? error.message : "No se pudo crear la organización.";

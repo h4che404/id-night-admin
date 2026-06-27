@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
 
-import { readReadyVenueApiAccess } from "@/lib/auth-session";
+import { PROFILE_COOKIE, readVenueSetupApiAccess } from "@/lib/auth-session";
 import { createVenue } from "@/lib/idnight-backend";
 
 export async function POST(request: Request) {
   try {
-    const auth = await readReadyVenueApiAccess();
+    const auth = await readVenueSetupApiAccess();
 
     if ("response" in auth) {
       return auth.response;
@@ -28,7 +28,9 @@ export async function POST(request: Request) {
 
     await createVenue(session.accessToken, { name, address, city });
 
-    return NextResponse.json({ ok: true });
+    const response = NextResponse.json({ ok: true });
+    response.cookies.delete(PROFILE_COOKIE);
+    return response;
   } catch (error) {
     const message = error instanceof Error ? error.message : "No se pudo crear el boliche.";
     return NextResponse.json({ message }, { status: 400 });

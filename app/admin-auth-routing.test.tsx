@@ -2,7 +2,10 @@ import { render, screen } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+vi.mock("server-only", () => ({}));
+
 const {
+  canRecoverVenueSetup,
   readBackendSession,
   requireBackendSession,
   requireBackendProfile,
@@ -10,6 +13,7 @@ const {
   resolveAdminSessionAccess,
   redirectMock,
 } = vi.hoisted(() => ({
+  canRecoverVenueSetup: vi.fn(),
   readBackendSession: vi.fn(),
   requireBackendSession: vi.fn(),
   requireBackendProfile: vi.fn(() => {
@@ -35,6 +39,7 @@ vi.mock("next/link", () => ({
 }));
 
 vi.mock("@/lib/auth-session", () => ({
+  canRecoverVenueSetup,
   readBackendSession,
   requireBackendSession,
   requireBackendProfile,
@@ -89,6 +94,11 @@ describe("admin auth routing pages", () => {
     requireBackendProfile.mockClear();
     requireAdminAccess.mockReset();
     resolveAdminSessionAccess.mockReset();
+    canRecoverVenueSetup.mockReset();
+    canRecoverVenueSetup.mockImplementation(
+      (access: { state: string; onboarding?: { organizationId?: string | null } }) =>
+        access.state === "onboarding-needed" && access.onboarding?.organizationId !== null,
+    );
     redirectMock.mockReset();
     redirectMock.mockImplementation((path: string) => {
       throw createRedirectError(path);
@@ -182,16 +192,71 @@ describe("admin auth routing pages", () => {
   it("redirects onboarding-needed layout access to /owner-onboarding before protected work runs", async () => {
     requireAdminAccess.mockResolvedValue({
       session: { accessToken: "token", refreshToken: null },
-      access: {
-        state: "onboarding-needed",
-        onboarding: { needsOnboarding: true, hasOperatorProfile: true },
-      },
-    });
+        access: {
+          state: "onboarding-needed",
+          onboarding: { needsOnboarding: true, hasOperatorProfile: true, organizationId: null },
+        },
+      });
 
     await expect(
       AuthenticatedLayout({ children: <div data-testid="protected-child">Protected child</div> }),
     ).rejects.toMatchObject({
       digest: "NEXT_REDIRECT;replace;/owner-onboarding;307;",
     });
+  });
+
+  it("redirects existing-organization login sessions without a primary venue to /venue", async () => {
+    readBackendSession.mockResolvedValue({ accessToken: "token", refreshToken: null });
+    resolveAdminSessionAccess.mockResolvedValue({
+      state: "onboarding-needed",
+      onboarding: { needsOnboarding: true, hasOperatorProfile: true, organizationId: "org-1" },
+    });
+
+    await expect(LoginPage()).rejects.toMatchObject({
+      digest: "NEXT_REDIRECT;replace;/venue;307;",
+    });
+  });
+
+  it("redirects existing-organization register sessions without a primary venue to /venue", async () => {
+    readBackendSession.mockResolvedValue({ accessToken: "token", refreshToken: null });
+    resolveAdminSessionAccess.mockResolvedValue({
+      state: "onboarding-needed",
+      onboarding: { needsOnboarding: true, hasOperatorProfile: true, organizationId: "org-1" },
+    });
+
+    await expect(RegisterPage()).rejects.toMatchObject({
+      digest: "NEXT_REDIRECT;replace;/venue;307;",
+    });
+  });
+
+  it("redirects existing-organization onboarding access to /venue instead of rendering owner onboarding", async () => {
+    requireBackendSession.mockResolvedValue({ accessToken: "token", refreshToken: null });
+    resolveAdminSessionAccess.mockResolvedValue({
+      state: "onboarding-needed",
+      onboarding: { needsOnboarding: true, hasOperatorProfile: true, organizationId: "org-1" },
+    });
+
+    await expect(OwnerOnboardingPage()).rejects.toMatchObject({
+      digest: "NEXT_REDIRECT;replace;/venue;307;",
+    });
+  });
+
+  it("keeps existing-organization onboarding-needed layout access on the authenticated /venue recovery path", async () => {
+    requireAdminAccess.mockResolvedValue({
+      session: { accessToken: "token", refreshToken: null },
+      access: {
+        state: "onboarding-needed",
+        onboarding: { needsOnboarding: true, hasOperatorProfile: true, organizationId: "org-1" },
+      },
+    });
+
+    render(
+      await AuthenticatedLayout({
+        children: <div data-testid="venue-recovery-child">Venue recovery child</div>,
+      }),
+    );
+
+    expect(screen.getByTestId("app-shell")).toBeInTheDocument();
+    expect(screen.getByTestId("venue-recovery-child")).toBeInTheDocument();
   });
 });

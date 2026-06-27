@@ -1,10 +1,10 @@
-import { Smartphone, SmartphoneCharging } from "lucide-react";
+import { SmartphoneCharging } from "lucide-react";
 
 import { Badge, DataShell, DataTable, EmptyState, SectionHeader } from "@/components/ui-kit";
 import { VenueDeviceActions } from "@/components/venue-device-actions";
 import { VenueDeviceForm } from "@/components/venue-device-form";
 import { requireReadyPageAccess } from "@/lib/auth-session";
-import { fetchMyVenue, fetchVenueDevices } from "@/lib/idnight-backend";
+import { fetchVenueDevices } from "@/lib/idnight-backend";
 
 function formatDateTime(value: string | null) {
   if (!value) {
@@ -29,31 +29,7 @@ export default async function VenueDevicesPage() {
     return null;
   }
 
-  const { session } = readyAccess;
-
-  let venue = null;
-  try {
-    venue = await fetchMyVenue(session.accessToken);
-  } catch {
-    venue = null;
-  }
-
-  if (!venue) {
-    return (
-      <div className="space-y-6">
-        <SectionHeader
-          eyebrow="Dispositivos"
-          title="Dispositivos autorizados"
-          description="Primero necesitás crear tu boliche para poder autorizar los dispositivos que operan en la puerta."
-        />
-        <EmptyState
-          title="Sin boliche configurado"
-          description="Volvé al panel principal para crear tu boliche antes de gestionar dispositivos autorizados."
-          icon={<Smartphone className="h-5 w-5 text-sky-300" />}
-        />
-      </div>
-    );
-  }
+  const { session, venueSummary: venue } = readyAccess;
 
   let devices: Awaited<ReturnType<typeof fetchVenueDevices>> = [];
   let devicesError: string | null = null;

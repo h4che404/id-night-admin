@@ -1,7 +1,13 @@
 import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { MockBackendApiError, requireBackendProfile, requireAdminAccess, fetchMyVenue, fetchDashboardMetrics } = vi.hoisted(() => {
+function createRedirectError(path: string) {
+  return Object.assign(new Error("NEXT_REDIRECT"), {
+    digest: `NEXT_REDIRECT;replace;${path};307;`,
+  });
+}
+
+const { MockBackendApiError, requireBackendProfile, requireAdminAccess, canRecoverVenueSetup, fetchMyVenue, fetchDashboardMetrics } = vi.hoisted(() => {
   class MockBackendApiError extends Error {
     status: number;
 
@@ -18,6 +24,7 @@ const { MockBackendApiError, requireBackendProfile, requireAdminAccess, fetchMyV
       throw new Error("Legacy ready-only helper should not be used by venue page");
     }),
     requireAdminAccess: vi.fn(),
+    canRecoverVenueSetup: vi.fn((access: { onboarding?: { organizationId?: string | null } }) => access.onboarding?.organizationId != null),
     fetchMyVenue: vi.fn(),
     fetchDashboardMetrics: vi.fn(),
   };
@@ -26,6 +33,7 @@ const { MockBackendApiError, requireBackendProfile, requireAdminAccess, fetchMyV
 vi.mock("@/lib/auth-session", () => ({
   requireBackendProfile,
   requireAdminAccess,
+  canRecoverVenueSetup,
 }));
 
 vi.mock("@/lib/idnight-backend", () => ({
@@ -55,22 +63,37 @@ vi.mock("@/components/ui-kit", () => ({
   Surface: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
 }));
 
+vi.mock("next/navigation", () => ({
+  redirect: (path: string) => {
+    throw createRedirectError(path);
+  },
+}));
+
 import VenuePage from "@/app/(app)/venue/page";
 
 describe("VenuePage", () => {
   beforeEach(() => {
     requireAdminAccess.mockReset();
+    canRecoverVenueSetup.mockClear();
     requireBackendProfile.mockClear();
     fetchMyVenue.mockReset();
     fetchDashboardMetrics.mockReset();
   });
 
-  it("keeps the create-state flow for ready users whose organization still has no venue", async () => {
+  it("renders the ready venue dashboard from access.venueSummary without re-fetching venue details", async () => {
     requireAdminAccess.mockResolvedValue({
       session: { accessToken: "admin-token", refreshToken: null },
       access: {
         state: "ready",
-        venueSource: "legacy-fallback",
+        venueSource: "bootstrap",
+        venueSummary: {
+          id: "venue-1",
+          name: "ID Night",
+          slug: "id-night",
+          address: "Main St 123",
+          city: "Buenos Aires",
+          active: true,
+        },
         profile: {
           id: "admin-1",
           email: "admin@idnight.app",
@@ -79,8 +102,8 @@ describe("VenuePage", () => {
           fullName: "Ada Lovelace",
           role: "Owner",
           active: true,
-          venueId: null,
-          venueName: null,
+          venueId: "venue-1",
+          venueName: "ID Night",
           organizationId: "org-1",
           organizationName: "My Org",
           membershipRole: "Owner",
@@ -88,13 +111,75 @@ describe("VenuePage", () => {
         },
       },
     });
-    fetchMyVenue.mockRejectedValue(new MockBackendApiError("Venue not found", 404));
+    fetchMyVenue.mockRejectedValue(new MockBackendApiError("Venue lookup should not run", 503));
+    fetchDashboardMetrics.mockResolvedValue({
+      venueId: "venue-1",
+      totalEvents: 4,
+      upcomingEvents: 1,
+      activeEvents: 2,
+      totalOperators: 3,
+      activeDevices: 2,
+      openIncidents: 1,
+      totalGuestEntriesAllEvents: 250,
+      admissionsToday: 48,
+    });
+
+    render(await VenuePage());
+
+    expect(screen.getByRole("heading", { name: "ID Night" })).toBeInTheDocument();
+    expect(screen.getByText("Main St 123, Buenos Aires")).toBeInTheDocument();
+    expect(screen.getByText("Activo")).toBeInTheDocument();
+    expect(screen.queryByTestId("venue-create-form")).not.toBeInTheDocument();
+    expect(fetchMyVenue).not.toHaveBeenCalled();
+    expect(fetchDashboardMetrics).toHaveBeenCalledWith("admin-token");
+  });
+
+  it("keeps the venue recovery create-state for existing organizations without a venue", async () => {
+    requireAdminAccess.mockResolvedValue({
+      session: { accessToken: "admin-token", refreshToken: null },
+      access: {
+        state: "onboarding-needed",
+        onboarding: {
+          needsOnboarding: true,
+          hasOperatorProfile: true,
+          operatorRole: "Owner",
+          organizationId: "org-1",
+          organizationName: "My Org",
+          venueId: null,
+          venueName: null,
+        },
+      },
+    });
 
     render(await VenuePage());
 
     expect(screen.getByText("Creá tu boliche")).toBeInTheDocument();
     expect(screen.getByTestId("venue-create-form")).toBeInTheDocument();
+    expect(fetchMyVenue).not.toHaveBeenCalled();
     expect(fetchDashboardMetrics).not.toHaveBeenCalled();
+  });
+
+  it("still redirects missing-organization onboarding to the owner onboarding flow", async () => {
+    requireAdminAccess.mockResolvedValue({
+      session: { accessToken: "admin-token", refreshToken: null },
+      access: {
+        state: "onboarding-needed",
+        onboarding: {
+          needsOnboarding: true,
+          hasOperatorProfile: true,
+          operatorRole: "Owner",
+          organizationId: null,
+          organizationName: null,
+          venueId: null,
+          venueName: null,
+        },
+      },
+    });
+
+    await expect(VenuePage()).rejects.toMatchObject({
+      digest: "NEXT_REDIRECT;replace;/owner-onboarding;307;",
+    });
+    expect(fetchMyVenue).not.toHaveBeenCalled();
   });
 
   it("stops before venue fetches when access is degraded because the layout owns the limited shell", async () => {

@@ -1,8 +1,6 @@
 import { requireReadyPageAccess } from "@/lib/auth-session";
-import { fetchMyVenue } from "@/lib/idnight-backend";
-import { SectionHeader, Surface, EmptyState } from "@/components/ui-kit";
+import { SectionHeader, Surface } from "@/components/ui-kit";
 import { VenueSettingsForm } from "@/components/venue-settings-form";
-import { Settings2 } from "lucide-react";
 
 export default async function VenueSettingsPage() {
   const readyAccess = await requireReadyPageAccess();
@@ -11,31 +9,7 @@ export default async function VenueSettingsPage() {
     return null;
   }
 
-  const { session } = readyAccess;
-
-  let venue = null;
-  try {
-    venue = await fetchMyVenue(session.accessToken);
-  } catch {
-    venue = null;
-  }
-
-  if (!venue) {
-    return (
-      <div className="space-y-6">
-        <SectionHeader
-          eyebrow="Configuración"
-          title="Configuración del boliche"
-          description="Primero necesitás crear tu boliche desde el panel principal."
-        />
-        <EmptyState
-          title="Sin boliche configurado"
-          description="Volvé al panel principal para crear tu boliche antes de modificar su configuración."
-          icon={<Settings2 className="h-5 w-5 text-sky-300" />}
-        />
-      </div>
-    );
-  }
+  const { venueSummary: venue } = readyAccess;
 
   return (
     <div className="space-y-6">

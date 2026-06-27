@@ -1,7 +1,7 @@
-import { Shield, UserPlus } from "lucide-react";
+import { UserPlus } from "lucide-react";
 
 import { requireReadyPageAccess } from "@/lib/auth-session";
-import { fetchSecurityUsers, fetchMyVenue } from "@/lib/idnight-backend";
+import { fetchSecurityUsers } from "@/lib/idnight-backend";
 import { Badge, DataShell, DataTable, EmptyState, SectionHeader } from "@/components/ui-kit";
 import { SecurityUserForm } from "@/components/security-user-form";
 import { SecurityUserActions } from "@/components/security-user-actions";
@@ -13,32 +13,7 @@ export default async function SecurityPage() {
     return null;
   }
 
-  const { session } = readyAccess;
-
-  /* Check venue exists */
-  let venue = null;
-  try {
-    venue = await fetchMyVenue(session.accessToken);
-  } catch {
-    venue = null;
-  }
-
-  if (!venue) {
-    return (
-      <div className="space-y-6">
-        <SectionHeader
-          eyebrow="Seguridad"
-          title="Usuarios de seguridad"
-          description="Primero necesitás crear tu boliche para poder agregar usuarios de seguridad."
-        />
-        <EmptyState
-          title="Sin boliche configurado"
-          description="Volvé al panel principal para crear tu boliche antes de gestionar usuarios de seguridad."
-          icon={<Shield className="h-5 w-5 text-sky-300" />}
-        />
-      </div>
-    );
-  }
+  const { session, venueSummary: venue } = readyAccess;
 
   /* Fetch security users */
   let users: Awaited<ReturnType<typeof fetchSecurityUsers>> = [];
