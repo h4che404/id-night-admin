@@ -163,14 +163,13 @@ describe("resolveAdminSessionAccess", () => {
     expect(fetchMyVenue).toHaveBeenCalledTimes(1);
   });
 
-  it("rethrows unexpected admin profile errors", async () => {
+  it("returns degraded for unexpected bootstrap errors (e.g. 400, 404)", async () => {
     bootstrapMe.mockRejectedValue(new MockBackendApiError("Bad Request", 400));
 
-    await expect(
-      resolveAdminSessionAccessUncached(createAccessToken({ email: "owner@example.com" })),
-    ).rejects.toMatchObject({
-      message: "Bad Request",
-      status: 400,
-    });
+    const result = await resolveAdminSessionAccessUncached(
+      createAccessToken({ email: "owner@example.com" }),
+    );
+
+    expect(result).toMatchObject({ state: "degraded", reason: "bootstrap" });
   });
 });

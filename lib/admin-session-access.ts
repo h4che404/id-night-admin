@@ -150,36 +150,35 @@ export async function resolveAdminSessionAccessUncached(
         if (error.status === 401 || error.status === 403) {
           return { state: "unauthorized" };
         }
-
-        if (error.status >= 500) {
-          console.error("[session] venue-fallback degraded:", error.status, error.message);
-          return {
-            state: "degraded",
-            identity: deriveIdentity(accessToken, bootstrap.email),
-            reason: "venue-fallback",
-          };
-        }
       }
 
-      throw error;
+      console.error("[session] venue-fallback degraded:", error instanceof BackendApiError ? error.status : "non-backend", error instanceof Error ? error.message : error);
+      return {
+        state: "degraded",
+        identity: deriveIdentity(accessToken, bootstrap.email),
+        reason: "venue-fallback",
+      };
     }
   } catch (error) {
     if (error instanceof BackendApiError) {
-      if (error.status >= 500) {
-        console.error("[session] bootstrap degraded:", error.status, error.message);
-        return {
-          state: "degraded",
-          identity: fallbackIdentity,
-          reason: "bootstrap",
-        };
-      }
-
       if (error.status === 401 || error.status === 403) {
         return { state: "unauthorized" };
       }
+
+      console.error("[session] bootstrap degraded:", error.status, error.message);
+      return {
+        state: "degraded",
+        identity: fallbackIdentity,
+        reason: "bootstrap",
+      };
     }
 
-    throw error;
+    console.error("[session] bootstrap unexpected error:", error);
+    return {
+      state: "degraded",
+      identity: fallbackIdentity,
+      reason: "bootstrap",
+    };
   }
 }
 
