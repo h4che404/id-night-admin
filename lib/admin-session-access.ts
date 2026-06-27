@@ -152,6 +152,7 @@ export async function resolveAdminSessionAccessUncached(
         }
 
         if (error.status >= 500) {
+          console.error("[session] venue-fallback degraded:", error.status, error.message);
           return {
             state: "degraded",
             identity: deriveIdentity(accessToken, bootstrap.email),
@@ -165,6 +166,7 @@ export async function resolveAdminSessionAccessUncached(
   } catch (error) {
     if (error instanceof BackendApiError) {
       if (error.status >= 500) {
+        console.error("[session] bootstrap degraded:", error.status, error.message);
         return {
           state: "degraded",
           identity: fallbackIdentity,
