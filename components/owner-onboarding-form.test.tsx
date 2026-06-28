@@ -65,7 +65,7 @@ describe("OwnerOnboardingForm", () => {
       }),
     );
     expect(pushMock).toHaveBeenCalledWith("/venue");
-    expect(refreshMock).toHaveBeenCalledTimes(1);
+    expect(refreshMock).not.toHaveBeenCalled();
   });
 
   it("shows the backend error message", async () => {

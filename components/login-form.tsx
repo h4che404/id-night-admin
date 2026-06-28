@@ -32,7 +32,6 @@ export function LoginForm() {
       }
 
       router.push("/venue");
-      router.refresh();
     } catch (submitError) {
       const msg = submitError instanceof Error ? submitError.message : "";
       if (

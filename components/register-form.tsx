@@ -50,7 +50,6 @@ export function RegisterForm() {
         setSuccessMsg("Revisá tu email para activar la cuenta");
       } else {
         router.push("/owner-onboarding");
-        router.refresh();
       }
     } catch (submitError) {
       setError(submitError instanceof Error ? submitError.message : "No se pudo crear la cuenta.");

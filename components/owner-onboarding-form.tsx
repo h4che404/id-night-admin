@@ -39,7 +39,6 @@ export function OwnerOnboardingForm() {
       }
 
       router.push("/venue");
-      router.refresh();
     } catch (submitError) {
       setError(submitError instanceof Error ? submitError.message : "No se pudo crear la organización.");
     } finally {

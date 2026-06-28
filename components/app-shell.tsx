@@ -86,6 +86,7 @@ export function AppShell({
                 <Link
                   key={item.href}
                   href={item.href}
+                  prefetch={false}
                   className={cn(
                     "flex items-center gap-3 rounded-2xl px-3 py-3 text-sm transition",
                     isActive

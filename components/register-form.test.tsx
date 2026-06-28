@@ -57,7 +57,7 @@ describe("RegisterForm", () => {
       }),
     );
     expect(pushMock).toHaveBeenCalledWith("/owner-onboarding");
-    expect(refreshMock).toHaveBeenCalledTimes(1);
+    expect(refreshMock).not.toHaveBeenCalled();
   });
 
   it("shows email confirmation message if requiresEmailConfirmation is true", async () => {

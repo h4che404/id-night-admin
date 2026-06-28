@@ -9,8 +9,13 @@ vi.mock("next/navigation", () => ({
 }));
 
 vi.mock("next/link", () => ({
-  default: ({ href, children, ...props }: ComponentPropsWithoutRef<"a"> & { href: string }) => (
-    <a href={href} {...props}>
+  default: ({
+    href,
+    children,
+    prefetch,
+    ...props
+  }: ComponentPropsWithoutRef<"a"> & { href: string; prefetch?: boolean }) => (
+    <a href={href} data-prefetch={String(prefetch)} {...props}>
       {children}
     </a>
   ),
@@ -31,5 +36,6 @@ describe("AppShell", () => {
     const eventsLink = screen.getByRole("link", { name: /events/i });
 
     expect(eventsLink).toHaveAttribute("href", "/venue/events");
+    expect(eventsLink).toHaveAttribute("data-prefetch", "false");
   });
 });
