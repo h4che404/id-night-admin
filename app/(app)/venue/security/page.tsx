@@ -3,17 +3,19 @@ import { UserPlus } from "lucide-react";
 
 import { requireReadyPageAccess } from "@/lib/auth-session";
 import { fetchSecurityUsers } from "@/lib/idnight-backend";
-import { Badge, DataShell, DataTable, EmptyState, LoadingSkeleton, SectionHeader } from "@/components/ui-kit";
+import { Badge, DataShell, DataTable, EmptyState, LoadingSkeleton, PaginationBar, SectionHeader } from "@/components/ui-kit";
 import { SecurityUserForm } from "@/components/security-user-form";
 import { SecurityUserActions } from "@/components/security-user-actions";
 
-async function SecurityUsersData({ token }: { token: string }) {
-  let users: Awaited<ReturnType<typeof fetchSecurityUsers>> = [];
+async function SecurityUsersData({ token, page }: { token: string; page: number }) {
+  let result: Awaited<ReturnType<typeof fetchSecurityUsers>> = { items: [], total: 0, page, pageSize: 20 };
   try {
-    users = await fetchSecurityUsers(token);
+    result = await fetchSecurityUsers(token, page);
   } catch {
-    users = [];
+    result = { items: [], total: 0, page, pageSize: 20 };
   }
+
+  const users = result.items;
 
   if (users.length === 0) {
     return (
@@ -26,36 +28,48 @@ async function SecurityUsersData({ token }: { token: string }) {
   }
 
   return (
-    <DataShell
-      title="Equipo de seguridad"
-      subtitle={`${users.length} usuario${users.length === 1 ? "" : "s"} registrado${users.length === 1 ? "" : "s"}`}
-    >
-      <DataTable
-        columns={["Nombre", "Email", "Estado", "Acciones"]}
-        rows={users.map((user) => (
-          <tr key={user.id} className="hover:bg-slate-950/20">
-            <td className="px-5 py-4">
-              <p className="font-medium text-slate-100">{user.fullName}</p>
-              <p className="mt-1 text-xs text-slate-500">Seguridad</p>
-            </td>
-            <td className="px-5 py-4 text-sm text-slate-300">{user.email}</td>
-            <td className="px-5 py-4">
-              <Badge
-                label={user.active ? "Activo" : "Inactivo"}
-                tone={user.active ? "success" : "warning"}
-              />
-            </td>
-            <td className="px-5 py-4">
-              <SecurityUserActions userId={user.id} active={user.active} />
-            </td>
-          </tr>
-        ))}
+    <div className="space-y-4">
+      <DataShell
+        title="Equipo de seguridad"
+        subtitle={`${result.total} usuario${result.total === 1 ? "" : "s"} registrado${result.total === 1 ? "" : "s"}`}
+      >
+        <DataTable
+          columns={["Nombre", "Email", "Estado", "Acciones"]}
+          rows={users.map((user) => (
+            <tr key={user.id} className="hover:bg-slate-950/20">
+              <td className="px-5 py-4">
+                <p className="font-medium text-slate-100">{user.fullName}</p>
+                <p className="mt-1 text-xs text-slate-500">Seguridad</p>
+              </td>
+              <td className="px-5 py-4 text-sm text-slate-300">{user.email}</td>
+              <td className="px-5 py-4">
+                <Badge
+                  label={user.active ? "Activo" : "Inactivo"}
+                  tone={user.active ? "success" : "warning"}
+                />
+              </td>
+              <td className="px-5 py-4">
+                <SecurityUserActions userId={user.id} active={user.active} />
+              </td>
+            </tr>
+          ))}
+        />
+      </DataShell>
+      <PaginationBar
+        page={result.page}
+        pageSize={result.pageSize}
+        total={result.total}
+        basePath="/venue/security"
       />
-    </DataShell>
+    </div>
   );
 }
 
-export default async function SecurityPage() {
+export default async function SecurityPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ page?: string }>;
+}) {
   const readyAccess = await requireReadyPageAccess();
 
   if (!readyAccess) {
@@ -63,6 +77,7 @@ export default async function SecurityPage() {
   }
 
   const { session, venueSummary: venue } = readyAccess;
+  const p = parseInt((await searchParams).page ?? "1", 10);
 
   return (
     <div className="space-y-6">
@@ -75,7 +90,7 @@ export default async function SecurityPage() {
       <SecurityUserForm />
 
       <Suspense fallback={<LoadingSkeleton />}>
-        <SecurityUsersData token={session.accessToken} />
+        <SecurityUsersData token={session.accessToken} page={p} />
       </Suspense>
     </div>
   );

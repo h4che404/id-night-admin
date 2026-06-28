@@ -293,3 +293,51 @@ export function SecondaryButton({
     </button>
   );
 }
+
+/* ── Pagination bar ────────────────────────────────────────────── */
+
+export function PaginationBar({
+  page,
+  pageSize,
+  total,
+  basePath,
+  searchParams,
+}: {
+  page: number;
+  pageSize: number;
+  total: number;
+  basePath: string;
+  searchParams?: Record<string, string>;
+}) {
+  const totalPages = Math.ceil(total / pageSize);
+  if (totalPages <= 1) return null;
+
+  function buildHref(targetPage: number) {
+    const params = new URLSearchParams({ ...searchParams, page: String(targetPage) });
+    return `${basePath}?${params.toString()}`;
+  }
+
+  return (
+    <div className="flex items-center justify-between border-t border-slate-800 pt-4">
+      <p className="text-xs text-slate-500">
+        {(page - 1) * pageSize + 1}–{Math.min(page * pageSize, total)} of {total}
+      </p>
+      <div className="flex gap-2">
+        {page > 1 ? (
+          <a href={buildHref(page - 1)} className="rounded-xl border border-slate-700 bg-slate-900 px-3 py-1.5 text-xs text-slate-300 hover:border-slate-600 hover:text-slate-100">
+            ← Previous
+          </a>
+        ) : (
+          <span className="rounded-xl border border-slate-800 px-3 py-1.5 text-xs text-slate-600 cursor-not-allowed">← Previous</span>
+        )}
+        {page < totalPages ? (
+          <a href={buildHref(page + 1)} className="rounded-xl border border-slate-700 bg-slate-900 px-3 py-1.5 text-xs text-slate-300 hover:border-slate-600 hover:text-slate-100">
+            Next →
+          </a>
+        ) : (
+          <span className="rounded-xl border border-slate-800 px-3 py-1.5 text-xs text-slate-600 cursor-not-allowed">Next →</span>
+        )}
+      </div>
+    </div>
+  );
+}

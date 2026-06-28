@@ -21,8 +21,8 @@ export default async function EventGuestListPage({
 
   let eventName = "Event";
   try {
-    const events = await fetchVenueEvents(session.accessToken);
-    const event = events.find((e) => e.id === eventId);
+    const result = await fetchVenueEvents(session.accessToken);
+    const event = result.items.find((e) => e.id === eventId);
     if (event) eventName = event.name;
   } catch { /* ignore, use fallback */ }
 

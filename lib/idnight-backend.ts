@@ -5,6 +5,13 @@ export const IDNIGHT_BACKEND_URL =
 
 /* ── Types ─────────────────────────────────────────────────────── */
 
+export type BackendPagedResult<T> = {
+  items: T[];
+  total: number;
+  page: number;
+  pageSize: number;
+};
+
 export type BackendAdminMe = {
   id: string;
   email: string;
@@ -527,8 +534,11 @@ export function updateMyVenueEntryRules(
   });
 }
 
-export function fetchVenueEvents(token: string) {
-  return backendRequest<BackendVenueEvent[]>("/admin/venues/mine/events", { token });
+export function fetchVenueEvents(token: string, page = 1) {
+  return backendRequest<BackendPagedResult<BackendVenueEvent>>(
+    `/admin/venues/mine/events?page=${page}&pageSize=20`,
+    { token },
+  );
 }
 
 export function createVenueEvent(
@@ -630,8 +640,11 @@ export function cancelGuestListEntry(token: string, eventId: string, entryId: st
 
 /* ── Security users ────────────────────────────────────────────── */
 
-export function fetchSecurityUsers(token: string) {
-  return backendRequest<BackendSecurityUser[]>("/admin/venues/mine/security-users", { token });
+export function fetchSecurityUsers(token: string, page = 1) {
+  return backendRequest<BackendPagedResult<BackendSecurityUser>>(
+    `/admin/venues/mine/security-users?page=${page}&pageSize=20`,
+    { token },
+  );
 }
 
 export function createSecurityUser(
@@ -666,8 +679,11 @@ export function toggleSecurityUserStatus(token: string, id: string, active: bool
 
 /* ── Authorized venue devices ──────────────────────────────────── */
 
-export function fetchVenueDevices(token: string) {
-  return backendRequest<BackendVenueDevice[]>("/admin/venues/mine/devices", { token });
+export function fetchVenueDevices(token: string, page = 1) {
+  return backendRequest<BackendPagedResult<BackendVenueDevice>>(
+    `/admin/venues/mine/devices?page=${page}&pageSize=20`,
+    { token },
+  );
 }
 
 export function createVenueDevice(
@@ -703,8 +719,11 @@ export function toggleVenueDeviceStatus(token: string, id: string, active: boole
 
 /* ── Incidents ─────────────────────────────────────────────────── */
 
-export function fetchVenueIncidents(token: string) {
-  return backendRequest<BackendIncidentSummary[]>("/admin/venues/mine/incidents", { token });
+export function fetchVenueIncidents(token: string, page = 1) {
+  return backendRequest<BackendPagedResult<BackendIncidentSummary>>(
+    `/admin/venues/mine/incidents?page=${page}&pageSize=20`,
+    { token },
+  );
 }
 
 export function fetchVenueIncident(token: string, id: string) {
@@ -736,15 +755,17 @@ export function fetchAccessSessions(
     eventId?: string;
     operatorId?: string;
     status?: string;
+    page?: number;
   } = {},
 ) {
   const query = new URLSearchParams();
   if (params.eventId) query.set("eventId", params.eventId);
   if (params.operatorId) query.set("operatorId", params.operatorId);
   if (params.status) query.set("status", params.status);
-  const qs = query.toString();
-  return backendRequest<BackendAccessSession[]>(
-    `/admin/venues/mine/access-sessions${qs ? `?${qs}` : ""}`,
+  query.set("page", String(params.page ?? 1));
+  query.set("pageSize", "20");
+  return backendRequest<BackendPagedResult<BackendAccessSession>>(
+    `/admin/venues/mine/access-sessions?${query.toString()}`,
     { token },
   );
 }

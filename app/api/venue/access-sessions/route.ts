@@ -30,8 +30,8 @@ export async function GET(request: Request) {
   const { session } = auth;
 
   try {
-    const sessions = await fetchAccessSessions(session.accessToken, params);
-    return NextResponse.json(sessions);
+    const result = await fetchAccessSessions(session.accessToken, params);
+    return NextResponse.json(result.items);
   } catch (error) {
     return routeErrorResponse(error, "Could not load access sessions.");
   }
