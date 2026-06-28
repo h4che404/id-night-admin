@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { Shield, Settings2, Smartphone, Building2 } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -7,7 +8,7 @@ import {
   fetchDashboardMetrics,
   BackendDashboardMetrics,
 } from "@/lib/idnight-backend";
-import { Badge, EmptyState, SectionHeader, Surface } from "@/components/ui-kit";
+import { Badge, EmptyState, LoadingSkeleton, SectionHeader, Surface } from "@/components/ui-kit";
 import { VenueCreateForm } from "@/components/venue-create-form";
 
 function MetricCard({
@@ -32,6 +33,52 @@ function MetricCard({
       <p className="text-xs font-medium uppercase tracking-[0.14em] text-slate-500">{label}</p>
       <p className={`mt-3 text-3xl font-semibold tabular-nums ${toneClass}`}>{value}</p>
     </Surface>
+  );
+}
+
+async function DashboardMetrics({ token }: { token: string }) {
+  let metrics: BackendDashboardMetrics = {
+    venueId: "",
+    totalEvents: 0,
+    upcomingEvents: 0,
+    activeEvents: 0,
+    totalOperators: 0,
+    activeDevices: 0,
+    openIncidents: 0,
+    totalGuestEntriesAllEvents: 0,
+    admissionsToday: 0,
+  };
+  let metricsError: string | null = null;
+  try {
+    metrics = await fetchDashboardMetrics(token);
+  } catch {
+    metricsError = "Metrics unavailable — backend not connected yet.";
+  }
+
+  return (
+    <>
+      <div className="grid gap-4 grid-cols-2 md:grid-cols-3">
+        <MetricCard label="Total events" value={metrics.totalEvents} tone="info" />
+        <MetricCard label="Active now" value={metrics.activeEvents} tone="success" />
+        <MetricCard label="Admissions today" value={metrics.admissionsToday} tone="success" />
+        <MetricCard label="Active devices" value={metrics.activeDevices} tone="info" />
+        <MetricCard label="Operators" value={metrics.totalOperators} tone="neutral" />
+        <MetricCard label="Open incidents" value={metrics.openIncidents} tone="neutral" />
+      </div>
+      {metricsError && (
+        <p className="text-xs text-slate-500">{metricsError}</p>
+      )}
+    </>
+  );
+}
+
+function MetricsSkeleton() {
+  return (
+    <div className="grid gap-4 grid-cols-2 md:grid-cols-3">
+      {Array.from({ length: 6 }).map((_, i) => (
+        <div key={i} className="panel h-24 animate-pulse rounded-2xl bg-slate-900/70" />
+      ))}
+    </div>
   );
 }
 
@@ -68,26 +115,6 @@ export default async function VenuePage() {
 
   const venue = access.venueSummary;
 
-  /* ── Fetch metrics with graceful fallback ────────────────────── */
-  let metrics: BackendDashboardMetrics = {
-    venueId: "",
-    totalEvents: 0,
-    upcomingEvents: 0,
-    activeEvents: 0,
-    totalOperators: 0,
-    activeDevices: 0,
-    openIncidents: 0,
-    totalGuestEntriesAllEvents: 0,
-    admissionsToday: 0,
-  };
-  let metricsError: string | null = null;
-  try {
-    metrics = await fetchDashboardMetrics(session.accessToken);
-  } catch {
-    metricsError = "Metrics unavailable — backend not connected yet.";
-  }
-
-  /* ── Has venue → dashboard panel ────────────────────────────── */
   return (
     <div className="space-y-6">
       <SectionHeader
@@ -96,19 +123,9 @@ export default async function VenuePage() {
         description={[venue.address, venue.city].filter(Boolean).join(", ") || "Sin dirección configurada"}
       />
 
-      {/* Operational metrics */}
-      <div className="grid gap-4 grid-cols-2 md:grid-cols-3">
-        <MetricCard label="Total events" value={metrics.totalEvents} tone="info" />
-        <MetricCard label="Active now" value={metrics.activeEvents} tone="success" />
-        <MetricCard label="Admissions today" value={metrics.admissionsToday} tone="success" />
-        <MetricCard label="Active devices" value={metrics.activeDevices} tone="info" />
-        <MetricCard label="Operators" value={metrics.totalOperators} tone="neutral" />
-        <MetricCard label="Open incidents" value={metrics.openIncidents} tone="neutral" />
-      </div>
-
-      {metricsError && (
-        <p className="text-xs text-slate-500">{metricsError}</p>
-      )}
+      <Suspense fallback={<MetricsSkeleton />}>
+        <DashboardMetrics token={session.accessToken} />
+      </Suspense>
 
       <div className="grid gap-4 md:grid-cols-3">
         <Surface className="p-5">

@@ -1,8 +1,22 @@
-import { SectionHeader } from "@/components/ui-kit";
+import { Suspense } from "react";
+
+import { LoadingSkeleton, SectionHeader } from "@/components/ui-kit";
 import { VenueEventsSection } from "@/components/venue-events-section";
 import { requireReadyPageAccess } from "@/lib/auth-session";
 import { fetchVenueEvents } from "@/lib/idnight-backend";
 import { getSafeEventErrorMessage } from "@/lib/venue-events";
+
+async function EventsData({ token }: { token: string }) {
+  let events: Awaited<ReturnType<typeof fetchVenueEvents>> = [];
+  let eventsError: string | null = null;
+  try {
+    events = await fetchVenueEvents(token);
+  } catch (error) {
+    eventsError = getSafeEventErrorMessage(error, "Could not load venue events. Please try again.");
+  }
+
+  return <VenueEventsSection events={events} eventsError={eventsError} />;
+}
 
 export default async function VenueEventsPage() {
   const readyAccess = await requireReadyPageAccess();
@@ -11,15 +25,7 @@ export default async function VenueEventsPage() {
     return null;
   }
 
-  const { session, venueSummary: venue } = readyAccess;
-
-  let events: Awaited<ReturnType<typeof fetchVenueEvents>> = [];
-  let eventsError: string | null = null;
-  try {
-    events = await fetchVenueEvents(session.accessToken);
-  } catch (error) {
-    eventsError = getSafeEventErrorMessage(error, "Could not load venue events. Please try again.");
-  }
+  const { venueSummary: venue, session } = readyAccess;
 
   return (
     <div className="space-y-6">
@@ -29,7 +35,9 @@ export default async function VenueEventsPage() {
         description={`Create and manage events scheduled for ${venue.name}. Activate, finish, or cancel events from the lineup below.`}
       />
 
-      <VenueEventsSection events={events} eventsError={eventsError} />
+      <Suspense fallback={<LoadingSkeleton />}>
+        <EventsData token={session.accessToken} />
+      </Suspense>
     </div>
   );
 }
