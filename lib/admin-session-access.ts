@@ -1,4 +1,5 @@
 import { cache } from "react";
+import { unstable_cache } from "next/cache";
 
 import {
   BackendApiError,
@@ -44,6 +45,7 @@ export type ResolvedAdminSessionAccess =
     };
 
 type JwtPayload = {
+  sub?: string;
   email?: string;
   user_metadata?: {
     firstName?: string;
@@ -221,7 +223,28 @@ export async function resolveAdminSessionAccessUncached(
   }
 }
 
+function extractJwtSub(token: string): string | null {
+  return parseJwt(token)?.sub ?? null;
+}
+
+// Cached per user ID (sub), survives token refreshes. TTL of 60s is safe for an admin
+// dashboard — operator deactivations and venue changes propagate within one minute.
+function makeUnstableCachedResolver(userId: string) {
+  return unstable_cache(
+    (token: string) => resolveAdminSessionAccessUncached(token),
+    [`admin-session-access:${userId}`],
+    { revalidate: 60, tags: [`admin-session:${userId}`] },
+  );
+}
+
 async function resolveAdminSessionAccessCached(accessToken: string) {
+  const userId = extractJwtSub(accessToken);
+
+  if (userId) {
+    return makeUnstableCachedResolver(userId)(accessToken);
+  }
+
+  // No sub in token — fall back to in-flight deduplication only
   const existingResolution = inFlightAccessResolutions.get(accessToken);
 
   if (existingResolution) {
@@ -238,3 +261,7 @@ async function resolveAdminSessionAccessCached(accessToken: string) {
 }
 
 export const resolveAdminSessionAccess = cache(resolveAdminSessionAccessCached);
+
+export function getAdminSessionCacheTag(userId: string): string {
+  return `admin-session:${userId}`;
+}

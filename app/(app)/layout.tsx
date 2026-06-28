@@ -1,10 +1,23 @@
 import { AppShell } from "@/components/app-shell";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { updateTag } from "next/cache";
 
 import { requireAdminAccess, canRecoverVenueSetup } from "@/lib/auth-session";
 import { reactivateOperator, BackendApiError } from "@/lib/idnight-backend";
 import { ACCESS_COOKIE } from "@/lib/auth-session";
+import { getAdminSessionCacheTag } from "@/lib/admin-session-access";
+
+function extractJwtSub(token: string): string | null {
+  try {
+    const payload = token.split(".")[1];
+    if (!payload) return null;
+    const json = Buffer.from(payload.replace(/-/g, "+").replace(/_/g, "/"), "base64").toString("utf8");
+    return (JSON.parse(json) as { sub?: string }).sub ?? null;
+  } catch {
+    return null;
+  }
+}
 
 async function reactivateOperatorAction() {
   "use server";
@@ -20,6 +33,8 @@ async function reactivateOperatorAction() {
       throw error;
     }
   }
+  const sub = extractJwtSub(token);
+  if (sub) updateTag(getAdminSessionCacheTag(sub));
   redirect("/venue");
 }
 
