@@ -1,5 +1,15 @@
 # ID-Night Admin — Documentación Backend MVP
 
+> ⚠️ **Documento histórico del MVP — no usar como contrato actual.**
+>
+> Para el contrato vigente del admin frontend con backend, usar [`docs/BACKEND_CONTRACT.md`](./BACKEND_CONTRACT.md).
+>
+> Este documento quedó desactualizado respecto de la dirección actual del producto y del frontend en al menos estos puntos:
+> - onboarding basado en bootstrap enriquecido
+> - diferenciación entre falta de organización y falta de `primaryVenue`
+> - endpoints de listas ahora consumidos con paginación obligatoria
+> - alcance funcional actual (incidentes, dispositivos, access sessions y dashboard ya forman parte del contrato frontend actual)
+
 > Este documento describe la arquitectura funcional del panel web administrativo de ID-Night,
 > las entidades del dominio, los endpoints que necesita el frontend, y el alcance del MVP actual.
 >

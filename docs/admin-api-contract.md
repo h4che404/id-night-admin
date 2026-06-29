@@ -1,5 +1,15 @@
 # Admin Panel — Backend API Contract
 
+> ⚠️ **Documento legacy / parcialmente desactualizado.**
+>
+> El contrato vigente para frontend ↔ backend está en [`docs/BACKEND_CONTRACT.md`](./BACKEND_CONTRACT.md).
+>
+> Este archivo conserva contexto histórico de migración, pero contiene secciones que ya no representan la expectativa actual del frontend admin, especialmente en:
+> - bootstrap admin enriquecido (`adminContextMode`, `primaryVenue`)
+> - reglas de routing para onboarding vs creación de venue existente
+> - respuestas paginadas obligatorias para lists (`events`, `security-users`, `devices`, `incidents`, `access-sessions`)
+> - notas de performance posteriores al trabajo de auth/session
+
 > Last updated: 2026-06-27  
 > Backend: .NET 10, Clean Architecture  
 > Source of truth: `Backend-ID-Night/src/`

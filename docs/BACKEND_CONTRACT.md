@@ -1,6 +1,21 @@
 # Canonical Backend Contract — Admin ↔ Backend .NET
 
-This document serves as the single source of truth for the API contract between the Admin Frontend (`id-night-admin`) and the .NET Backend (`Backend-ID-Night`). It aligns with the canonical specification `phase-2-admin-dotnet-contract-canonical` defined in the backend repository.
+> Last updated: 2026-06-28
+> Status: **canonical mirror** for the current Admin frontend ↔ .NET backend contract.
+
+This document mirrors the current contract between the Admin frontend (`id-night-admin`) and the .NET backend (`Backend-ID-Night`). For the pagination work, the backend remains the canonical producer and the frontend MUST consume the response as documented here without runtime normalizers or fallback reshaping.
+
+## Decisiones vigentes
+
+| Tema | Decisión actual |
+|---|---|
+| Bootstrap admin | `POST /api/v1/bootstrap/me` debe soportar `adminContextMode: "legacy-fallback" | "enriched"`. |
+| Venue inicial | En `enriched`, el backend debe devolver `primaryVenue` explícito cuando el admin está listo. |
+| Routing de onboarding | Sin organización → `/owner-onboarding`. Con organización pero sin `primaryVenue`/contexto de venue → flujo de creación de venue existente en `/venue`, **no** owner onboarding. |
+| List endpoints | `events`, `security-users`, `devices`, `incidents`, and `access-sessions` MUST return paginated envelopes; **never** raw arrays. |
+| Forma paginada | `{ "items": [], "total": 0, "page": 1, "pageSize": 20 }` |
+| Pagination rules | `page` is 1-based, missing `pageSize` defaults to `20`, `page < 1 => 1`, `pageSize < 1 => 1`, `pageSize > 100 => 100`, and ordering is stable before pagination. |
+| Performance | El frontend ya removió `router.refresh()` redundante en navegación auth y deshabilitó `prefetch` del sidebar. La mejora pendiente depende del backend: bootstrap enriquecido y paginación real. |
 
 ---
 
@@ -24,6 +39,9 @@ This document serves as the single source of truth for the API contract between 
 - **Dates:** ISO 8601 with UTC offset (e.g. `2026-06-26T23:50:00+00:00`).
 - **IDs:** UUID v4 strings.
 - **PATCH / PUT Semantics:** PATCH/PUT requests are partial updates where omitted fields remain unchanged. Sending `maxCapacity: null` explicitly clears the capacity constraint.
+- **Pagination Contract:** These endpoints MUST return the exact envelope `{ items, total, page, pageSize }`: `GET /api/v1/admin/venues/mine/events`, `GET /api/v1/admin/venues/mine/security-users`, `GET /api/v1/admin/venues/mine/devices`, `GET /api/v1/admin/venues/mine/incidents`, and `GET /api/v1/admin/venues/mine/access-sessions`. The backend MUST NOT return a raw array for them.
+- **Stable Ordering:** Every paginated list MUST apply deterministic ordering before `Skip/Take` or equivalent pagination logic.
+- **Frontend Consumption Rule:** The frontend MUST NOT add runtime normalizers or fallback adapters for these paginated responses. Contract drift must be fixed in the backend or documented here.
 
 ---
 
@@ -35,12 +53,54 @@ https://<backend-host>/api/v1
 
 ---
 
+## Canonical Admin Pagination Contract
+
+Use this section as the fast path for the five Admin venue list endpoints.
+
+### Covered Endpoints
+
+| Endpoint | Optional filters | Stable sort | Notes |
+|---|---|---|---|
+| `GET /api/v1/admin/venues/mine/events` | `page`, `pageSize`, `status` | `startsAt DESC`, then `id ASC` | `total` is the filtered total before slicing. |
+| `GET /api/v1/admin/venues/mine/security-users` | `page`, `pageSize` | `createdAt DESC`, then `id ASC` | No frontend re-sorting. |
+| `GET /api/v1/admin/venues/mine/devices` | `page`, `pageSize` | `createdAt DESC`, then `id ASC` | No frontend re-sorting. |
+| `GET /api/v1/admin/venues/mine/incidents` | `status`, `page`, `pageSize` | `createdAt DESC`, then `id ASC` | `status` filter changes both `items` and `total`. |
+| `GET /api/v1/admin/venues/mine/access-sessions` | `eventId`, `operatorId`, `status`, `page`, `pageSize` | `openedAt DESC`, then `id ASC` | `status` values in the response MUST be lowercase `open` / `closed`. |
+
+### Shared Response Envelope
+
+All five endpoints MUST return exactly:
+
+```json
+{
+  "items": [],
+  "total": 0,
+  "page": 1,
+  "pageSize": 20
+}
+```
+
+Rules:
+
+- `items` is always an array, including empty results.
+- `total` is the filtered total **before** pagination.
+- `page` is base 1.
+- Missing `pageSize` defaults to `20`.
+- `page < 1` normalizes to `1`.
+- `pageSize < 1` normalizes to `1`.
+- `pageSize > 100` normalizes to `100`.
+- Non-integer pagination query values fail with the backend validation error contract (`400`).
+- The frontend MUST consume `access-sessions.status` exactly as returned (`open` / `closed`) and MUST NOT lowercase it client-side.
+
+---
+
 ## Endpoint Details
 
 ### 1. Session & Auth
 
 #### POST /bootstrap/me
 Retrieves the authenticated admin bootstrap payload used for first-render session resolution.
+- **Header requerido:** `X-Client-Type: admin`
 - **Response 200:**
   ```json
   {
@@ -68,6 +128,15 @@ Bootstrap semantics:
 - `organizationId != null` with `adminContextMode: "enriched"` and `primaryVenue: null` means the user already has an organization but still needs venue setup and MUST recover through the existing venue-creation flow (`POST /admin/venues` surfaced in the frontend at `/venue`). This case MUST NOT be treated as owner onboarding.
 - `adminContextMode: "enriched"` with `primaryVenue` present means the frontend MUST use `primaryVenue` as the first-render venue identity and MUST NOT call `GET /admin/venues/mine` only to infer the initial venue.
 - `adminContextMode: "legacy-fallback"` keeps the temporary compatibility path where the frontend MAY still call `GET /admin/venues/mine` to synthesize first-render venue context until enriched bootstrap is fully rolled out.
+
+**Ejemplos de decisión de routing**
+
+| Estado backend | Resultado esperado en frontend |
+|---|---|
+| `organizationId = null` | Ir a owner onboarding |
+| `organizationId != null` + `adminContextMode = "enriched"` + `primaryVenue = null` | Ir a `/venue` para crear el venue faltante |
+| `organizationId != null` + `adminContextMode = "enriched"` + `primaryVenue` presente | Sesión `ready` sin lookup adicional |
+| `adminContextMode = "legacy-fallback"` | Se permite lookup temporal a `GET /admin/venues/mine` |
 
 #### GET /admin/me
 Retrieves the current authenticated administrator's profile.
@@ -193,21 +262,30 @@ Updates admission rules.
 
 #### GET /admin/venues/mine/events
 Retrieves events for the current active venue.
+- **Query Parameters:** `page` (optional, default `1`), `pageSize` (optional, default `20`, recommended max `100`)
 - **Response 200:**
   ```json
-  [
-    {
-      "id": "uuid",
-      "name": "string",
-      "status": "UPCOMING | ACTIVE | FINISHED | CANCELLED",
-      "startsAt": "DateTimeOffset",
-      "endsAt": "DateTimeOffset",
-      "maxCapacity": 500,
-      "minAge": 18,
-      "allowManualDniCheck": true,
-      "requireGuestList": false
-    }
-  ]
+  {
+    "items": [
+      {
+        "id": "uuid",
+        "venueId": "uuid",
+        "name": "string",
+        "status": "Draft | Published | Active | Finished | Cancelled",
+        "startsAt": "DateTimeOffset",
+        "endsAt": "DateTimeOffset | null",
+        "maxCapacity": 500,
+        "minAge": 18,
+        "allowManualDniCheck": true,
+        "requireGuestList": false,
+        "createdAt": "DateTimeOffset",
+        "updatedAt": "DateTimeOffset | null"
+      }
+    ],
+    "total": 0,
+    "page": 1,
+    "pageSize": 20
+  }
   ```
 
 #### POST /admin/venues/mine/events
@@ -248,21 +326,27 @@ Moves event to `CANCELLED` status.
 
 #### GET /admin/venues/mine/security-users
 Lists staff operators.
+- **Query Parameters:** `page` (optional, default `1`), `pageSize` (optional, default `20`, recommended max `100`)
 - **Response 200:**
   ```json
-  [
-    {
-      "id": "uuid",
-      "firstName": "string",
-      "lastName": "string",
-      "fullName": "string",
-      "email": "string",
-      "role": "ADMIN | SUPERVISOR | GUARD",
-      "active": true,
-      "venueId": "uuid",
-      "createdAt": "DateTimeOffset"
-    }
-  ]
+  {
+    "items": [
+      {
+        "id": "uuid",
+        "firstName": "string",
+        "lastName": "string",
+        "fullName": "string",
+        "email": "string",
+        "role": "ADMIN | SUPERVISOR | GUARD",
+        "active": true,
+        "venueId": "uuid",
+        "createdAt": "DateTimeOffset"
+      }
+    ],
+    "total": 0,
+    "page": 1,
+    "pageSize": 20
+  }
   ```
 
 #### POST /admin/venues/mine/security-users
@@ -293,22 +377,24 @@ Activates/Deactivates an operator.
 
 #### GET /admin/venues/mine/devices
 Lists authorized scanning devices.
+- **Query Parameters:** `page` (optional, default `1`), `pageSize` (optional, default `20`, recommended max `100`)
 - **Response 200:**
   ```json
-  [
-    {
-      "id": "uuid",
-      "name": "string",
-      "deviceKey": "string",
-      "status": "ACTIVE | INACTIVE",
-      "statusLabel": "Activo | Inactivo",
-      "active": true,
-      "accessPointName": "string | null",
-      "lastActivityAt": "DateTimeOffset | null",
-      "createdAt": "DateTimeOffset",
-      "updatedAt": "DateTimeOffset | null"
-    }
-  ]
+  {
+    "items": [
+      {
+        "id": "uuid",
+        "name": "string",
+        "deviceKey": "string",
+        "active": true,
+        "venueId": "uuid",
+        "createdAt": "DateTimeOffset"
+      }
+    ],
+    "total": 0,
+    "page": 1,
+    "pageSize": 20
+  }
   ```
 
 #### POST /admin/venues/mine/devices
@@ -332,32 +418,35 @@ Enables/Disables scanning access.
 
 #### GET /admin/venues/mine/incidents
 Lists all incidents reported at the venue.
+- **Query Parameters:** `status` (optional), `page` (optional, default `1`), `pageSize` (optional, default `20`, recommended max `100`)
 - **Response 200:**
   ```json
-  [
-    {
-      "id": "uuid",
-      "createdAt": "DateTimeOffset",
-      "severity": "LOW | MEDIUM | HIGH | CRITICAL",
-      "status": "REPORTED | REVIEWED | DISMISSED",
-      "category": "string | null",
-      "eventId": "uuid | null",
-      "eventName": "string | null",
-      "venueName": "string",
-      "operatorName": "string | null",
-      "profileName": "string | null",
-      "summary": "string | null"
-    }
-  ]
+  {
+    "items": [
+      {
+        "id": "uuid",
+        "venueId": "uuid",
+        "title": "string",
+        "description": "string | null",
+        "status": "open | closed",
+        "createdAt": "DateTimeOffset",
+        "resolvedAt": "DateTimeOffset | null",
+        "resolution": "string | null"
+      }
+    ],
+    "total": 0,
+    "page": 1,
+    "pageSize": 20
+  }
   ```
 
 #### GET /admin/venues/mine/incidents/{id}
 Retrieves detailed information for a single incident.
-- **Response 200:** Same payload as summary + `description`, `followUp`, and `evidence` (array of strings).
+- **Response 200:** Same payload shape as the list item.
 
 #### PATCH /admin/venues/mine/incidents/{id}
 Partially updates incident state.
-- **Request:** `{ "severity": "...", "status": "...", "category": "...", "eventId": "...", "description": "..." }`
+- **Request:** `{ "title": "...", "description": "...", "status": "open | closed", "resolution": "..." }`
 - **Response 200:** Updated incident detail payload.
 
 ---
@@ -366,22 +455,25 @@ Partially updates incident state.
 
 #### GET /admin/venues/mine/access-sessions
 Retrieves entry checks and access sessions history.
-- **Query Parameters:** `eventId` (optional), `method` (optional), `result` (optional), `fromDate` (optional), `toDate` (optional).
+- **Query Parameters:** `eventId` (optional), `operatorId` (optional), `status` (optional), `page` (optional, default `1`), `pageSize` (optional, default `20`, recommended max `100`).
 - **Response 200:**
   ```json
-  [
-    {
-      "id": "uuid",
-      "occurredAt": "DateTimeOffset",
-      "method": "IDNIGHT_VERIFIED | MANUAL_DNI_CHECK | GUEST_LIST_DNI_CHECK",
-      "result": "ALLOWED | ALLOWED_WITH_WARNING | REJECTED",
-      "warningType": "string | null",
-      "operatorName": "string | null",
-      "deviceName": "string | null",
-      "eventId": "uuid",
-      "eventName": "string | null"
-    }
-  ]
+  {
+    "items": [
+      {
+        "id": "uuid",
+        "venueId": "uuid",
+        "eventId": "uuid",
+        "operatorId": "uuid",
+        "status": "open | closed",
+        "openedAt": "DateTimeOffset",
+        "closedAt": "DateTimeOffset | null"
+      }
+    ],
+    "total": 0,
+    "page": 1,
+    "pageSize": 20
+  }
   ```
 
 ---
