@@ -1,7 +1,25 @@
 import { NextResponse } from "next/server";
+import { revalidateTag } from "next/cache";
 
 import { PROFILE_COOKIE, readVenueSetupApiAccess } from "@/lib/auth-session";
+import { getAdminSessionCacheTag } from "@/lib/admin-session-access";
 import { createVenue } from "@/lib/idnight-backend";
+
+function extractJwtSub(token: string): string | null {
+  try {
+    const base64Url = token.split(".")[1];
+
+    if (!base64Url) {
+      return null;
+    }
+
+    const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
+    const payload = JSON.parse(Buffer.from(base64, "base64").toString("utf8")) as { sub?: string };
+    return payload.sub ?? null;
+  } catch {
+    return null;
+  }
+}
 
 export async function POST(request: Request) {
   try {
@@ -27,6 +45,11 @@ export async function POST(request: Request) {
     }
 
     await createVenue(session.accessToken, { name, address, city });
+
+    const userId = extractJwtSub(session.accessToken);
+    if (userId) {
+      revalidateTag(getAdminSessionCacheTag(userId));
+    }
 
     const response = NextResponse.json({ ok: true });
     response.cookies.delete(PROFILE_COOKIE);

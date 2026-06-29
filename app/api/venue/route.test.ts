@@ -2,9 +2,10 @@
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { readVenueSetupApiAccess, createVenue } = vi.hoisted(() => ({
+const { readVenueSetupApiAccess, createVenue, revalidateTag } = vi.hoisted(() => ({
   readVenueSetupApiAccess: vi.fn(),
   createVenue: vi.fn(),
+  revalidateTag: vi.fn(),
 }));
 
 vi.mock("@/lib/auth-session", () => ({
@@ -14,6 +15,10 @@ vi.mock("@/lib/auth-session", () => ({
 
 vi.mock("@/lib/idnight-backend", () => ({
   createVenue,
+}));
+
+vi.mock("next/cache", () => ({
+  revalidateTag,
 }));
 
 import { POST } from "@/app/api/venue/route";
@@ -30,9 +35,10 @@ describe("/api/venue", () => {
   beforeEach(() => {
     readVenueSetupApiAccess.mockReset();
     readVenueSetupApiAccess.mockResolvedValue({
-      session: { accessToken: "admin-token", refreshToken: null },
+      session: { accessToken: createAccessToken("admin-sub"), refreshToken: null },
     });
     createVenue.mockReset();
+    revalidateTag.mockReset();
   });
 
   it("returns 401 JSON when venue creation is unauthenticated", async () => {
@@ -88,11 +94,12 @@ describe("/api/venue", () => {
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({ ok: true });
     expect(response.headers.get("set-cookie")).toContain("idnight_admin_profile=");
-    expect(createVenue).toHaveBeenCalledWith("admin-token", {
+    expect(createVenue).toHaveBeenCalledWith(createAccessToken("admin-sub"), {
       name: "ID Night",
       address: "Main St",
       city: "Buenos Aires",
     });
+    expect(revalidateTag).toHaveBeenCalledWith("admin-session:admin-sub");
   });
 
   it("treats separate route-handler invocations as independent access-resolution boundaries", async () => {
@@ -198,3 +205,8 @@ describe("/api/venue", () => {
     vi.doUnmock("@/lib/idnight-backend");
   });
 });
+
+function createAccessToken(sub: string) {
+  const payload = Buffer.from(JSON.stringify({ sub })).toString("base64url");
+  return `header.${payload}.signature`;
+}
