@@ -53,6 +53,17 @@ type JwtPayload = {
   };
 };
 
+type SessionPerfLogPayload = {
+  operation: "resolveAdminSessionAccess";
+  durationMs: number;
+  status: ResolvedAdminSessionAccess["state"];
+  venueSource?: Extract<ResolvedAdminSessionAccess, { state: "ready" }>["venueSource"];
+};
+
+function logSessionPerf(payload: SessionPerfLogPayload) {
+  console.info("[perf]", payload);
+}
+
 function parseJwt(token: string): JwtPayload | null {
   try {
     const base64Url = token.split(".")[1];
@@ -147,79 +158,154 @@ function buildOnboardingAccess(
 export async function resolveAdminSessionAccessUncached(
   accessToken: string,
 ): Promise<ResolvedAdminSessionAccess> {
+  const startedAt = Date.now();
   const fallbackIdentity = deriveIdentity(accessToken);
 
   try {
     const bootstrap = await bootstrapMe(accessToken);
 
     if (bootstrap.organizationId === null) {
-      return buildOnboardingAccess(bootstrap);
+      const result = buildOnboardingAccess(bootstrap);
+      logSessionPerf({
+        operation: "resolveAdminSessionAccess",
+        durationMs: Date.now() - startedAt,
+        status: result.state,
+      });
+      return result;
     }
 
     if (resolveBootstrapAdminContextMode(bootstrap) === "enriched") {
       const venueSummary = resolveBootstrapPrimaryVenueSummary(bootstrap);
 
       if (!venueSummary) {
-        return buildOnboardingAccess(bootstrap);
+        const result = buildOnboardingAccess(bootstrap);
+        logSessionPerf({
+          operation: "resolveAdminSessionAccess",
+          durationMs: Date.now() - startedAt,
+          status: result.state,
+        });
+        return result;
       }
 
-      return buildReadyAccess(accessToken, bootstrap, venueSummary, "bootstrap");
+      const result = buildReadyAccess(accessToken, bootstrap, venueSummary, "bootstrap");
+      logSessionPerf({
+        operation: "resolveAdminSessionAccess",
+        durationMs: Date.now() - startedAt,
+        status: result.state,
+        venueSource: result.venueSource,
+      });
+      return result;
     }
 
     try {
       const venueSummary = normalizeVenueSummary(await fetchMyVenue(accessToken));
 
       if (!venueSummary) {
-        return buildOnboardingAccess(bootstrap);
+        const result = buildOnboardingAccess(bootstrap);
+        logSessionPerf({
+          operation: "resolveAdminSessionAccess",
+          durationMs: Date.now() - startedAt,
+          status: result.state,
+        });
+        return result;
       }
 
-      return buildReadyAccess(accessToken, bootstrap, venueSummary, "legacy-fallback");
+      const result = buildReadyAccess(accessToken, bootstrap, venueSummary, "legacy-fallback");
+      logSessionPerf({
+        operation: "resolveAdminSessionAccess",
+        durationMs: Date.now() - startedAt,
+        status: result.state,
+        venueSource: result.venueSource,
+      });
+      return result;
     } catch (error) {
       if (error instanceof BackendApiError) {
         if (error.status === 404) {
-          return buildOnboardingAccess(bootstrap);
+          const result = buildOnboardingAccess(bootstrap);
+          logSessionPerf({
+            operation: "resolveAdminSessionAccess",
+            durationMs: Date.now() - startedAt,
+            status: result.state,
+          });
+          return result;
         }
 
         if (error.status === 403 && error.code === "OPERATOR_INACTIVE") {
-          return {
+          const result = {
             state: "degraded",
             identity: deriveIdentity(accessToken, bootstrap.email),
             reason: "operator-inactive",
-          };
+          } satisfies Extract<ResolvedAdminSessionAccess, { state: "degraded" }>;
+          logSessionPerf({
+            operation: "resolveAdminSessionAccess",
+            durationMs: Date.now() - startedAt,
+            status: result.state,
+          });
+          return result;
         }
 
         if (error.status === 401 || error.status === 403) {
-          return { state: "unauthorized" };
+          const result = { state: "unauthorized" } satisfies Extract<ResolvedAdminSessionAccess, { state: "unauthorized" }>;
+          logSessionPerf({
+            operation: "resolveAdminSessionAccess",
+            durationMs: Date.now() - startedAt,
+            status: result.state,
+          });
+          return result;
         }
       }
 
       console.error("[session] venue-fallback degraded:", error instanceof BackendApiError ? error.status : "non-backend", error instanceof Error ? error.message : error);
-      return {
+      const result = {
         state: "degraded",
         identity: deriveIdentity(accessToken, bootstrap.email),
         reason: "venue-fallback",
-      };
+      } satisfies Extract<ResolvedAdminSessionAccess, { state: "degraded" }>;
+      logSessionPerf({
+        operation: "resolveAdminSessionAccess",
+        durationMs: Date.now() - startedAt,
+        status: result.state,
+      });
+      return result;
     }
   } catch (error) {
     if (error instanceof BackendApiError) {
       if (error.status === 401 || error.status === 403) {
-        return { state: "unauthorized" };
+        const result = { state: "unauthorized" } satisfies Extract<ResolvedAdminSessionAccess, { state: "unauthorized" }>;
+        logSessionPerf({
+          operation: "resolveAdminSessionAccess",
+          durationMs: Date.now() - startedAt,
+          status: result.state,
+        });
+        return result;
       }
 
       console.error("[session] bootstrap degraded:", error.status, error.message);
-      return {
+      const result = {
         state: "degraded",
         identity: fallbackIdentity,
         reason: "bootstrap",
-      };
+      } satisfies Extract<ResolvedAdminSessionAccess, { state: "degraded" }>;
+      logSessionPerf({
+        operation: "resolveAdminSessionAccess",
+        durationMs: Date.now() - startedAt,
+        status: result.state,
+      });
+      return result;
     }
 
     console.error("[session] bootstrap unexpected error:", error);
-    return {
+    const result = {
       state: "degraded",
       identity: fallbackIdentity,
       reason: "bootstrap",
-    };
+    } satisfies Extract<ResolvedAdminSessionAccess, { state: "degraded" }>;
+    logSessionPerf({
+      operation: "resolveAdminSessionAccess",
+      durationMs: Date.now() - startedAt,
+      status: result.state,
+    });
+    return result;
   }
 }
 

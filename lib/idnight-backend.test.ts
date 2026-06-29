@@ -9,7 +9,12 @@ import {
   IDNIGHT_BACKEND_URL,
   cancelGuestListEntry,
   createVenueEvent,
+  fetchDashboardMetrics,
+  fetchEventGuestList,
   fetchAdminProfile,
+  fetchAccessSessions,
+  fetchMyVenue,
+  fetchVenueEvents,
   normalizeVenueSummary,
   resolveBootstrapAdminContextMode,
   updateVenueEvent,
@@ -347,5 +352,81 @@ describe("idnight backend bootstrap admin context helpers", () => {
       organizationId: "org-1",
       organizationName: "My Org",
     });
+  });
+
+  it("emits perf logs for instrumented backend calls without sensitive request details", async () => {
+    const infoSpy = vi.spyOn(console, "info").mockImplementation(() => undefined);
+
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(JSON.stringify({ id: "venue-1", name: "My Venue", active: true }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+
+    await fetchMyVenue("admin-token");
+
+    expect(infoSpy).toHaveBeenCalledWith(
+      "[perf]",
+      expect.objectContaining({
+        operation: "fetchMyVenue",
+        status: "200",
+        durationMs: expect.any(Number),
+      }),
+    );
+    expect(JSON.stringify(infoSpy.mock.calls)).not.toContain("admin-token");
+  });
+
+  it("emits perf logs for all targeted backend operations", async () => {
+    const infoSpy = vi.spyOn(console, "info").mockImplementation(() => undefined);
+
+    const fetchSpy = vi.spyOn(globalThis, "fetch");
+    fetchSpy
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ totalEvents: 1 }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        }),
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ items: [], total: 0, page: 1, pageSize: 20 }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        }),
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ items: [], total: 0, page: 1, pageSize: 20 }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        }),
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify([]), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        }),
+      );
+
+    await fetchDashboardMetrics("admin-token");
+    await fetchVenueEvents("admin-token");
+    await fetchAccessSessions("admin-token");
+    await fetchEventGuestList("admin-token", "event-1");
+
+    expect(infoSpy).toHaveBeenCalledWith(
+      "[perf]",
+      expect.objectContaining({ operation: "fetchDashboardMetrics", status: "200" }),
+    );
+    expect(infoSpy).toHaveBeenCalledWith(
+      "[perf]",
+      expect.objectContaining({ operation: "fetchVenueEvents", status: "200" }),
+    );
+    expect(infoSpy).toHaveBeenCalledWith(
+      "[perf]",
+      expect.objectContaining({ operation: "fetchAccessSessions", status: "200" }),
+    );
+    expect(infoSpy).toHaveBeenCalledWith(
+      "[perf]",
+      expect.objectContaining({ operation: "fetchEventGuestList", status: "200" }),
+    );
   });
 });

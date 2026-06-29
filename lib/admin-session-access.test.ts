@@ -81,11 +81,13 @@ function createAccessToken(payload: Record<string, unknown>) {
 
 describe("resolveAdminSessionAccess", () => {
   beforeEach(() => {
+    vi.restoreAllMocks();
     bootstrapMe.mockReset();
     fetchMyVenue.mockReset();
   });
 
   it("returns a ready state with legacy venue fallback when organization and venue exist", async () => {
+    const infoSpy = vi.spyOn(console, "info").mockImplementation(() => undefined);
     bootstrapMe.mockResolvedValue({
       id: "operator-1",
       email: "owner@example.com",
@@ -132,9 +134,20 @@ describe("resolveAdminSessionAccess", () => {
         organizationName: "My Org",
       },
     });
+
+    expect(infoSpy).toHaveBeenCalledWith(
+      "[perf]",
+      expect.objectContaining({
+        operation: "resolveAdminSessionAccess",
+        status: "ready",
+        venueSource: "legacy-fallback",
+        durationMs: expect.any(Number),
+      }),
+    );
   });
 
   it("returns a ready state from enriched bootstrap primaryVenue without calling the legacy venue lookup", async () => {
+    const infoSpy = vi.spyOn(console, "info").mockImplementation(() => undefined);
     bootstrapMe.mockResolvedValue({
       id: "operator-1",
       email: "owner@example.com",
@@ -180,6 +193,15 @@ describe("resolveAdminSessionAccess", () => {
     });
 
     expect(fetchMyVenue).not.toHaveBeenCalled();
+    expect(infoSpy).toHaveBeenCalledWith(
+      "[perf]",
+      expect.objectContaining({
+        operation: "resolveAdminSessionAccess",
+        status: "ready",
+        venueSource: "bootstrap",
+        durationMs: expect.any(Number),
+      }),
+    );
   });
   it("routes authenticated users without an organization to onboarding-needed", async () => {
     bootstrapMe.mockResolvedValue({

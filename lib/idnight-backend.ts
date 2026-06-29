@@ -227,7 +227,18 @@ type RequestOptions = {
   headers?: HeadersInit;
   isBodyJson?: boolean;
   timeoutMs?: number;
+  operation?: string;
 };
+
+type PerfLogPayload = {
+  operation: string;
+  durationMs: number;
+  status: string;
+};
+
+function logPerf(payload: PerfLogPayload) {
+  console.info("[perf]", payload);
+}
 
 function extractBackendErrorMessage(
   payload: { message?: unknown; detail?: unknown; error?: unknown; title?: unknown } | null,
@@ -358,18 +369,45 @@ async function performBackendFetch(path: string, options: RequestOptions = {}) {
 }
 
 async function backendRequest<T>(path: string, options: RequestOptions = {}): Promise<T> {
-  const response = await performBackendFetch(path, options);
+  const startedAt = Date.now();
 
-  if (!response.ok) {
-    const { message, code } = await readBackendError(response);
-    throw new BackendApiError(message, response.status, code);
+  try {
+    const response = await performBackendFetch(path, options);
+
+    if (!response.ok) {
+      const { message, code } = await readBackendError(response);
+      throw new BackendApiError(message, response.status, code);
+    }
+
+    if (options.operation) {
+      logPerf({
+        operation: options.operation,
+        durationMs: Date.now() - startedAt,
+        status: String(response.status),
+      });
+    }
+
+    if (response.status === 204) {
+      return undefined as T;
+    }
+
+    return (await response.json()) as T;
+  } catch (error) {
+    if (options.operation) {
+      logPerf({
+        operation: options.operation,
+        durationMs: Date.now() - startedAt,
+        status:
+          error instanceof BackendApiError
+            ? String(error.status)
+            : error instanceof Error
+              ? error.name
+              : "error",
+      });
+    }
+
+    throw error;
   }
-
-  if (response.status === 204) {
-    return undefined as T;
-  }
-
-  return (await response.json()) as T;
 }
 
 type VenueSummarySource = Pick<BackendBootstrapPrimaryVenue, "id" | "name" | "active"> & {
@@ -417,6 +455,7 @@ export function bootstrapMe(token: string) {
     method: "POST",
     headers: { "X-Client-Type": "admin" },
     timeoutMs: 15000,
+    operation: "bootstrapMe",
   });
 }
 
@@ -486,7 +525,7 @@ export function updateAdminProfile(
 /* ── Venue ─────────────────────────────────────────────────────── */
 
 export function fetchMyVenue(token: string) {
-  return backendRequest<BackendVenue>("/admin/venues/mine", { token });
+  return backendRequest<BackendVenue>("/admin/venues/mine", { token, operation: "fetchMyVenue" });
 }
 
 export function createVenue(
@@ -537,7 +576,7 @@ export function updateMyVenueEntryRules(
 export function fetchVenueEvents(token: string, page = 1) {
   return backendRequest<BackendPagedResult<BackendVenueEvent>>(
     `/admin/venues/mine/events?page=${page}&pageSize=20`,
-    { token },
+    { token, operation: "fetchVenueEvents" },
   );
 }
 
@@ -604,7 +643,7 @@ export function cancelVenueEvent(token: string, id: string) {
 export function fetchEventGuestList(token: string, eventId: string) {
   return backendRequest<BackendGuestListEntry[]>(
     `/admin/venues/mine/events/${eventId}/guest-list`,
-    { token },
+    { token, operation: "fetchEventGuestList" },
   );
 }
 
@@ -766,14 +805,17 @@ export function fetchAccessSessions(
   query.set("pageSize", "20");
   return backendRequest<BackendPagedResult<BackendAccessSession>>(
     `/admin/venues/mine/access-sessions?${query.toString()}`,
-    { token },
+    { token, operation: "fetchAccessSessions" },
   );
 }
 
 /* ── Dashboard ─────────────────────────────────────────────────── */
 
 export function fetchDashboardMetrics(token: string) {
-  return backendRequest<BackendDashboardMetrics>("/admin/venues/mine/dashboard", { token });
+  return backendRequest<BackendDashboardMetrics>("/admin/venues/mine/dashboard", {
+    token,
+    operation: "fetchDashboardMetrics",
+  });
 }
 
 /* ── Event report ──────────────────────────────────────────────── */
