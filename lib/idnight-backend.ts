@@ -619,6 +619,13 @@ export function updateVenueEvent(
   });
 }
 
+export function publishVenueEvent(token: string, id: string) {
+  return backendRequest<BackendVenueEvent>(`/admin/venues/mine/events/${id}/publish`, {
+    token,
+    method: "POST",
+  });
+}
+
 export function activateVenueEvent(token: string, id: string) {
   return backendRequest<BackendVenueEvent>(`/admin/venues/mine/events/${id}/activate`, {
     token,

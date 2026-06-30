@@ -6,12 +6,14 @@ import {
   BackendApiError,
   cancelVenueEvent,
   finishVenueEvent,
+  publishVenueEvent,
 } from "@/lib/idnight-backend";
 
-const VALID_ACTIONS = ["activate", "finish", "cancel"] as const;
+const VALID_ACTIONS = ["publish", "activate", "finish", "cancel"] as const;
 type ValidAction = (typeof VALID_ACTIONS)[number];
 
 const BACKEND_ACTION: Record<ValidAction, (token: string, id: string) => Promise<unknown>> = {
+  publish: publishVenueEvent,
   activate: activateVenueEvent,
   finish: finishVenueEvent,
   cancel: cancelVenueEvent,

@@ -10,10 +10,33 @@ import { VenueEventForm } from "@/components/venue-event-form";
 import type { BackendVenueEvent } from "@/lib/idnight-backend";
 import { formatEventSchedule } from "@/lib/venue-events";
 
+function normalizeEventStatus(status: string) {
+  return status.trim().toUpperCase();
+}
+
+function formatEventStatusLabel(status: string) {
+  const normalizedStatus = normalizeEventStatus(status);
+
+  if (normalizedStatus === "DRAFT") return "Draft";
+  if (normalizedStatus === "UPCOMING") return "Upcoming";
+  if (normalizedStatus === "ACTIVE") return "Active";
+  if (normalizedStatus === "CANCELLED") return "Cancelled";
+  if (normalizedStatus === "FINISHED") return "Finished";
+
+  return normalizedStatus
+    .toLowerCase()
+    .split(/[_\s-]+/)
+    .filter(Boolean)
+    .map((segment) => segment[0]?.toUpperCase() + segment.slice(1))
+    .join(" ");
+}
+
 function eventStatusTone(status: string) {
-  if (status === "ACTIVE") return "success" as const;
-  if (status === "CANCELLED") return "danger" as const;
-  if (status === "FINISHED") return "neutral" as const;
+  const normalizedStatus = normalizeEventStatus(status);
+
+  if (normalizedStatus === "ACTIVE") return "success" as const;
+  if (normalizedStatus === "CANCELLED") return "danger" as const;
+  if (normalizedStatus === "FINISHED") return "neutral" as const;
   return "info" as const;
 }
 
@@ -31,7 +54,7 @@ export function VenueEventsSection({ events, eventsError }: Props) {
 
   async function handleAction(
     event: BackendVenueEvent,
-    action: "activate" | "finish" | "cancel",
+    action: "publish" | "activate" | "finish" | "cancel",
   ) {
     setActionLoading((prev) => ({ ...prev, [event.id]: action }));
     setActionError((prev) => {
@@ -110,9 +133,12 @@ export function VenueEventsSection({ events, eventsError }: Props) {
           title="Event lineup"
           subtitle={`${events.length} event${events.length === 1 ? "" : "s"} scheduled`}
         >
-          <DataTable
-            columns={["Event", "Schedule", "Status", "Capacity", "Actions"]}
-            rows={events.map((event) => (
+        <DataTable
+          columns={["Event", "Schedule", "Status", "Capacity", "Actions"]}
+          rows={events.map((event) => {
+            const normalizedStatus = normalizeEventStatus(event.status);
+
+            return (
               <tr key={event.id} className="align-top hover:bg-slate-950/20">
                 <td className="px-5 py-4">
                   <p className="font-medium text-slate-100">{event.name}</p>
@@ -121,7 +147,7 @@ export function VenueEventsSection({ events, eventsError }: Props) {
                   {formatEventSchedule(event.startsAt, event.endsAt)}
                 </td>
                 <td className="px-5 py-4">
-                  <Badge label={event.status} tone={eventStatusTone(event.status)} />
+                  <Badge label={formatEventStatusLabel(event.status)} tone={eventStatusTone(event.status)} />
                 </td>
                 <td className="px-5 py-4 text-sm text-slate-300">
                   {event.maxCapacity ? `${event.maxCapacity} people` : "Open capacity"}
@@ -140,7 +166,16 @@ export function VenueEventsSection({ events, eventsError }: Props) {
                     >
                       Report
                     </Link>
-                    {event.status === "UPCOMING" && (
+                    {normalizedStatus === "DRAFT" && (
+                      <button
+                        onClick={() => handleAction(event, "publish")}
+                        disabled={Boolean(actionLoading[event.id])}
+                        className="rounded-lg border border-violet-400/30 bg-violet-400/10 px-3 py-1.5 text-xs font-medium text-violet-200 transition hover:bg-violet-400/20 disabled:opacity-50"
+                      >
+                        {actionLoading[event.id] === "publish" ? "Publishing…" : "Publish"}
+                      </button>
+                    )}
+                    {normalizedStatus === "UPCOMING" && (
                       <>
                         <button
                           onClick={() => handleAction(event, "activate")}
@@ -165,7 +200,7 @@ export function VenueEventsSection({ events, eventsError }: Props) {
                         </button>
                       </>
                     )}
-                    {event.status === "ACTIVE" && (
+                    {normalizedStatus === "ACTIVE" && (
                       <>
                         <button
                           onClick={() => handleAction(event, "finish")}
@@ -189,10 +224,11 @@ export function VenueEventsSection({ events, eventsError }: Props) {
                   </div>
                 </td>
               </tr>
-            ))}
-          />
-        </DataShell>
-      )}
+            );
+          })}
+        />
+      </DataShell>
+    )}
     </div>
   );
 }
