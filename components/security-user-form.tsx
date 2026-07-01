@@ -1,6 +1,6 @@
 "use client";
 
-import { Mail, User, UserPlus } from "lucide-react";
+import { Lock, Mail, User, UserPlus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
@@ -12,21 +12,34 @@ export function SecurityUserForm() {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setLoading(true);
     setError(null);
     setSuccess(false);
+
+    if (password.length < 8) {
+      setError("La contraseña debe tener al menos 8 caracteres.");
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      setError("Las contraseñas no coinciden.");
+      return;
+    }
+
+    setLoading(true);
 
     try {
       const response = await fetch("/api/venue/security-users", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ firstName, lastName, email }),
+        body: JSON.stringify({ firstName, lastName, email, password }),
       });
 
       let payload: { ok?: boolean; message?: string } = {};
@@ -44,6 +57,8 @@ export function SecurityUserForm() {
       setFirstName("");
       setLastName("");
       setEmail("");
+      setPassword("");
+      setConfirmPassword("");
       router.refresh();
 
       setTimeout(() => {
@@ -108,9 +123,26 @@ export function SecurityUserForm() {
           type="email"
         />
 
-        <p className="text-sm leading-6 text-slate-400">
-          Vamos a crear la cuenta en Supabase y enviar una invitación para que esta persona termine su acceso sin compartir contraseñas locales.
-        </p>
+        <div>
+          <FormField
+            label="Contraseña inicial"
+            icon={<Lock className="h-4 w-4" />}
+            value={password}
+            onChange={setPassword}
+            placeholder="Mínimo 8 caracteres"
+            type="password"
+          />
+          <p className="mt-2 text-xs text-slate-500">El operador podrá cambiarla desde la app.</p>
+        </div>
+
+        <FormField
+          label="Confirmar contraseña"
+          icon={<Lock className="h-4 w-4" />}
+          value={confirmPassword}
+          onChange={setConfirmPassword}
+          placeholder="Repetí la contraseña"
+          type="password"
+        />
 
         {error ? (
           <div className="rounded-2xl border border-rose-400/20 bg-rose-400/10 px-4 py-3 text-sm text-rose-100">

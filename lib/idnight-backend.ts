@@ -704,12 +704,12 @@ export function fetchSecurityUsers(token: string, page = 1) {
 
 export function createSecurityUser(
   token: string,
-  data: { firstName: string; lastName: string; email: string },
+  data: { firstName: string; lastName: string; email: string; password: string },
 ) {
   return backendRequest<BackendSecurityUser>("/admin/venues/mine/security-users", {
     token,
     method: "POST",
-    body: { firstName: data.firstName, lastName: data.lastName, email: data.email },
+    body: { firstName: data.firstName, lastName: data.lastName, email: data.email, password: data.password },
   });
 }
 

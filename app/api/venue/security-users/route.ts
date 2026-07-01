@@ -23,13 +23,14 @@ export async function POST(request: Request) {
       );
     }
 
-    const { firstName, lastName, email } = body as {
+    const { firstName, lastName, email, password } = body as {
       firstName?: string;
       lastName?: string;
       email?: string;
+      password?: string;
     };
 
-    if (!firstName || !lastName || !email) {
+    if (!firstName || !lastName || !email || !password) {
       return NextResponse.json(
         { message: "Todos los campos son obligatorios." },
         { status: 400 },
@@ -40,6 +41,7 @@ export async function POST(request: Request) {
       firstName,
       lastName,
       email,
+      password,
     });
 
     return NextResponse.json({ ok: true, user });

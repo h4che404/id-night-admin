@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -12,6 +12,19 @@ vi.mock("next/navigation", () => ({
     refresh: refreshMock,
   }),
 }));
+
+async function openAndFillForm(
+  user: ReturnType<typeof userEvent.setup>,
+  opts: { password?: string; confirmPassword?: string } = {},
+) {
+  await user.click(screen.getByRole("button", { name: /crear usuario de seguridad/i }));
+
+  await user.type(screen.getByLabelText(/nombre/i), "Juan");
+  await user.type(screen.getByLabelText(/apellido/i), "Perez");
+  await user.type(screen.getByLabelText(/email/i), "juan@example.com");
+  await user.type(screen.getByLabelText(/contraseña inicial/i), opts.password ?? "Password123");
+  await user.type(screen.getByLabelText(/confirmar contraseña/i), opts.confirmPassword ?? "Password123");
+}
 
 describe("SecurityUserForm", () => {
   beforeEach(() => {
@@ -29,11 +42,7 @@ describe("SecurityUserForm", () => {
 
     render(<SecurityUserForm />);
 
-    await user.click(screen.getByRole("button", { name: /crear usuario de seguridad/i }));
-
-    await user.type(screen.getByLabelText(/nombre/i), "Juan");
-    await user.type(screen.getByLabelText(/apellido/i), "Perez");
-    await user.type(screen.getByLabelText(/email/i), "juan@example.com");
+    await openAndFillForm(user);
 
     await user.click(screen.getByRole("button", { name: /^crear usuario$/i }));
 
@@ -46,7 +55,12 @@ describe("SecurityUserForm", () => {
       expect.objectContaining({
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ firstName: "Juan", lastName: "Perez", email: "juan@example.com" }),
+        body: JSON.stringify({
+          firstName: "Juan",
+          lastName: "Perez",
+          email: "juan@example.com",
+          password: "Password123",
+        }),
       }),
     );
     expect(refreshMock).toHaveBeenCalledTimes(1);
@@ -62,11 +76,7 @@ describe("SecurityUserForm", () => {
 
     render(<SecurityUserForm />);
 
-    await user.click(screen.getByRole("button", { name: /crear usuario de seguridad/i }));
-
-    await user.type(screen.getByLabelText(/nombre/i), "Juan");
-    await user.type(screen.getByLabelText(/apellido/i), "Perez");
-    await user.type(screen.getByLabelText(/email/i), "juan@example.com");
+    await openAndFillForm(user);
 
     await user.click(screen.getByRole("button", { name: /^crear usuario$/i }));
 
@@ -84,5 +94,29 @@ describe("SecurityUserForm", () => {
     expect(fetchMock).not.toHaveBeenCalled();
     // HTML5 validation prevents submission, so no refresh or fetch should occur.
     expect(refreshMock).not.toHaveBeenCalled();
+  });
+
+  it("shows validation error when passwords do not match", async () => {
+    const user = userEvent.setup();
+    render(<SecurityUserForm />);
+
+    await openAndFillForm(user, { password: "Password123", confirmPassword: "Different1" });
+
+    await user.click(screen.getByRole("button", { name: /^crear usuario$/i }));
+
+    expect(await screen.findByText("Las contraseñas no coinciden.")).toBeInTheDocument();
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("shows validation error when password is too short", async () => {
+    const user = userEvent.setup();
+    render(<SecurityUserForm />);
+
+    await openAndFillForm(user, { password: "short", confirmPassword: "short" });
+
+    await user.click(screen.getByRole("button", { name: /^crear usuario$/i }));
+
+    expect(await screen.findByText("La contraseña debe tener al menos 8 caracteres.")).toBeInTheDocument();
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 });
