@@ -384,4 +384,91 @@ describe("/api/venue/events/[id]", () => {
     expect(await response.json()).toEqual({ message: "Could not update the event." });
   });
 
+  it("forwards maxAge to the backend on update", async () => {
+    updateVenueEvent.mockResolvedValue({ id: "event-1" });
+
+    const response = await PATCH(
+      createRequest(JSON.stringify({ maxAge: 30 }), "event-1"),
+      createParams("event-1"),
+    );
+
+    expect(response.status).toBe(200);
+    expect(updateVenueEvent).toHaveBeenCalledWith("admin-token", "event-1", { maxAge: 30 });
+  });
+
+  it("rejects non-integer maxAge on update", async () => {
+    const response = await PATCH(
+      createRequest(JSON.stringify({ maxAge: 30.5 }), "event-1"),
+      createParams("event-1"),
+    );
+
+    expect(response.status).toBe(400);
+    expect(await response.json()).toEqual({ message: "Maximum age must be an integer between 0 and 120." });
+    expect(updateVenueEvent).not.toHaveBeenCalled();
+  });
+
+  it("accepts null maxAge to clear the maximum age restriction", async () => {
+    updateVenueEvent.mockResolvedValue({ id: "event-1" });
+
+    const response = await PATCH(
+      createRequest(JSON.stringify({ maxAge: null }), "event-1"),
+      createParams("event-1"),
+    );
+
+    expect(response.status).toBe(200);
+    expect(updateVenueEvent).toHaveBeenCalledWith("admin-token", "event-1", { maxAge: null });
+  });
+
+  it("forwards allowedFrom and allowedUntil to the backend on update", async () => {
+    updateVenueEvent.mockResolvedValue({ id: "event-1" });
+
+    const response = await PATCH(
+      createRequest(JSON.stringify({ allowedFrom: "22:00", allowedUntil: "02:00" }), "event-1"),
+      createParams("event-1"),
+    );
+
+    expect(response.status).toBe(200);
+    expect(updateVenueEvent).toHaveBeenCalledWith("admin-token", "event-1", {
+      allowedFrom: "22:00",
+      allowedUntil: "02:00",
+    });
+  });
+
+  it("rejects invalid allowedFrom format on update", async () => {
+    const response = await PATCH(
+      createRequest(JSON.stringify({ allowedFrom: "not-a-time", allowedUntil: "02:00" }), "event-1"),
+      createParams("event-1"),
+    );
+
+    expect(response.status).toBe(400);
+    expect(await response.json()).toEqual({ message: "Entry window times must be in HH:mm format." });
+    expect(updateVenueEvent).not.toHaveBeenCalled();
+  });
+
+  it("rejects allowedFrom without allowedUntil on update", async () => {
+    const response = await PATCH(
+      createRequest(JSON.stringify({ allowedFrom: "22:00" }), "event-1"),
+      createParams("event-1"),
+    );
+
+    expect(response.status).toBe(400);
+    expect(await response.json()).toEqual({ message: "Entry window start and end must both be provided or both omitted." });
+    expect(updateVenueEvent).not.toHaveBeenCalled();
+  });
+
+  it("accepts both allowedFrom and allowedUntil as null to clear the entry window", async () => {
+    updateVenueEvent.mockResolvedValue({ id: "event-1" });
+
+    const response = await PATCH(
+      createRequest(JSON.stringify({ allowedFrom: null, allowedUntil: null }), "event-1"),
+      createParams("event-1"),
+    );
+
+    expect(response.status).toBe(200);
+    expect(updateVenueEvent).toHaveBeenCalledWith("admin-token", "event-1", {
+      allowedFrom: null,
+      allowedUntil: null,
+    });
+  });
+
 });

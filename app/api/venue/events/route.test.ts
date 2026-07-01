@@ -392,4 +392,116 @@ describe("/api/venue/events", () => {
     },
   );
 
+  it("forwards valid maxAge to the backend", async () => {
+    createVenueEvent.mockResolvedValue({ id: "event-1" });
+
+    const response = await POST(
+      createRequest(
+        JSON.stringify({
+          name: "Friday Opening",
+          startsAt: "2026-06-20T23:00:00.000Z",
+          endsAt: "2026-06-21T05:00:00.000Z",
+          maxAge: 25,
+        }),
+      ),
+    );
+
+    expect(response.status).toBe(200);
+    expect(createVenueEvent).toHaveBeenCalledWith(
+      "admin-token",
+      expect.objectContaining({ maxAge: 25 }),
+    );
+  });
+
+  it("rejects non-integer maxAge", async () => {
+    const response = await POST(
+      createRequest(
+        JSON.stringify({
+          name: "Friday Opening",
+          startsAt: "2026-06-20T23:00:00.000Z",
+          endsAt: "2026-06-21T05:00:00.000Z",
+          maxAge: 25.5,
+        }),
+      ),
+    );
+
+    expect(response.status).toBe(400);
+    expect(await response.json()).toEqual({ message: "Maximum age must be an integer between 0 and 120." });
+    expect(createVenueEvent).not.toHaveBeenCalled();
+  });
+
+  it("forwards allowedFrom and allowedUntil to the backend", async () => {
+    createVenueEvent.mockResolvedValue({ id: "event-1" });
+
+    const response = await POST(
+      createRequest(
+        JSON.stringify({
+          name: "Friday Opening",
+          startsAt: "2026-06-20T23:00:00.000Z",
+          endsAt: "2026-06-21T05:00:00.000Z",
+          allowedFrom: "22:00",
+          allowedUntil: "02:00",
+        }),
+      ),
+    );
+
+    expect(response.status).toBe(200);
+    expect(createVenueEvent).toHaveBeenCalledWith(
+      "admin-token",
+      expect.objectContaining({ allowedFrom: "22:00", allowedUntil: "02:00" }),
+    );
+  });
+
+  it("rejects invalid allowedFrom format", async () => {
+    const response = await POST(
+      createRequest(
+        JSON.stringify({
+          name: "Friday Opening",
+          startsAt: "2026-06-20T23:00:00.000Z",
+          endsAt: "2026-06-21T05:00:00.000Z",
+          allowedFrom: "not-a-time",
+          allowedUntil: "02:00",
+        }),
+      ),
+    );
+
+    expect(response.status).toBe(400);
+    expect(await response.json()).toEqual({ message: "Entry window times must be in HH:mm format." });
+    expect(createVenueEvent).not.toHaveBeenCalled();
+  });
+
+  it("rejects allowedFrom without allowedUntil", async () => {
+    const response = await POST(
+      createRequest(
+        JSON.stringify({
+          name: "Friday Opening",
+          startsAt: "2026-06-20T23:00:00.000Z",
+          endsAt: "2026-06-21T05:00:00.000Z",
+          allowedFrom: "22:00",
+        }),
+      ),
+    );
+
+    expect(response.status).toBe(400);
+    expect(await response.json()).toEqual({ message: "Entry window start and end must both be provided or both omitted." });
+    expect(createVenueEvent).not.toHaveBeenCalled();
+  });
+
+  it("rejects allowedUntil without allowedFrom", async () => {
+    const response = await POST(
+      createRequest(
+        JSON.stringify({
+          name: "Friday Opening",
+          startsAt: "2026-06-20T23:00:00.000Z",
+          endsAt: "2026-06-21T05:00:00.000Z",
+          allowedUntil: "02:00",
+        }),
+      ),
+    );
+
+    expect(response.status).toBe(400);
+    expect(await response.json()).toEqual({ message: "Entry window start and end must both be provided or both omitted." });
+    expect(createVenueEvent).not.toHaveBeenCalled();
+  });
+
 });

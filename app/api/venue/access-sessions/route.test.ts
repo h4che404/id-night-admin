@@ -49,6 +49,15 @@ const SESSION_FIXTURE = [
   },
 ];
 
+function createAccessSessionsResult(items = SESSION_FIXTURE) {
+  return {
+    items,
+    total: items.length,
+    page: 1,
+    pageSize: 20,
+  };
+}
+
 describe("/api/venue/access-sessions", () => {
   beforeEach(() => {
     readReadyVenueApiAccess.mockReset();
@@ -72,7 +81,7 @@ describe("/api/venue/access-sessions", () => {
   });
 
   it("returns sessions for GET with no filters", async () => {
-    fetchAccessSessions.mockResolvedValue(SESSION_FIXTURE);
+    fetchAccessSessions.mockResolvedValue(createAccessSessionsResult());
 
     const response = await GET(createRequest());
 
@@ -86,7 +95,7 @@ describe("/api/venue/access-sessions", () => {
   });
 
   it("forwards operatorId filter to fetchAccessSessions", async () => {
-    fetchAccessSessions.mockResolvedValue([]);
+    fetchAccessSessions.mockResolvedValue(createAccessSessionsResult([]));
 
     await GET(createRequest("?operatorId=operator-1"));
 
@@ -97,7 +106,7 @@ describe("/api/venue/access-sessions", () => {
   });
 
   it("forwards status filter to fetchAccessSessions", async () => {
-    fetchAccessSessions.mockResolvedValue([]);
+    fetchAccessSessions.mockResolvedValue(createAccessSessionsResult([]));
 
     await GET(createRequest("?status=open"));
 
@@ -108,7 +117,7 @@ describe("/api/venue/access-sessions", () => {
   });
 
   it("forwards eventId filter to fetchAccessSessions", async () => {
-    fetchAccessSessions.mockResolvedValue([]);
+    fetchAccessSessions.mockResolvedValue(createAccessSessionsResult([]));
 
     await GET(createRequest("?eventId=event-1"));
 
@@ -121,7 +130,7 @@ describe("/api/venue/access-sessions", () => {
   });
 
   it("returns empty array when backend returns empty list", async () => {
-    fetchAccessSessions.mockResolvedValue([]);
+    fetchAccessSessions.mockResolvedValue(createAccessSessionsResult([]));
 
     const response = await GET(createRequest());
 

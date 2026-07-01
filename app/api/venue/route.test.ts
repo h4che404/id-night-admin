@@ -99,7 +99,7 @@ describe("/api/venue", () => {
       address: "Main St",
       city: "Buenos Aires",
     });
-    expect(revalidateTag).toHaveBeenCalledWith("admin-session:admin-sub");
+    expect(revalidateTag).toHaveBeenCalledWith("admin-session:admin-sub", {});
   });
 
   it("treats separate route-handler invocations as independent access-resolution boundaries", async () => {

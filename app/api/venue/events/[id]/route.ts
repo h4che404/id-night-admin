@@ -90,17 +90,66 @@ export async function PATCH(request: Request, props: { params: Promise<{ id: str
       data.maxCapacity = null;
     }
 
-    let minAge: number | undefined;
+    let minAge: number | null | undefined;
     if (payload.minAge !== undefined) {
-      if (
+      if (payload.minAge === null) {
+        minAge = null;
+      } else if (
         typeof payload.minAge !== "number" ||
         !Number.isInteger(payload.minAge) ||
         payload.minAge < 0 ||
         payload.minAge > 120
       ) {
         return errorResponse("Minimum age must be an integer between 0 and 120.");
+      } else {
+        minAge = payload.minAge;
       }
-      minAge = payload.minAge;
+    }
+
+    let maxAge: number | null | undefined;
+    if (payload.maxAge !== undefined) {
+      if (payload.maxAge === null) {
+        maxAge = null;
+      } else if (
+        typeof payload.maxAge !== "number" ||
+        !Number.isInteger(payload.maxAge) ||
+        payload.maxAge < 0 ||
+        payload.maxAge > 120
+      ) {
+        return errorResponse("Maximum age must be an integer between 0 and 120.");
+      } else {
+        maxAge = payload.maxAge;
+      }
+    }
+
+    const HH_MM = /^\d{2}:\d{2}$/;
+    const rawAllowedFrom = payload.allowedFrom;
+    const rawAllowedUntil = payload.allowedUntil;
+    const fromPresent = rawAllowedFrom !== undefined;
+    const untilPresent = rawAllowedUntil !== undefined;
+
+    let allowedFrom: string | null | undefined;
+    let allowedUntil: string | null | undefined;
+
+    if (fromPresent || untilPresent) {
+      const fromIsNull = rawAllowedFrom === null;
+      const untilIsNull = rawAllowedUntil === null;
+
+      if (fromIsNull && untilIsNull) {
+        allowedFrom = null;
+        allowedUntil = null;
+      } else if (fromIsNull !== untilIsNull && fromPresent && untilPresent) {
+        return errorResponse("Entry window start and end must both be provided or both omitted.");
+      } else if (!fromPresent || !untilPresent) {
+        return errorResponse("Entry window start and end must both be provided or both omitted.");
+      } else {
+        if (typeof rawAllowedFrom !== "string" || !HH_MM.test(rawAllowedFrom) ||
+            typeof rawAllowedUntil !== "string" || !HH_MM.test(rawAllowedUntil)) {
+          return errorResponse("Entry window times must be in HH:mm format.");
+        }
+        allowedFrom = rawAllowedFrom;
+        allowedUntil = rawAllowedUntil;
+      }
     }
 
     let allowManualDniCheck: boolean | undefined;
@@ -122,6 +171,8 @@ export async function PATCH(request: Request, props: { params: Promise<{ id: str
     if (
       Object.keys(data).length === 0 &&
       minAge === undefined &&
+      maxAge === undefined &&
+      allowedFrom === undefined &&
       allowManualDniCheck === undefined &&
       requireGuestList === undefined
     ) {
@@ -131,6 +182,9 @@ export async function PATCH(request: Request, props: { params: Promise<{ id: str
     await updateVenueEvent(session.accessToken, params.id, {
       ...data,
       ...(minAge !== undefined ? { minAge } : {}),
+      ...(maxAge !== undefined ? { maxAge } : {}),
+      ...(allowedFrom !== undefined ? { allowedFrom } : {}),
+      ...(allowedUntil !== undefined ? { allowedUntil } : {}),
       ...(allowManualDniCheck !== undefined ? { allowManualDniCheck } : {}),
       ...(requireGuestList !== undefined ? { requireGuestList } : {}),
     });

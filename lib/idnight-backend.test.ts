@@ -16,6 +16,7 @@ import {
   fetchMyVenue,
   fetchVenueEvents,
   normalizeVenueSummary,
+  publishVenueEvent,
   resolveBootstrapAdminContextMode,
   updateVenueEvent,
   uploadEventGuestList,
@@ -165,6 +166,40 @@ describe("idnight backend error parsing", () => {
         allowManualDniCheck: false,
         requireGuestList: false,
       }),
+      cache: "no-store",
+      signal: expect.any(AbortSignal),
+    });
+  });
+
+  it("sends publish venue event requests to the expected backend contract", async () => {
+    const publishedEvent = {
+      id: "event-1",
+      name: "Friday Opening",
+      status: "UPCOMING",
+      startsAt: "2026-06-20T23:00:00.000Z",
+      endsAt: "2026-06-21T05:00:00.000Z",
+      maxCapacity: 500,
+      minAge: 18,
+      allowManualDniCheck: true,
+      requireGuestList: false,
+    };
+
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(JSON.stringify(publishedEvent), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+
+    await expect(publishVenueEvent("admin-token", "event-1")).resolves.toEqual(publishedEvent);
+
+    expect(fetchSpy).toHaveBeenCalledWith(`${IDNIGHT_BACKEND_URL}/admin/venues/mine/events/event-1/publish`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: "Bearer admin-token",
+      },
+      body: undefined,
       cache: "no-store",
       signal: expect.any(AbortSignal),
     });

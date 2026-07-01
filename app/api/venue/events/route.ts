@@ -69,13 +69,51 @@ export async function POST(request: Request) {
       maxCapacity = maxCapacityValue;
     }
 
-    let minAge: number | undefined;
+    let minAge: number | null | undefined;
     if (payload.minAge !== undefined) {
-      if (typeof payload.minAge !== "number" || !Number.isInteger(payload.minAge) || payload.minAge < 0 || payload.minAge > 120) {
+      if (payload.minAge === null) {
+        minAge = null;
+      } else if (typeof payload.minAge !== "number" || !Number.isInteger(payload.minAge) || payload.minAge < 0 || payload.minAge > 120) {
         return errorResponse("Minimum age must be an integer between 0 and 120.");
+      } else {
+        minAge = payload.minAge;
       }
+    }
 
-      minAge = payload.minAge;
+    let maxAge: number | null | undefined;
+    if (payload.maxAge !== undefined) {
+      if (payload.maxAge === null) {
+        maxAge = null;
+      } else if (typeof payload.maxAge !== "number" || !Number.isInteger(payload.maxAge) || payload.maxAge < 0 || payload.maxAge > 120) {
+        return errorResponse("Maximum age must be an integer between 0 and 120.");
+      } else {
+        maxAge = payload.maxAge;
+      }
+    }
+
+    const HH_MM = /^\d{2}:\d{2}$/;
+    const rawAllowedFrom = payload.allowedFrom;
+    const rawAllowedUntil = payload.allowedUntil;
+    const hasFrom = rawAllowedFrom !== undefined && rawAllowedFrom !== null;
+    const hasUntil = rawAllowedUntil !== undefined && rawAllowedUntil !== null;
+
+    if (hasFrom !== hasUntil) {
+      return errorResponse("Entry window start and end must both be provided or both omitted.");
+    }
+
+    let allowedFrom: string | null | undefined;
+    let allowedUntil: string | null | undefined;
+
+    if (hasFrom && hasUntil) {
+      if (typeof rawAllowedFrom !== "string" || !HH_MM.test(rawAllowedFrom) ||
+          typeof rawAllowedUntil !== "string" || !HH_MM.test(rawAllowedUntil)) {
+        return errorResponse("Entry window times must be in HH:mm format.");
+      }
+      allowedFrom = rawAllowedFrom;
+      allowedUntil = rawAllowedUntil;
+    } else if (rawAllowedFrom === null || rawAllowedUntil === null) {
+      allowedFrom = null;
+      allowedUntil = null;
     }
 
     let allowManualDniCheck: boolean | undefined;
@@ -102,6 +140,9 @@ export async function POST(request: Request) {
       endsAt: normalizedEndsAt,
       ...(maxCapacity !== undefined ? { maxCapacity } : {}),
       ...(minAge !== undefined ? { minAge } : {}),
+      ...(maxAge !== undefined ? { maxAge } : {}),
+      ...(allowedFrom !== undefined ? { allowedFrom } : {}),
+      ...(allowedUntil !== undefined ? { allowedUntil } : {}),
       ...(allowManualDniCheck !== undefined ? { allowManualDniCheck } : {}),
       ...(requireGuestList !== undefined ? { requireGuestList } : {}),
     });

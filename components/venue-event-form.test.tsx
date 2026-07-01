@@ -61,7 +61,6 @@ describe("VenueEventForm", () => {
           startsAt: "2026-06-20T23:00:00.000Z",
           endsAt: "2026-06-21T05:00:00.000Z",
           maxCapacity: 500,
-          minAge: 0,
           allowManualDniCheck: true,
           requireGuestList: false,
         }),
@@ -267,5 +266,114 @@ describe("VenueEventForm", () => {
 
     expect(await screen.findByText("Could not create the event. Please try again.")).toBeInTheDocument();
     expect(refreshMock).not.toHaveBeenCalled();
+  });
+
+  it("renders the access policy section with maxAge, allowedFrom, and allowedUntil fields", async () => {
+    const user = userEvent.setup();
+    render(<VenueEventForm />);
+
+    await user.click(screen.getByRole("button", { name: /create event/i }));
+
+    expect(screen.getByLabelText(/maximum age/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/entry window from/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/entry window until/i)).toBeInTheDocument();
+  });
+
+  it("includes access policy fields in the submit body when filled", async () => {
+    const user = userEvent.setup();
+    fetchMock.mockResolvedValue({ ok: true, json: async () => ({ ok: true }) });
+
+    render(<VenueEventForm />);
+
+    await user.click(screen.getByRole("button", { name: /create event/i }));
+
+    fireEvent.change(screen.getByLabelText(/event name/i), { target: { value: "Friday Opening" } });
+    fireEvent.change(screen.getByLabelText(/starts at \(utc\)/i), { target: { value: "2026-06-20T23:00" } });
+    fireEvent.change(screen.getByLabelText(/ends at \(utc\)/i), { target: { value: "2026-06-21T05:00" } });
+    fireEvent.change(screen.getByLabelText(/maximum age/i), { target: { value: "25" } });
+    fireEvent.change(screen.getByLabelText(/entry window from/i), { target: { value: "22:00" } });
+    fireEvent.change(screen.getByLabelText(/entry window until/i), { target: { value: "02:00" } });
+
+    await user.click(screen.getByRole("button", { name: /^create event$/i }));
+
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/venue/events",
+      expect.objectContaining({
+        body: JSON.stringify({
+          name: "Friday Opening",
+          startsAt: "2026-06-20T23:00:00.000Z",
+          endsAt: "2026-06-21T05:00:00.000Z",
+          maxCapacity: null,
+          allowManualDniCheck: true,
+          requireGuestList: false,
+          maxAge: 25,
+          allowedFrom: "22:00",
+          allowedUntil: "02:00",
+        }),
+      }),
+    );
+  });
+
+  it("rejects when minAge exceeds maxAge", async () => {
+    const user = userEvent.setup();
+    render(<VenueEventForm />);
+
+    await user.click(screen.getByRole("button", { name: /create event/i }));
+
+    fireEvent.change(screen.getByLabelText(/event name/i), { target: { value: "Friday Opening" } });
+    fireEvent.change(screen.getByLabelText(/starts at \(utc\)/i), { target: { value: "2026-06-20T23:00" } });
+    fireEvent.change(screen.getByLabelText(/ends at \(utc\)/i), { target: { value: "2026-06-21T05:00" } });
+    fireEvent.change(screen.getByLabelText(/minimum age/i), { target: { value: "25" } });
+    fireEvent.change(screen.getByLabelText(/maximum age/i), { target: { value: "20" } });
+
+    await user.click(screen.getByRole("button", { name: /^create event$/i }));
+
+    expect(await screen.findByText(/minimum age must not exceed maximum age/i)).toBeInTheDocument();
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("rejects when only allowedFrom is set without allowedUntil", async () => {
+    const user = userEvent.setup();
+    render(<VenueEventForm />);
+
+    await user.click(screen.getByRole("button", { name: /create event/i }));
+
+    fireEvent.change(screen.getByLabelText(/event name/i), { target: { value: "Friday Opening" } });
+    fireEvent.change(screen.getByLabelText(/starts at \(utc\)/i), { target: { value: "2026-06-20T23:00" } });
+    fireEvent.change(screen.getByLabelText(/ends at \(utc\)/i), { target: { value: "2026-06-21T05:00" } });
+    fireEvent.change(screen.getByLabelText(/entry window from/i), { target: { value: "22:00" } });
+
+    await user.click(screen.getByRole("button", { name: /^create event$/i }));
+
+    expect(await screen.findByText(/entry window start and end must both be set/i)).toBeInTheDocument();
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("pre-fills access policy fields from the event prop in edit mode", () => {
+    render(
+      <VenueEventForm
+        event={{
+          id: "event-1",
+          name: "Friday Opening",
+          status: "UPCOMING",
+          startsAt: "2026-06-20T23:00:00.000Z",
+          endsAt: "2026-06-21T05:00:00.000Z",
+          maxCapacity: 500,
+          minAge: 18,
+          allowManualDniCheck: false,
+          requireGuestList: true,
+          maxAge: 30,
+          allowedFrom: "22:00",
+          allowedUntil: "02:00",
+        }}
+        onClose={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByLabelText(/maximum age/i)).toHaveValue(30);
+    expect(screen.getByLabelText(/entry window from/i)).toHaveValue("22:00");
+    expect(screen.getByLabelText(/entry window until/i)).toHaveValue("02:00");
   });
 });
