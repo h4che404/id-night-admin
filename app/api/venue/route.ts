@@ -48,7 +48,7 @@ export async function POST(request: Request) {
 
     const userId = extractJwtSub(session.accessToken);
     if (userId) {
-      revalidateTag(getAdminSessionCacheTag(userId));
+      revalidateTag(getAdminSessionCacheTag(userId), {});
     }
 
     const response = NextResponse.json({ ok: true });
