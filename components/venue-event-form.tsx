@@ -36,7 +36,10 @@ export function VenueEventForm({ event, onClose }: VenueEventFormProps = {}) {
   const [maxCapacity, setMaxCapacity] = useState(
     event?.maxCapacity != null ? String(event.maxCapacity) : "",
   );
-  const [minAge, setMinAge] = useState(event?.minAge != null ? String(event.minAge) : "0");
+  const [minAge, setMinAge] = useState(event?.minAge != null ? String(event.minAge) : "");
+  const [maxAge, setMaxAge] = useState(event?.maxAge != null ? String(event.maxAge) : "");
+  const [allowedFrom, setAllowedFrom] = useState(event?.allowedFrom ?? "");
+  const [allowedUntil, setAllowedUntil] = useState(event?.allowedUntil ?? "");
   const [allowManualDniCheck, setAllowManualDniCheck] = useState(
     event?.allowManualDniCheck ?? true,
   );
@@ -54,10 +57,32 @@ export function VenueEventForm({ event, onClose }: VenueEventFormProps = {}) {
     setSuccess(false);
 
     const parsedMaxCapacity = maxCapacity.trim() ? Number(maxCapacity) : null;
-    const parsedMinAge = minAge.trim() ? Number(minAge) : 0;
+    const parsedMinAge = minAge.trim() ? Number(minAge) : undefined;
+    const parsedMaxAge = maxAge.trim() ? Number(maxAge) : undefined;
 
-    if (!Number.isInteger(parsedMinAge) || parsedMinAge < 0 || parsedMinAge > 120) {
+    if (parsedMinAge !== undefined && (!Number.isInteger(parsedMinAge) || parsedMinAge < 0 || parsedMinAge > 120)) {
       setError("Minimum age must be between 0 and 120.");
+      setLoading(false);
+      return;
+    }
+
+    if (parsedMaxAge !== undefined && (!Number.isInteger(parsedMaxAge) || parsedMaxAge < 0 || parsedMaxAge > 120)) {
+      setError("Maximum age must be between 0 and 120.");
+      setLoading(false);
+      return;
+    }
+
+    if (parsedMinAge !== undefined && parsedMaxAge !== undefined && parsedMinAge > parsedMaxAge) {
+      setError("Minimum age must not exceed maximum age.");
+      setLoading(false);
+      return;
+    }
+
+    const cleanAllowedFrom = allowedFrom.trim() || undefined;
+    const cleanAllowedUntil = allowedUntil.trim() || undefined;
+
+    if ((cleanAllowedFrom === undefined) !== (cleanAllowedUntil === undefined)) {
+      setError("Entry window start and end must both be set or both left empty.");
       setLoading(false);
       return;
     }
@@ -83,9 +108,12 @@ export function VenueEventForm({ event, onClose }: VenueEventFormProps = {}) {
           startsAt: normalizedStartsAt,
           endsAt: normalizedEndsAt,
           maxCapacity: parsedMaxCapacity,
-          minAge: parsedMinAge,
+          ...(parsedMinAge !== undefined ? { minAge: parsedMinAge } : {}),
           allowManualDniCheck,
           requireGuestList,
+          ...(parsedMaxAge !== undefined ? { maxAge: parsedMaxAge } : {}),
+          ...(cleanAllowedFrom !== undefined ? { allowedFrom: cleanAllowedFrom } : {}),
+          ...(cleanAllowedUntil !== undefined ? { allowedUntil: cleanAllowedUntil } : {}),
         }),
       });
 
@@ -111,7 +139,10 @@ export function VenueEventForm({ event, onClose }: VenueEventFormProps = {}) {
         setStartsAt("");
         setEndsAt("");
         setMaxCapacity("");
-        setMinAge("0");
+        setMinAge("");
+        setMaxAge("");
+        setAllowedFrom("");
+        setAllowedUntil("");
         setAllowManualDniCheck(true);
         setRequireGuestList(false);
         setTimeout(() => {
@@ -123,7 +154,10 @@ export function VenueEventForm({ event, onClose }: VenueEventFormProps = {}) {
         setStartsAt("");
         setEndsAt("");
         setMaxCapacity("");
-        setMinAge("0");
+        setMinAge("");
+        setMaxAge("");
+        setAllowedFrom("");
+        setAllowedUntil("");
         setAllowManualDniCheck(true);
         setRequireGuestList(false);
         setTimeout(() => {
@@ -183,7 +217,7 @@ export function VenueEventForm({ event, onClose }: VenueEventFormProps = {}) {
             icon={<Plus className="h-4 w-4" />}
             value={maxCapacity}
             onChange={setMaxCapacity}
-            placeholder="500"
+            placeholder="No limit"
             type="number"
             required={false}
           />
@@ -203,15 +237,50 @@ export function VenueEventForm({ event, onClose }: VenueEventFormProps = {}) {
           />
         </div>
 
-        <FormField
-          label="Minimum age"
-          icon={<Shield className="h-4 w-4" />}
-          value={minAge}
-          onChange={setMinAge}
-          placeholder="0"
-          type="number"
-          required={false}
-        />
+        <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <Shield className="h-4 w-4 text-slate-400" />
+            <h4 className="text-sm font-medium text-slate-300">Access policy</h4>
+          </div>
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <FormField
+              label="Minimum age"
+              icon={<Shield className="h-4 w-4" />}
+              value={minAge}
+              onChange={setMinAge}
+              placeholder="No minimum"
+              type="number"
+              required={false}
+            />
+            <FormField
+              label="Maximum age"
+              icon={<Shield className="h-4 w-4" />}
+              value={maxAge}
+              onChange={setMaxAge}
+              placeholder="No maximum"
+              type="number"
+              required={false}
+            />
+            <FormField
+              label="Entry window from"
+              icon={<Clock3 className="h-4 w-4" />}
+              value={allowedFrom}
+              onChange={setAllowedFrom}
+              placeholder="No restriction"
+              type="time"
+              required={false}
+            />
+            <FormField
+              label="Entry window until"
+              icon={<Clock3 className="h-4 w-4" />}
+              value={allowedUntil}
+              onChange={setAllowedUntil}
+              placeholder="No restriction"
+              type="time"
+              required={false}
+            />
+          </div>
+        </div>
 
         <div className="grid gap-3 md:grid-cols-2">
           <label className="flex cursor-pointer items-center gap-3 rounded-2xl border border-slate-800 bg-slate-950/30 px-4 py-3 transition hover:border-slate-700">
