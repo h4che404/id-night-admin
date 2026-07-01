@@ -54,6 +54,9 @@ export type BackendVenueEvent = {
   endsAt: string | null;
   maxCapacity: number | null;
   minAge: number | null;
+  maxAge?: number | null;
+  allowedFrom?: string | null;
+  allowedUntil?: string | null;
   allowManualDniCheck: boolean;
   requireGuestList: boolean;
   createdAt: string;
@@ -587,7 +590,10 @@ export function createVenueEvent(
     startsAt: string;
     endsAt?: string;
     maxCapacity?: number;
-    minAge?: number;
+    minAge?: number | null;
+    maxAge?: number | null;
+    allowedFrom?: string | null;
+    allowedUntil?: string | null;
     allowManualDniCheck?: boolean;
     requireGuestList?: boolean;
   },
@@ -607,7 +613,10 @@ export function updateVenueEvent(
     startsAt?: string;
     endsAt?: string | null;
     maxCapacity?: number | null;
-    minAge?: number;
+    minAge?: number | null;
+    maxAge?: number | null;
+    allowedFrom?: string | null;
+    allowedUntil?: string | null;
     allowManualDniCheck?: boolean;
     requireGuestList?: boolean;
   },
