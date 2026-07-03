@@ -1,9 +1,6 @@
-import { Users } from "lucide-react";
-
 import { GuestListSection } from "@/components/guest-list-section";
-import { EmptyState, SectionHeader } from "@/components/ui-kit";
 import { requireReadyPageAccess } from "@/lib/auth-session";
-import { fetchEventGuestList, fetchVenueEvents } from "@/lib/idnight-backend";
+import { fetchEventGuestList } from "@/lib/idnight-backend";
 
 export default async function EventGuestListPage({
   params,
@@ -19,13 +16,6 @@ export default async function EventGuestListPage({
 
   const { session } = readyAccess;
 
-  let eventName = "Event";
-  try {
-    const result = await fetchVenueEvents(session.accessToken);
-    const event = result.items.find((e) => e.id === eventId);
-    if (event) eventName = event.name;
-  } catch { /* ignore, use fallback */ }
-
   let initialEntries: Awaited<ReturnType<typeof fetchEventGuestList>> = [];
   let initialEntriesError: string | null = null;
   try {
@@ -36,18 +26,10 @@ export default async function EventGuestListPage({
   }
 
   return (
-    <div className="space-y-6">
-      <SectionHeader
-        eyebrow="Guest list"
-        title={`${eventName} — Guest list`}
-        description="Import and manage the guest list for this event."
-      />
-      <GuestListSection
-        eventId={eventId}
-        eventName={eventName}
-        initialEntries={initialEntries}
-        initialEntriesError={initialEntriesError}
-      />
-    </div>
+    <GuestListSection
+      eventId={eventId}
+      initialEntries={initialEntries}
+      initialEntriesError={initialEntriesError}
+    />
   );
 }

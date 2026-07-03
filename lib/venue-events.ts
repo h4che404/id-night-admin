@@ -149,6 +149,36 @@ export function formatEventSchedule(startsAt: string, endsAt: string | null) {
   return `${formatEventDateTime(startsAt)} → ${formatEventDateTime(endsAt)}`;
 }
 
+export function normalizeEventStatus(status: string) {
+  return status.trim().toUpperCase();
+}
+
+export function formatEventStatusLabel(status: string) {
+  const normalizedStatus = normalizeEventStatus(status);
+
+  if (normalizedStatus === "DRAFT") return "Draft";
+  if (normalizedStatus === "UPCOMING") return "Upcoming";
+  if (normalizedStatus === "ACTIVE") return "Active";
+  if (normalizedStatus === "CANCELLED") return "Cancelled";
+  if (normalizedStatus === "FINISHED") return "Finished";
+
+  return normalizedStatus
+    .toLowerCase()
+    .split(/[_\s-]+/)
+    .filter(Boolean)
+    .map((segment) => segment[0]?.toUpperCase() + segment.slice(1))
+    .join(" ");
+}
+
+export function eventStatusTone(status: string) {
+  const normalizedStatus = normalizeEventStatus(status);
+
+  if (normalizedStatus === "ACTIVE") return "success" as const;
+  if (normalizedStatus === "CANCELLED") return "danger" as const;
+  if (normalizedStatus === "FINISHED") return "neutral" as const;
+  return "info" as const;
+}
+
 export function getSafeEventErrorMessage(error: unknown, fallbackMessage: string) {
   if (isBackendApiError(error) && error.status >= 400 && error.status < 500) {
     return error.message;

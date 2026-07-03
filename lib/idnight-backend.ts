@@ -1,5 +1,7 @@
 import "server-only";
 
+import { cache } from "react";
+
 export const IDNIGHT_BACKEND_URL =
   process.env.IDNIGHT_BACKEND_URL ?? "https://api.idnight.app";
 
@@ -171,6 +173,38 @@ export type BackendEventReport = {
   cancelledGuestEntries: number;
   accessSessionCount: number;
   lastSessionOpenedAt: string | null;
+};
+
+export type BackendScanRecord = {
+  id: string;
+  eventId: string;
+  accessSessionId: string | null;
+  documentLookupKey: string;
+  outcome: "Allow" | "Deny" | "Warning" | "ManualReview" | "NotFound";
+  score: number | null;
+  latencyMs: number;
+  correlationId: string;
+  validatedAt: string;
+  /*
+   * Guard decision fields exist on the backend DoorScanRecord entity but are
+   * not projected into ScanRecordDto yet. Kept optional so the UI renders
+   * them as soon as the backend starts returning them.
+   */
+  guardDecision?: "Accepted" | "Rejected" | "ManualReview" | null;
+  guardDecisionAt?: string | null;
+  guardDecisionReason?: string | null;
+  isOverride?: boolean;
+};
+
+export type BackendScanStats = {
+  allow: number;
+  deny: number;
+  warning: number;
+  manualReview: number;
+  notFound: number;
+  avgLatencyMs: number;
+  p95LatencyMs: number;
+  total: number;
 };
 
 export type BackendAccessSession = {
@@ -583,6 +617,30 @@ export function fetchVenueEvents(token: string, page = 1) {
   );
 }
 
+/*
+ * The "mine" backend family exposes only a paged list (no GET {id}),
+ * so resolving a single event walks the list with a defensive page cap.
+ * Wrapped in React cache() so the event detail layout and its pages share
+ * a single walk per request instead of repeating it.
+ */
+const FIND_EVENT_MAX_PAGES = 10;
+
+export const findVenueEventById = cache(
+  async (token: string, eventId: string): Promise<BackendVenueEvent | null> => {
+    for (let page = 1; page <= FIND_EVENT_MAX_PAGES; page += 1) {
+      const result = await fetchVenueEvents(token, page);
+      const event = result.items.find((item) => item.id === eventId);
+      if (event) {
+        return event;
+      }
+      if (page * result.pageSize >= result.total || result.items.length === 0) {
+        return null;
+      }
+    }
+    return null;
+  },
+);
+
 export function createVenueEvent(
   token: string,
   data: {
@@ -822,6 +880,30 @@ export function fetchAccessSessions(
   return backendRequest<BackendPagedResult<BackendAccessSession>>(
     `/admin/venues/mine/access-sessions?${query.toString()}`,
     { token, operation: "fetchAccessSessions" },
+  );
+}
+
+/* ── Door scan records ─────────────────────────────────────────── */
+
+export function fetchEventScanRecords(
+  token: string,
+  eventId: string,
+  params: { outcome?: string; page?: number; pageSize?: number } = {},
+) {
+  const query = new URLSearchParams();
+  if (params.outcome) query.set("outcome", params.outcome);
+  query.set("page", String(params.page ?? 1));
+  query.set("pageSize", String(params.pageSize ?? 50));
+  return backendRequest<BackendPagedResult<BackendScanRecord>>(
+    `/admin/venues/mine/events/${eventId}/scan-records?${query.toString()}`,
+    { token, operation: "fetchEventScanRecords" },
+  );
+}
+
+export function fetchEventScanStats(token: string, eventId: string) {
+  return backendRequest<BackendScanStats>(
+    `/admin/venues/mine/events/${eventId}/scan-stats`,
+    { token, operation: "fetchEventScanStats" },
   );
 }
 

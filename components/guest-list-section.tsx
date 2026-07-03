@@ -16,14 +16,12 @@ import type { BackendGuestListEntry, BackendGuestListImportResult } from "@/lib/
 
 type Props = {
   eventId: string;
-  eventName: string;
   initialEntries: BackendGuestListEntry[];
   initialEntriesError: string | null;
 };
 
 export function GuestListSection({
   eventId,
-  eventName: _eventName,
   initialEntries,
   initialEntriesError,
 }: Props) {

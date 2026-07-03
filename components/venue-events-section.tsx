@@ -141,7 +141,12 @@ export function VenueEventsSection({ events, eventsError }: Props) {
             return (
               <tr key={event.id} className="align-top hover:bg-slate-950/20">
                 <td className="px-5 py-4">
-                  <p className="font-medium text-slate-100">{event.name}</p>
+                  <Link
+                    href={`/venue/events/${event.id}`}
+                    className="font-medium text-slate-100 transition-colors duration-200 ease-out hover:text-white hover:underline"
+                  >
+                    {event.name}
+                  </Link>
                 </td>
                 <td className="px-5 py-4 text-sm text-slate-300">
                   {formatEventSchedule(event.startsAt, event.endsAt)}

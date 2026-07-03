@@ -1,5 +1,4 @@
-import { ArrowLeft, BarChart3 } from "lucide-react";
-import Link from "next/link";
+import { BarChart3 } from "lucide-react";
 
 import { requireReadyPageAccess } from "@/lib/auth-session";
 import { fetchEventReport } from "@/lib/idnight-backend";
@@ -37,14 +36,6 @@ export default async function EventReportPage({
 
   return (
     <div className="space-y-6">
-      <Link
-        href="/venue/events"
-        className="inline-flex items-center gap-2 text-sm text-slate-400 transition hover:text-white"
-      >
-        <ArrowLeft className="h-4 w-4" />
-        Back to events
-      </Link>
-
       <SectionHeader
         eyebrow="Event report"
         title={report?.eventName ?? "Event report"}
