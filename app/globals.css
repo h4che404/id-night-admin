@@ -1,38 +1,100 @@
 @import "tailwindcss";
+@import "tw-animate-css";
 
+/*
+ * Obsidian Trace design tokens (see DESIGN.md).
+ * Dark-only theme: values live directly in :root.
+ */
 :root {
-  --bg: #07111f;
-  --surface: #0d1726;
-  --surface-strong: #121f31;
-  --surface-muted: #0a1321;
-  --line: rgba(148, 163, 184, 0.18);
-  --line-strong: rgba(148, 163, 184, 0.28);
-  --text: #f8fafc;
-  --text-soft: #cbd5e1;
-  --text-muted: #94a3b8;
-  --accent: #38bdf8;
-  --accent-strong: #0ea5e9;
-  --success: #22c55e;
-  --warning: #f59e0b;
-  --danger: #ef4444;
+  /* Tonal layering (elevation without shadows) */
+  --background: #09090b; /* Level 0 — canvas */
+  --foreground: #fafafa;
+  --card: #18181b; /* Level 1 — cards, table containers */
+  --card-foreground: #fafafa;
+  --popover: #1f1f23; /* Level 2 — dropdowns, modals */
+  --popover-foreground: #fafafa;
+  --surface: #131315; /* Level 1 (dim) — metric cards, sidebar rows */
+  --sidebar: #0e0e10;
+
+  /* Accent — Electric Indigo */
+  --primary: #4f46e5;
+  --primary-foreground: #fafafa;
+
+  --secondary: #1f1f23;
+  --secondary-foreground: #fafafa;
+  --muted: #18181b;
+  --muted-foreground: #71717a;
+  --accent: #27272a;
+  --accent-foreground: #fafafa;
+  --destructive: #f43f5e;
+  --destructive-foreground: #fafafa;
+
+  --border: #27272a;
+  --input: #27272a;
+  --ring: #4f46e5;
+
+  /* Semantic status tokens */
+  --verified: #10b981;
+  --manual: #f59e0b;
+  --rejected: #f43f5e;
+  --warning: #f97316;
+
+  /* shadcn radius base: lg = 0.5rem (containers), md = 6px, sm = 4px */
+  --radius: 0.5rem;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-surface: var(--surface);
+  --color-sidebar: var(--sidebar);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --color-verified: var(--verified);
+  --color-manual: var(--manual);
+  --color-rejected: var(--rejected);
+  --color-warning: var(--warning);
+
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, "SF Mono", monospace;
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
 }
 
 * {
   box-sizing: border-box;
+  border-color: var(--border);
 }
 
 html {
-  background: var(--bg);
+  background: var(--background);
 }
 
 body {
   margin: 0;
   min-height: 100vh;
-  background:
-    radial-gradient(circle at top, rgba(14, 165, 233, 0.12), transparent 28%),
-    linear-gradient(180deg, #08111f 0%, #050b15 100%);
-  color: var(--text);
-  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
 }
 
 a {
@@ -48,25 +110,15 @@ textarea {
 }
 
 ::selection {
-  background: rgba(56, 189, 248, 0.24);
+  background: rgba(79, 70, 229, 0.35);
 }
 
 @layer utilities {
-  .panel {
-    background: linear-gradient(180deg, rgba(18, 31, 49, 0.94), rgba(10, 19, 33, 0.96));
-    border: 1px solid var(--line);
-    box-shadow: 0 20px 40px rgba(2, 6, 23, 0.28);
-  }
-
-  .panel-soft {
-    background: rgba(13, 23, 38, 0.72);
-    border: 1px solid var(--line);
-  }
-
+  /* Legacy auth-page utilities (login/register/onboarding) — pending redesign phase. */
   .glow-ring {
     box-shadow:
-      0 0 0 1px rgba(56, 189, 248, 0.28),
-      0 0 0 8px rgba(56, 189, 248, 0.08);
+      0 0 0 1px rgba(79, 70, 229, 0.45),
+      0 0 0 6px rgba(79, 70, 229, 0.12);
   }
 
   .text-balance {
@@ -75,8 +127,17 @@ textarea {
 
   .status-grid {
     background-image:
-      linear-gradient(rgba(148, 163, 184, 0.06) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(148, 163, 184, 0.06) 1px, transparent 1px);
+      linear-gradient(rgba(113, 113, 122, 0.06) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(113, 113, 122, 0.06) 1px, transparent 1px);
     background-size: 36px 36px;
+  }
+
+  /* label-sm from DESIGN.md typography scale */
+  .label-sm {
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 12px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
   }
 }
