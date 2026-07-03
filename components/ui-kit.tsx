@@ -1,17 +1,23 @@
 import { type ReactNode, useId } from "react";
 import { CheckCircle2, XCircle } from "lucide-react";
 
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import type { StatusTone } from "@/lib/data";
 
 /* ── Tone styles ───────────────────────────────────────────────── */
 
 const toneStyles: Record<StatusTone, string> = {
-  neutral: "border-slate-700/60 bg-slate-900/60 text-slate-200",
-  info: "border-sky-400/20 bg-sky-400/10 text-sky-200",
-  success: "border-emerald-400/20 bg-emerald-400/10 text-emerald-200",
-  warning: "border-amber-400/20 bg-amber-400/10 text-amber-200",
-  danger: "border-rose-400/20 bg-rose-400/10 text-rose-200",
+  neutral: "border-border bg-accent/50 text-foreground/80",
+  info: "border-primary/25 bg-primary/10 text-indigo-400",
+  success: "border-verified/20 bg-verified/10 text-verified",
+  verified: "border-verified/20 bg-verified/10 text-verified",
+  manual: "border-manual/20 bg-manual/10 text-manual",
+  warning: "border-warning/20 bg-warning/10 text-warning",
+  danger: "border-rejected/20 bg-rejected/10 text-rejected",
+  rejected: "border-rejected/20 bg-rejected/10 text-rejected",
 };
 
 /* ── Badge ─────────────────────────────────────────────────────── */
@@ -28,7 +34,7 @@ export function Badge({
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-medium tracking-[0.02em]",
+        "inline-flex items-center gap-1.5 rounded border px-2 py-0.5 text-xs font-medium tracking-[0.02em]",
         toneStyles[tone],
       )}
     >
@@ -47,7 +53,11 @@ export function Surface({
   children: ReactNode;
   className?: string;
 }) {
-  return <section className={cn("panel rounded-2xl", className)}>{children}</section>;
+  return (
+    <section className={cn("rounded-lg border border-border bg-card", className)}>
+      {children}
+    </section>
+  );
 }
 
 /* ── Section header ────────────────────────────────────────────── */
@@ -66,12 +76,14 @@ export function SectionHeader({
   return (
     <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
       <div className="space-y-2">
-        {eyebrow ? (
-          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-sky-300/80">{eyebrow}</p>
-        ) : null}
+        {eyebrow ? <p className="label-sm text-indigo-400">{eyebrow}</p> : null}
         <div className="space-y-1">
-          <h1 className="text-2xl font-semibold tracking-tight text-slate-50 md:text-3xl">{title}</h1>
-          {description ? <p className="max-w-3xl text-sm leading-6 text-slate-400">{description}</p> : null}
+          <h1 className="text-2xl font-semibold tracking-[-0.02em] text-foreground md:text-3xl">
+            {title}
+          </h1>
+          {description ? (
+            <p className="max-w-3xl text-sm leading-6 text-muted-foreground">{description}</p>
+          ) : null}
         </div>
       </div>
       {action ? <div className="flex items-center gap-3">{action}</div> : null}
@@ -90,16 +102,26 @@ export function DataTable({
 }) {
   return (
     <table className="min-w-full border-collapse text-left">
-      <thead className="bg-slate-950/40">
-        <tr>
+      <thead>
+        <tr className="border-b border-border">
           {columns.map((column) => (
-            <th key={column} className="px-5 py-3 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+            <th key={column} className="label-sm px-5 py-3 text-muted-foreground">
               {column}
             </th>
           ))}
         </tr>
       </thead>
-      <tbody className="divide-y divide-slate-800/80">{rows}</tbody>
+      <tbody
+        className={cn(
+          "divide-y divide-border",
+          // Dense rows (2.5rem target) + subtle 1px hover lift per DESIGN.md motion spec.
+          "[&_td]:py-2.5",
+          "[&_tr]:transition-[transform,background-color] [&_tr]:duration-200 [&_tr]:ease-out",
+          "[&_tr:hover]:-translate-y-px",
+        )}
+      >
+        {rows}
+      </tbody>
     </table>
   );
 }
@@ -119,11 +141,11 @@ export function DataShell({
 }) {
   return (
     <Surface className="overflow-hidden">
-      <div className="border-b border-slate-800/80 px-5 py-4">
+      <div className="border-b border-border px-5 py-4">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <h2 className="text-lg font-semibold text-white">{title}</h2>
-            <p className="mt-1 text-sm text-slate-400">{subtitle}</p>
+            <h2 className="text-lg font-semibold text-foreground">{title}</h2>
+            <p className="mt-1 text-sm text-muted-foreground">{subtitle}</p>
           </div>
           {action ? <div>{action}</div> : null}
         </div>
@@ -147,12 +169,12 @@ export function EmptyState({
   action?: ReactNode;
 }) {
   return (
-    <div className="panel-soft rounded-2xl p-8 text-center">
-      <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl border border-slate-800 bg-slate-950/30">
-        {icon ?? <CheckCircle2 className="h-5 w-5 text-sky-300" />}
+    <div className="rounded-lg border border-border bg-surface p-8 text-center">
+      <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-md border border-border bg-card">
+        {icon ?? <CheckCircle2 className="h-5 w-5 text-muted-foreground" />}
       </div>
-      <h3 className="text-lg font-semibold text-slate-50">{title}</h3>
-      <p className="mx-auto mt-2 max-w-xl text-sm leading-6 text-slate-400">{description}</p>
+      <h3 className="text-lg font-semibold text-foreground">{title}</h3>
+      <p className="mx-auto mt-2 max-w-xl text-sm leading-6 text-muted-foreground">{description}</p>
       {action ? <div className="mt-5">{action}</div> : null}
     </div>
   );
@@ -163,8 +185,8 @@ export function EmptyState({
 export function LoadingSkeleton() {
   return (
     <div className="space-y-5">
-      <div className="panel h-32 animate-pulse rounded-2xl bg-slate-900/70" />
-      <div className="panel h-64 animate-pulse rounded-2xl bg-slate-900/70" />
+      <Skeleton className="h-32 rounded-lg" />
+      <Skeleton className="h-64 rounded-lg" />
     </div>
   );
 }
@@ -175,12 +197,12 @@ export function ErrorPanel({ message }: { message?: string }) {
   return (
     <Surface className="p-8">
       <div className="flex items-start gap-4">
-        <div className="rounded-2xl border border-rose-500/20 bg-rose-500/10 p-3">
-          <XCircle className="h-5 w-5 text-rose-300" />
+        <div className="rounded-md border border-rejected/20 bg-rejected/10 p-3">
+          <XCircle className="h-5 w-5 text-rejected" />
         </div>
         <div>
-          <h2 className="text-lg font-semibold text-white">No se pudo cargar la vista</h2>
-          <p className="mt-2 max-w-xl text-sm leading-6 text-slate-400">
+          <h2 className="text-lg font-semibold text-foreground">No se pudo cargar la vista</h2>
+          <p className="mt-2 max-w-xl text-sm leading-6 text-muted-foreground">
             {message ?? "Ocurrió un error inesperado. Por favor intentá de nuevo."}
           </p>
         </div>
@@ -217,14 +239,14 @@ export function FormField({
 
   return (
     <div>
-      <label htmlFor={inputId} className="mb-2 block text-sm font-medium text-slate-300">
+      <Label htmlFor={inputId} className="mb-2 text-sm font-medium text-foreground/90">
         {label}
-      </label>
-      <div className="flex items-center gap-3 rounded-2xl border border-slate-800 bg-slate-950/40 px-4 py-3.5 text-slate-400 focus-within:border-sky-400/30 transition">
+      </Label>
+      <div className="flex items-center gap-3 rounded-md border border-input bg-background px-3 py-2.5 text-muted-foreground transition-[border-color,box-shadow] duration-200 ease-out focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20">
         {icon}
         <input
           id={inputId}
-          className="w-full border-0 bg-transparent p-0 text-slate-100 outline-none placeholder:text-slate-600"
+          className="w-full border-0 bg-transparent p-0 text-foreground outline-none placeholder:text-muted-foreground/60"
           value={value}
           onChange={(event) => onChange(event.target.value)}
           placeholder={placeholder}
@@ -253,14 +275,15 @@ export function PrimaryButton({
   disabled?: boolean;
 }) {
   return (
-    <button
+    <Button
       type={type}
       disabled={loading || disabled}
       onClick={onClick}
-      className="inline-flex w-full items-center justify-center rounded-2xl border border-sky-300/30 bg-sky-400/12 px-4 py-3.5 text-sm font-medium text-sky-50 transition hover:bg-sky-400/18 disabled:cursor-not-allowed disabled:opacity-60"
+      className="w-full"
+      size="lg"
     >
       {children}
-    </button>
+    </Button>
   );
 }
 
@@ -278,19 +301,18 @@ export function SecondaryButton({
   tone?: "neutral" | "danger";
 }) {
   return (
-    <button
+    <Button
       type="button"
+      variant="outline"
       disabled={disabled}
       onClick={onClick}
       className={cn(
-        "inline-flex items-center justify-center rounded-2xl border px-4 py-3 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-60",
-        tone === "danger"
-          ? "border-rose-400/20 bg-rose-400/10 text-rose-100 hover:bg-rose-400/18"
-          : "border-slate-800 bg-slate-950/40 text-slate-300 hover:border-slate-700 hover:text-white",
+        tone === "danger" &&
+          "border-rejected/25 bg-rejected/10 text-rejected hover:bg-rejected/15 hover:text-rejected",
       )}
     >
       {children}
-    </button>
+    </Button>
   );
 }
 
@@ -317,25 +339,30 @@ export function PaginationBar({
     return `${basePath}?${params.toString()}`;
   }
 
+  const linkClass =
+    "rounded-md border border-border bg-card px-3 py-1.5 text-xs text-muted-foreground transition-colors duration-200 ease-out hover:border-accent hover:text-foreground";
+  const disabledClass =
+    "cursor-not-allowed rounded-md border border-border px-3 py-1.5 text-xs text-muted-foreground/50";
+
   return (
-    <div className="flex items-center justify-between border-t border-slate-800 pt-4">
-      <p className="text-xs text-slate-500">
+    <div className="flex items-center justify-between border-t border-border pt-4">
+      <p className="font-mono text-xs text-muted-foreground">
         {(page - 1) * pageSize + 1}–{Math.min(page * pageSize, total)} of {total}
       </p>
       <div className="flex gap-2">
         {page > 1 ? (
-          <a href={buildHref(page - 1)} className="rounded-xl border border-slate-700 bg-slate-900 px-3 py-1.5 text-xs text-slate-300 hover:border-slate-600 hover:text-slate-100">
+          <a href={buildHref(page - 1)} className={linkClass}>
             ← Previous
           </a>
         ) : (
-          <span className="rounded-xl border border-slate-800 px-3 py-1.5 text-xs text-slate-600 cursor-not-allowed">← Previous</span>
+          <span className={disabledClass}>← Previous</span>
         )}
         {page < totalPages ? (
-          <a href={buildHref(page + 1)} className="rounded-xl border border-slate-700 bg-slate-900 px-3 py-1.5 text-xs text-slate-300 hover:border-slate-600 hover:text-slate-100">
+          <a href={buildHref(page + 1)} className={linkClass}>
             Next →
           </a>
         ) : (
-          <span className="rounded-xl border border-slate-800 px-3 py-1.5 text-xs text-slate-600 cursor-not-allowed">Next →</span>
+          <span className={disabledClass}>Next →</span>
         )}
       </div>
     </div>

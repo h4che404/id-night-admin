@@ -1,4 +1,13 @@
-export type StatusTone = "neutral" | "info" | "success" | "warning" | "danger";
+export type StatusTone =
+  | "neutral"
+  | "info"
+  | "success"
+  | "warning"
+  | "danger"
+  /* Obsidian Trace semantic aliases (see DESIGN.md) */
+  | "verified"
+  | "manual"
+  | "rejected";
 
 /* ── Navigation ────────────────────────────────────────────────── */
 
