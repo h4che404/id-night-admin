@@ -140,7 +140,13 @@ export type BackendGuestListEntry = {
   lastName: string;
   dni: string;
   category: string | null;
-  status: "active" | "used" | "cancelled";
+  /*
+   * The backend emits this via enum `ToString()`, i.e. PascalCase
+   * ("Active" | "Used" | "Cancelled"). Consumers must normalize casing
+   * before comparing — see lib/guest-list.ts and sdd/backend-audit-trail
+   * ADR-7.
+   */
+  status: "Active" | "Used" | "Cancelled";
   importedAt: string;
 };
 
