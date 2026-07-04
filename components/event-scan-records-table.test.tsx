@@ -72,7 +72,7 @@ describe("EventScanRecordsTable", () => {
     );
 
     const row = screen.getByText("Permitido").closest("tr");
-    expect(row!.cells[3].textContent).toBe("—");
+    expect(row!.cells[4].textContent).toBe("—");
   });
 
   it("shows the guard decision badge, reason tooltip, and override badge when present", () => {
@@ -103,7 +103,7 @@ describe("EventScanRecordsTable", () => {
     );
 
     const row = screen.getByText("Permitido").closest("tr");
-    expect(row!.cells[2].textContent).toBe("—");
+    expect(row!.cells[3].textContent).toBe("—");
     expect(within(row!).queryByText("Override")).not.toBeInTheDocument();
   });
 
@@ -149,7 +149,8 @@ describe("EventScanRecordsTable", () => {
     expect(methodColumnIndex).toBeInTheDocument();
 
     const rows = screen.getAllByText("Permitido").map((el) => el.closest("tr")!);
-    const methodCellIndex = 6;
+    // Method sits right after the time column, mirroring the reference mockup.
+    const methodCellIndex = 1;
     expect(rows[0].cells[methodCellIndex].textContent).toBe("—");
     expect(rows[1].cells[methodCellIndex].textContent).toBe("—");
   });
@@ -211,8 +212,19 @@ describe("EventScanRecordsTable", () => {
       />,
     );
 
-    expect(screen.queryByText(/lista negra/i)).not.toBeInTheDocument();
-    expect(screen.queryByText(/risk score/i)).not.toBeInTheDocument();
+    const bannedVocabulary = [
+      /lista negra/i,
+      /persona peligrosa/i,
+      /persona problemática/i,
+      /culpable detectado/i,
+      /identificado automáticamente/i,
+      /reconocimiento confirmado por IA/i,
+      /risk score/i,
+      /reputation score/i,
+    ];
+    for (const banned of bannedVocabulary) {
+      expect(screen.queryByText(banned)).not.toBeInTheDocument();
+    }
   });
 
   it("shows the empty state when there are no records", () => {

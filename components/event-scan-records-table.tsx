@@ -93,12 +93,12 @@ export function EventScanRecordsTable({
       <DataTable
         columns={[
           "Hora (UTC)",
+          "Método",
           "Resultado",
           "Decisión del guardia",
           "Score",
           "Latencia",
           "Override",
-          "Método",
           "Operador",
         ]}
         rows={records.map((record) => {
@@ -110,6 +110,13 @@ export function EventScanRecordsTable({
             <tr key={record.id}>
               <td className="px-5 font-mono text-sm text-foreground/80">
                 {formatScanTime(record.validatedAt)}
+              </td>
+              <td className="px-5">
+                {method ? (
+                  <Badge label={method.label} tone={method.tone} />
+                ) : (
+                  <span className="text-sm text-muted-foreground">—</span>
+                )}
               </td>
               <td className="px-5">
                 <Badge label={outcome.label} tone={outcome.tone} />
@@ -138,13 +145,6 @@ export function EventScanRecordsTable({
               </td>
               <td className="px-5">
                 {record.isOverride ? <Badge label="Override" tone="warning" /> : null}
-              </td>
-              <td className="px-5">
-                {method ? (
-                  <Badge label={method.label} tone={method.tone} />
-                ) : (
-                  <span className="text-sm text-muted-foreground">—</span>
-                )}
               </td>
               <td className="px-5 text-sm text-muted-foreground">
                 {record.operatorName ?? "—"}
