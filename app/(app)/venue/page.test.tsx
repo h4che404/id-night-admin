@@ -1,3 +1,4 @@
+import { cloneElement, isValidElement, type ReactNode } from "react";
 import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -5,6 +6,30 @@ function createRedirectError(path: string) {
   return Object.assign(new Error("NEXT_REDIRECT"), {
     digest: `NEXT_REDIRECT;replace;${path};307;`,
   });
+}
+
+async function resolveAsyncNode(node: ReactNode): Promise<ReactNode> {
+  if (Array.isArray(node)) {
+    return Promise.all(node.map((child) => resolveAsyncNode(child)));
+  }
+
+  if (!isValidElement(node)) {
+    return node;
+  }
+
+  if (typeof node.type === "function" && node.type.constructor.name === "AsyncFunction") {
+    return resolveAsyncNode(await (node.type as (props: unknown) => unknown)(node.props));
+  }
+
+  if ((node.props as { children?: ReactNode }).children === undefined) {
+    return node;
+  }
+
+  const resolvedChildren = await resolveAsyncNode((node.props as { children?: ReactNode }).children);
+
+  return Array.isArray(resolvedChildren)
+    ? cloneElement(node, undefined, ...resolvedChildren)
+    : cloneElement(node, undefined, resolvedChildren);
 }
 
 const { MockBackendApiError, requireBackendProfile, requireAdminAccess, canRecoverVenueSetup, fetchMyVenue, fetchDashboardMetrics } = vi.hoisted(() => {
@@ -124,7 +149,7 @@ describe("VenuePage", () => {
       admissionsToday: 48,
     });
 
-    render(await VenuePage());
+    render(await resolveAsyncNode(await VenuePage()));
 
     expect(screen.getByRole("heading", { name: "ID Night" })).toBeInTheDocument();
     expect(screen.getByText("Main St 123, Buenos Aires")).toBeInTheDocument();
@@ -132,6 +157,54 @@ describe("VenuePage", () => {
     expect(screen.queryByTestId("venue-create-form")).not.toBeInTheDocument();
     expect(fetchMyVenue).not.toHaveBeenCalled();
     expect(fetchDashboardMetrics).toHaveBeenCalledWith("admin-token");
+
+    expect(screen.getByText("Eventos totales")).toBeInTheDocument();
+    expect(screen.getByText("Activos ahora")).toBeInTheDocument();
+    expect(screen.getByText("Ingresos hoy")).toBeInTheDocument();
+    expect(screen.getByText("Dispositivos activos")).toBeInTheDocument();
+    expect(screen.getByText("Operadores")).toBeInTheDocument();
+    expect(screen.getByText("Incidentes abiertos")).toBeInTheDocument();
+  });
+
+  it("shows a translated message when dashboard metrics are unavailable", async () => {
+    requireAdminAccess.mockResolvedValue({
+      session: { accessToken: "admin-token", refreshToken: null },
+      access: {
+        state: "ready",
+        venueSource: "bootstrap",
+        venueSummary: {
+          id: "venue-1",
+          name: "ID Night",
+          slug: "id-night",
+          address: "Main St 123",
+          city: "Buenos Aires",
+          active: true,
+        },
+        profile: {
+          id: "admin-1",
+          email: "admin@idnight.app",
+          firstName: "Ada",
+          lastName: "Lovelace",
+          fullName: "Ada Lovelace",
+          role: "Owner",
+          active: true,
+          venueId: "venue-1",
+          venueName: "ID Night",
+          organizationId: "org-1",
+          organizationName: "My Org",
+          membershipRole: "Owner",
+          membershipActive: true,
+        },
+      },
+    });
+    fetchMyVenue.mockRejectedValue(new MockBackendApiError("Venue lookup should not run", 503));
+    fetchDashboardMetrics.mockRejectedValue(new MockBackendApiError("backend down", 503));
+
+    render(await resolveAsyncNode(await VenuePage()));
+
+    expect(
+      screen.getByText("Métricas no disponibles — el backend todavía no está conectado."),
+    ).toBeInTheDocument();
   });
 
   it("keeps the venue recovery create-state for existing organizations without a venue", async () => {

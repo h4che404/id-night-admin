@@ -66,44 +66,44 @@ async function DashboardMetrics({ token }: { token: string }) {
   try {
     metrics = await fetchDashboardMetrics(token);
   } catch {
-    metricsError = "Metrics unavailable — backend not connected yet.";
+    metricsError = "Métricas no disponibles — el backend todavía no está conectado.";
   }
 
   return (
     <>
       <div className="grid gap-4 grid-cols-2 md:grid-cols-3">
         <MetricCard
-          label="Total events"
+          label="Eventos totales"
           value={metrics.totalEvents}
           tone="neutral"
           icon={<CalendarDays className="h-4 w-4" />}
         />
         <MetricCard
-          label="Active now"
+          label="Activos ahora"
           value={metrics.activeEvents}
           tone="info"
           icon={<Activity className="h-4 w-4" />}
         />
         <MetricCard
-          label="Admissions today"
+          label="Ingresos hoy"
           value={metrics.admissionsToday}
           tone="neutral"
           icon={<Users className="h-4 w-4" />}
         />
         <MetricCard
-          label="Active devices"
+          label="Dispositivos activos"
           value={metrics.activeDevices}
           tone="info"
           icon={<Smartphone className="h-4 w-4" />}
         />
         <MetricCard
-          label="Operators"
+          label="Operadores"
           value={metrics.totalOperators}
           tone="neutral"
           icon={<Shield className="h-4 w-4" />}
         />
         <MetricCard
-          label="Open incidents"
+          label="Incidentes abiertos"
           value={metrics.openIncidents}
           tone="warning"
           icon={<ShieldAlert className="h-4 w-4" />}

@@ -14,23 +14,7 @@ import {
 } from "@/components/ui-kit";
 import { requireReadyPageAccess } from "@/lib/auth-session";
 import { fetchVenueIncidents } from "@/lib/idnight-backend";
-
-function formatDateTime(value: string | null) {
-  if (!value) {
-    return "Sin fecha";
-  }
-
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return "Fecha inválida";
-  }
-
-  return new Intl.DateTimeFormat("es-AR", {
-    dateStyle: "short",
-    timeStyle: "short",
-    timeZone: "UTC",
-  }).format(date);
-}
+import { formatDateTimeAr } from "@/lib/datetime";
 
 async function IncidentsData({
   token,
@@ -82,7 +66,7 @@ async function IncidentsData({
           rows={incidents.map((incident) => (
             <tr key={incident.id} className="align-top">
               <td className="px-5 text-sm text-foreground/80">
-                {formatDateTime(incident.createdAt)}
+                {formatDateTimeAr(incident.createdAt)}
               </td>
               <td className="px-5">
                 <p className="text-sm font-medium text-foreground">{incident.title}</p>

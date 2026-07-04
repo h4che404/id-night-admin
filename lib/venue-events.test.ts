@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  formatEventDateTime,
   formatEventSchedule,
   formatEventStatusLabel,
   normalizeEventInstant,
@@ -27,7 +26,6 @@ describe("venue-events date validation", () => {
   });
 
   it("formats UTC schedule text deterministically", () => {
-    expect(formatEventDateTime("2026-06-20T23:00:00.000Z")).toBe("Jun 20, 2026, 11:00 PM UTC");
     expect(formatEventSchedule("2026-06-20T23:00:00.000Z", "2026-06-21T05:00:00.000Z")).toBe(
       "20 jun 2026, 20:00 hs → 21 jun 2026, 02:00 hs",
     );

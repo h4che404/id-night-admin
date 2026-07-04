@@ -48,8 +48,8 @@ export default async function AuthenticatedLayout({ children }: { children: Reac
 
     return (
       <AppShell
-        userName={access.onboarding.organizationName ?? "Authenticated admin"}
-        userEmail="Session available"
+        userName={access.onboarding.organizationName ?? "Administrador autenticado"}
+        userEmail="Sesión disponible"
         organizationName={access.onboarding.organizationName ?? undefined}
         membershipRole={access.onboarding.operatorRole}
       >
@@ -67,32 +67,32 @@ export default async function AuthenticatedLayout({ children }: { children: Reac
 
     return (
       <AppShell
-        userName={access.identity?.fullName ?? "Authenticated admin"}
-        userEmail={access.identity?.email ?? "Session available"}
+        userName={access.identity?.fullName ?? "Administrador autenticado"}
+        userEmail={access.identity?.email ?? "Sesión disponible"}
       >
         <div className="space-y-4">
           <div className="rounded-3xl border border-amber-400/20 bg-amber-400/10 p-6 text-slate-100">
-            <p className="text-sm font-semibold uppercase tracking-[0.18em] text-amber-200">Degraded access</p>
+            <p className="text-sm font-semibold uppercase tracking-[0.18em] text-amber-200">Acceso degradado</p>
             {isOperatorInactive ? (
               <>
-                <h1 className="mt-3 text-2xl font-semibold text-slate-50">Your operator account was deactivated</h1>
+                <h1 className="mt-3 text-2xl font-semibold text-slate-50">Tu cuenta de operador fue desactivada</h1>
                 <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-300">
-                  Your access profile was deactivated. If you are the venue owner, you can reactivate it below.
+                  Tu perfil de acceso fue desactivado. Si sos el dueño del boliche, podés reactivarlo abajo.
                 </p>
                 <form action={reactivateOperatorAction} className="mt-5">
                   <button
                     type="submit"
                     className="rounded-xl bg-amber-400 px-5 py-2.5 text-sm font-semibold text-slate-900 hover:bg-amber-300 transition"
                   >
-                    Reactivate access
+                    Reactivar acceso
                   </button>
                 </form>
               </>
             ) : (
               <>
-                <h1 className="mt-3 text-2xl font-semibold text-slate-50">Authenticated, but admin context is temporarily unavailable</h1>
+                <h1 className="mt-3 text-2xl font-semibold text-slate-50">Autenticado, pero el contexto de administración no está disponible por el momento</h1>
                 <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-300">
-                  We kept your session active so you can sign out safely, but venue data is unavailable right now. Please retry in a moment.
+                  Mantuvimos tu sesión activa para que puedas cerrarla de forma segura, pero los datos del boliche no están disponibles en este momento. Reintentá en unos instantes.
                 </p>
               </>
             )}

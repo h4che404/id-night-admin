@@ -85,4 +85,20 @@ describe("EventSummaryPage", () => {
     expect(screen.getByText("Estadísticas de hoy")).toBeInTheDocument();
     expect(screen.queryByText(/Estadísticas de hoy \(UTC\)/)).not.toBeInTheDocument();
   });
+
+  it("translates the guest-list requirement badge instead of leaking the English term", async () => {
+    await renderPage();
+
+    expect(screen.getByText("Lista de invitados opcional")).toBeInTheDocument();
+    expect(screen.queryByText(/guest list/i)).not.toBeInTheDocument();
+  });
+
+  it("shows the required-guest-list label when the event requires it", async () => {
+    findVenueEventById.mockResolvedValue({ ...mockEvent, requireGuestList: true });
+
+    await renderPage();
+
+    expect(screen.getByText("Requiere lista de invitados")).toBeInTheDocument();
+    expect(screen.queryByText(/guest list/i)).not.toBeInTheDocument();
+  });
 });

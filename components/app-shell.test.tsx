@@ -33,7 +33,7 @@ describe("AppShell", () => {
       </AppShell>,
     );
 
-    const eventsLink = screen.getByRole("link", { name: /events/i });
+    const eventsLink = screen.getByRole("link", { name: /eventos/i });
 
     expect(eventsLink).toHaveAttribute("href", "/venue/events");
     expect(eventsLink).toHaveAttribute("data-prefetch", "false");

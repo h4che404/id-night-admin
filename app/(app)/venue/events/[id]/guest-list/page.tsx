@@ -22,7 +22,7 @@ export default async function EventGuestListPage({
     initialEntries = await fetchEventGuestList(session.accessToken, eventId);
   } catch (error) {
     initialEntriesError =
-      error instanceof Error ? error.message : "Could not load the guest list.";
+      error instanceof Error ? error.message : "No se pudo cargar la lista de invitados.";
   }
 
   return (
