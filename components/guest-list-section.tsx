@@ -11,7 +11,12 @@ import {
   PrimaryButton,
   Surface,
 } from "@/components/ui-kit";
-import { guestListStatusTone, maskDni } from "@/lib/guest-list";
+import {
+  guestListStatusLabel,
+  guestListStatusTone,
+  isActiveGuestListStatus,
+  maskDni,
+} from "@/lib/guest-list";
 import type { BackendGuestListEntry, BackendGuestListImportResult } from "@/lib/idnight-backend";
 
 type Props = {
@@ -198,14 +203,17 @@ export function GuestListSection({
                     {entry.category ?? <span className="text-slate-600">—</span>}
                   </td>
                   <td className="px-5 py-4">
-                    <Badge label={entry.status} tone={guestListStatusTone(entry.status)} />
+                    <Badge
+                      label={guestListStatusLabel(entry.status)}
+                      tone={guestListStatusTone(entry.status)}
+                    />
                   </td>
                   <td className="px-5 py-4 text-sm text-slate-300">
                     {new Date(entry.importedAt).toLocaleDateString()}
                   </td>
                   <td className="px-5 py-4">
                     <div className="flex flex-wrap items-center gap-2">
-                      {entry.status === "active" && (
+                      {isActiveGuestListStatus(entry.status) && (
                         <button
                           onClick={() => handleCancel(entry.id)}
                           disabled={cancellingId === entry.id}
