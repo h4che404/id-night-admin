@@ -44,9 +44,11 @@ describe("GuestListSection", () => {
       <GuestListSection
         eventId="event-1"
         initialEntries={[
-          createEntry({ id: "e1", status: "active" }),
-          createEntry({ id: "e2", status: "used" }),
-          createEntry({ id: "e3", status: "cancelled" }),
+          // Lowercase on purpose: guards the case-insensitive normalization
+          // against a future backend JSON casing-policy change.
+          createEntry({ id: "e1", status: "active" as BackendGuestListEntry["status"] }),
+          createEntry({ id: "e2", status: "used" as BackendGuestListEntry["status"] }),
+          createEntry({ id: "e3", status: "cancelled" as BackendGuestListEntry["status"] }),
         ]}
         initialEntriesError={null}
       />,
