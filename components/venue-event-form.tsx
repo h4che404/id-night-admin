@@ -8,10 +8,10 @@ import { FormField, PrimaryButton, Surface } from "@/components/ui-kit";
 import type { BackendVenueEvent } from "@/lib/idnight-backend";
 import { utcDateTimeInputToIso } from "@/lib/venue-events";
 
-const GENERIC_CREATE_ERROR = "Could not create the event. Please try again.";
-const GENERIC_EDIT_ERROR = "Could not update the event. Please try again.";
+const GENERIC_CREATE_ERROR = "No se pudo crear el evento. Intentá de nuevo.";
+const GENERIC_EDIT_ERROR = "No se pudo actualizar el evento. Intentá de nuevo.";
 const UTC_SCHEDULE_HELP_TEXT =
-  "This slice stores the exact date and time you enter as UTC. Use UTC values for both schedule fields.";
+  "Esta etapa guarda la fecha y hora exactas que ingreses en UTC. Usá valores UTC en ambos campos de horario.";
 
 function isoToUtcDateTimeInput(value: string): string {
   const date = new Date(value);
@@ -61,19 +61,19 @@ export function VenueEventForm({ event, onClose }: VenueEventFormProps = {}) {
     const parsedMaxAge = maxAge.trim() ? Number(maxAge) : undefined;
 
     if (parsedMinAge !== undefined && (!Number.isInteger(parsedMinAge) || parsedMinAge < 0 || parsedMinAge > 120)) {
-      setError("Minimum age must be between 0 and 120.");
+      setError("La edad mínima debe estar entre 0 y 120.");
       setLoading(false);
       return;
     }
 
     if (parsedMaxAge !== undefined && (!Number.isInteger(parsedMaxAge) || parsedMaxAge < 0 || parsedMaxAge > 120)) {
-      setError("Maximum age must be between 0 and 120.");
+      setError("La edad máxima debe estar entre 0 y 120.");
       setLoading(false);
       return;
     }
 
     if (parsedMinAge !== undefined && parsedMaxAge !== undefined && parsedMinAge > parsedMaxAge) {
-      setError("Minimum age must not exceed maximum age.");
+      setError("La edad mínima no puede superar la edad máxima.");
       setLoading(false);
       return;
     }
@@ -82,7 +82,7 @@ export function VenueEventForm({ event, onClose }: VenueEventFormProps = {}) {
     const cleanAllowedUntil = allowedUntil.trim() || undefined;
 
     if ((cleanAllowedFrom === undefined) !== (cleanAllowedUntil === undefined)) {
-      setError("Entry window start and end must both be set or both left empty.");
+      setError("El inicio y el fin de la ventana de ingreso deben completarse juntos o dejarse vacíos.");
       setLoading(false);
       return;
     }
@@ -91,7 +91,7 @@ export function VenueEventForm({ event, onClose }: VenueEventFormProps = {}) {
     const normalizedEndsAt = utcDateTimeInputToIso(endsAt);
 
     if (!normalizedStartsAt || !normalizedEndsAt) {
-      setError("Start and end must be valid date and time values.");
+      setError("El inicio y el fin deben ser fechas y horas válidas.");
       setLoading(false);
       return;
     }
@@ -179,7 +179,7 @@ export function VenueEventForm({ event, onClose }: VenueEventFormProps = {}) {
         className="inline-flex items-center gap-2 rounded-2xl border border-sky-300/30 bg-sky-400/12 px-4 py-3 text-sm font-medium text-sky-50 transition hover:bg-sky-400/18"
       >
         <Plus className="h-4 w-4" />
-        Create event
+        Crear evento
       </button>
     );
   }
@@ -189,47 +189,47 @@ export function VenueEventForm({ event, onClose }: VenueEventFormProps = {}) {
       <div className="mb-5 flex items-center justify-between gap-4">
         <div>
           <h3 className="text-lg font-semibold text-white">
-            {isEditMode ? "Edit event" : "New event"}
+            {isEditMode ? "Editar evento" : "Nuevo evento"}
           </h3>
           <p className="mt-1 text-sm text-slate-400">
-            Capture the minimum scheduling data needed for a credible MVP event flow.
+            Cargá los datos mínimos de programación necesarios para el evento.
           </p>
         </div>
         <button
           onClick={() => (isControlledByParent ? onClose?.() : setOpen(false))}
           className="rounded-xl border border-slate-800 bg-slate-950/30 px-3 py-2 text-sm text-slate-400 transition hover:text-slate-200"
         >
-          Cancel
+          Cancelar
         </button>
       </div>
 
       <form className="space-y-5" onSubmit={handleSubmit}>
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <FormField
-            label="Event name"
+            label="Nombre del evento"
             icon={<CalendarDays className="h-4 w-4" />}
             value={name}
             onChange={setName}
             placeholder="Friday Opening"
           />
           <FormField
-            label="Max capacity"
+            label="Capacidad máxima"
             icon={<Plus className="h-4 w-4" />}
             value={maxCapacity}
             onChange={setMaxCapacity}
-            placeholder="No limit"
+            placeholder="Sin límite"
             type="number"
             required={false}
           />
           <FormField
-            label="Starts at (UTC)"
+            label="Inicio (UTC)"
             icon={<Clock3 className="h-4 w-4" />}
             value={startsAt}
             onChange={setStartsAt}
             type="datetime-local"
           />
           <FormField
-            label="Ends at (UTC)"
+            label="Fin (UTC)"
             icon={<Clock3 className="h-4 w-4" />}
             value={endsAt}
             onChange={setEndsAt}
@@ -240,42 +240,42 @@ export function VenueEventForm({ event, onClose }: VenueEventFormProps = {}) {
         <div className="space-y-3">
           <div className="flex items-center gap-2">
             <Shield className="h-4 w-4 text-slate-400" />
-            <h4 className="text-sm font-medium text-slate-300">Access policy</h4>
+            <h4 className="text-sm font-medium text-slate-300">Política de acceso</h4>
           </div>
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <FormField
-              label="Minimum age"
+              label="Edad mínima"
               icon={<Shield className="h-4 w-4" />}
               value={minAge}
               onChange={setMinAge}
-              placeholder="No minimum"
+              placeholder="Sin mínimo"
               type="number"
               required={false}
             />
             <FormField
-              label="Maximum age"
+              label="Edad máxima"
               icon={<Shield className="h-4 w-4" />}
               value={maxAge}
               onChange={setMaxAge}
-              placeholder="No maximum"
+              placeholder="Sin máximo"
               type="number"
               required={false}
             />
             <FormField
-              label="Entry window from"
+              label="Ventana de ingreso desde"
               icon={<Clock3 className="h-4 w-4" />}
               value={allowedFrom}
               onChange={setAllowedFrom}
-              placeholder="No restriction"
+              placeholder="Sin restricción"
               type="time"
               required={false}
             />
             <FormField
-              label="Entry window until"
+              label="Ventana de ingreso hasta"
               icon={<Clock3 className="h-4 w-4" />}
               value={allowedUntil}
               onChange={setAllowedUntil}
-              placeholder="No restriction"
+              placeholder="Sin restricción"
               type="time"
               required={false}
             />
@@ -290,7 +290,7 @@ export function VenueEventForm({ event, onClose }: VenueEventFormProps = {}) {
               checked={allowManualDniCheck}
               onChange={(e) => setAllowManualDniCheck(e.target.checked)}
             />
-            <span className="text-sm text-slate-200">Allow manual DNI check</span>
+            <span className="text-sm text-slate-200">Permitir verificación manual de DNI</span>
           </label>
           <label className="flex cursor-pointer items-center gap-3 rounded-2xl border border-slate-800 bg-slate-950/30 px-4 py-3 transition hover:border-slate-700">
             <input
@@ -299,7 +299,7 @@ export function VenueEventForm({ event, onClose }: VenueEventFormProps = {}) {
               checked={requireGuestList}
               onChange={(e) => setRequireGuestList(e.target.checked)}
             />
-            <span className="text-sm text-slate-200">Require guest list</span>
+            <span className="text-sm text-slate-200">Requiere lista de invitados</span>
           </label>
         </div>
 
@@ -313,7 +313,7 @@ export function VenueEventForm({ event, onClose }: VenueEventFormProps = {}) {
 
         {success ? (
           <div className="rounded-2xl border border-emerald-400/20 bg-emerald-400/10 px-4 py-3 text-sm text-emerald-100">
-            {isEditMode ? "Event updated successfully." : "Event created successfully."}
+            {isEditMode ? "Evento actualizado correctamente." : "Evento creado correctamente."}
           </div>
         ) : null}
 
@@ -321,11 +321,11 @@ export function VenueEventForm({ event, onClose }: VenueEventFormProps = {}) {
           <PrimaryButton loading={loading}>
             {loading
               ? isEditMode
-                ? "Saving..."
-                : "Creating..."
+                ? "Guardando..."
+                : "Creando..."
               : isEditMode
-                ? "Save changes"
-                : "Create event"}
+                ? "Guardar cambios"
+                : "Crear evento"}
           </PrimaryButton>
         </div>
       </form>
