@@ -20,7 +20,7 @@ async function AccessSessionsData({
     result = await fetchAccessSessions(token, { page });
   } catch (error) {
     initialError =
-      error instanceof Error ? error.message : "Could not load access sessions.";
+      error instanceof Error ? error.message : "No se pudieron cargar los ingresos.";
   }
 
   return (
@@ -65,9 +65,9 @@ export default async function AccessSessionsPage({
   return (
     <div className="space-y-6">
       <SectionHeader
-        eyebrow="Entries"
-        title="Access history"
-        description={`Entry records for ${venue.name}.`}
+        eyebrow="Ingresos"
+        title="Historial de accesos"
+        description={`Registros de ingreso para ${venue.name}.`}
       />
       <Suspense fallback={<LoadingSkeleton />}>
         <AccessSessionsData token={session.accessToken} page={p} events={events} />
