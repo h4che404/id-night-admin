@@ -1,3 +1,5 @@
+import { formatDateTimeAr } from "@/lib/datetime";
+
 const UTC_INPUT_DATETIME_PATTERN = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/;
 const ISO_DATETIME_WITH_TIMEZONE_PATTERN =
   /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2})(?:\.(\d{1,3}))?)?(Z|([+-])(\d{2}):(\d{2}))$/;
@@ -145,8 +147,8 @@ export function formatEventDateTime(value: string) {
 }
 
 export function formatEventSchedule(startsAt: string, endsAt: string | null) {
-  if (!endsAt) return formatEventDateTime(startsAt);
-  return `${formatEventDateTime(startsAt)} → ${formatEventDateTime(endsAt)}`;
+  if (!endsAt) return formatDateTimeAr(startsAt);
+  return `${formatDateTimeAr(startsAt)} → ${formatDateTimeAr(endsAt)}`;
 }
 
 export function normalizeEventStatus(status: string) {
@@ -156,11 +158,11 @@ export function normalizeEventStatus(status: string) {
 export function formatEventStatusLabel(status: string) {
   const normalizedStatus = normalizeEventStatus(status);
 
-  if (normalizedStatus === "DRAFT") return "Draft";
-  if (normalizedStatus === "UPCOMING") return "Upcoming";
-  if (normalizedStatus === "ACTIVE") return "Active";
-  if (normalizedStatus === "CANCELLED") return "Cancelled";
-  if (normalizedStatus === "FINISHED") return "Finished";
+  if (normalizedStatus === "DRAFT") return "Borrador";
+  if (normalizedStatus === "UPCOMING") return "Próximo";
+  if (normalizedStatus === "ACTIVE") return "Activo";
+  if (normalizedStatus === "CANCELLED") return "Cancelado";
+  if (normalizedStatus === "FINISHED") return "Finalizado";
 
   return normalizedStatus
     .toLowerCase()

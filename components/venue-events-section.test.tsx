@@ -52,9 +52,9 @@ describe("VenueEventsSection", () => {
       />,
     );
 
-    expect(screen.getByText("Draft")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Publish" })).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Activate" })).not.toBeInTheDocument();
+    expect(screen.getByText("Borrador")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Publicar" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Activar" })).not.toBeInTheDocument();
   });
 
   it("shows Activate for mixed-case upcoming events", () => {
@@ -80,8 +80,8 @@ describe("VenueEventsSection", () => {
       />,
     );
 
-    expect(screen.getByText("Upcoming")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Activate" })).toBeInTheDocument();
+    expect(screen.getByText("Próximo")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Activar" })).toBeInTheDocument();
   });
 
   it("shows the backend publish error message and avoids refresh on failure", async () => {
@@ -113,7 +113,7 @@ describe("VenueEventsSection", () => {
       />,
     );
 
-    await user.click(screen.getByRole("button", { name: "Publish" }));
+    await user.click(screen.getByRole("button", { name: "Publicar" }));
 
     await waitFor(() => {
       expect(fetchMock).toHaveBeenCalledWith("/api/venue/events/event-3/publish", { method: "POST" });

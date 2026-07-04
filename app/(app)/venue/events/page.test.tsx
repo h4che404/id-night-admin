@@ -145,7 +145,7 @@ describe("VenueEventsPage", () => {
 
     await renderVenueEventsPage();
 
-    expect(screen.getByText("No events yet")).toBeInTheDocument();
+    expect(screen.getByText("Sin eventos todavía")).toBeInTheDocument();
     expect(fetchMyVenue).not.toHaveBeenCalled();
   });
 
@@ -155,8 +155,8 @@ describe("VenueEventsPage", () => {
 
     await renderVenueEventsPage();
 
-    expect(screen.getByText("No events yet")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /create event/i })).toBeInTheDocument();
+    expect(screen.getByText("Sin eventos todavía")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /crear evento/i })).toBeInTheDocument();
     expect(fetchMyVenue).not.toHaveBeenCalled();
   });
 
@@ -166,7 +166,7 @@ describe("VenueEventsPage", () => {
 
     await renderVenueEventsPage();
 
-    expect(screen.getByText("Could not load events")).toBeInTheDocument();
+    expect(screen.getByText("No se pudieron cargar los eventos")).toBeInTheDocument();
     expect(screen.getByText("Could not load venue events. Please try again.")).toBeInTheDocument();
     expect(fetchMyVenue).not.toHaveBeenCalled();
   });
@@ -177,12 +177,12 @@ describe("VenueEventsPage", () => {
 
     await renderVenueEventsPage();
 
-    expect(screen.getByText("Could not load events")).toBeInTheDocument();
+    expect(screen.getByText("No se pudieron cargar los eventos")).toBeInTheDocument();
     expect(screen.getByText("This venue cannot access that event.")).toBeInTheDocument();
     expect(fetchMyVenue).not.toHaveBeenCalled();
   });
 
-  it("renders the event list with deterministic UTC schedule text", async () => {
+  it("renders the event list with deterministic AR schedule text", async () => {
     fetchMyVenue.mockRejectedValue(new MockBackendApiError("Venue lookup should not run", 503));
     fetchVenueEvents.mockResolvedValue(
       createVenueEventsResult([
@@ -201,9 +201,9 @@ describe("VenueEventsPage", () => {
 
     expect(screen.getByText("Friday Opening")).toBeInTheDocument();
     expect(
-      screen.getByText("Jun 20, 2026, 11:00 PM UTC → Jun 21, 2026, 5:00 AM UTC"),
+      screen.getByText("20 jun 2026, 20:00 hs → 21 jun 2026, 02:00 hs"),
     ).toBeInTheDocument();
-    expect(screen.getByText("500 people")).toBeInTheDocument();
+    expect(screen.getByText("500 personas")).toBeInTheDocument();
     expect(fetchMyVenue).not.toHaveBeenCalled();
   });
 });

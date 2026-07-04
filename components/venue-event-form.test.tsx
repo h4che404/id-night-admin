@@ -30,22 +30,22 @@ describe("VenueEventForm", () => {
 
     render(<VenueEventForm />);
 
-    await user.click(screen.getByRole("button", { name: /create event/i }));
+    await user.click(screen.getByRole("button", { name: /crear evento/i }));
 
-    fireEvent.change(screen.getByLabelText(/event name/i), {
+    fireEvent.change(screen.getByLabelText(/nombre del evento/i), {
       target: { value: "Friday Opening" },
     });
-    fireEvent.change(screen.getByLabelText(/starts at \(utc\)/i), {
+    fireEvent.change(screen.getByLabelText(/inicio \(utc\)/i), {
       target: { value: "2026-06-20T23:00" },
     });
-    fireEvent.change(screen.getByLabelText(/ends at \(utc\)/i), {
+    fireEvent.change(screen.getByLabelText(/fin \(utc\)/i), {
       target: { value: "2026-06-21T05:00" },
     });
-    fireEvent.change(screen.getByLabelText(/max capacity/i), {
+    fireEvent.change(screen.getByLabelText(/capacidad máxima/i), {
       target: { value: "500" },
     });
 
-    await user.click(screen.getByRole("button", { name: /^create event$/i }));
+    await user.click(screen.getByRole("button", { name: /^crear evento$/i }));
 
     await waitFor(() => {
       expect(fetchMock).toHaveBeenCalledTimes(1);
@@ -67,8 +67,8 @@ describe("VenueEventForm", () => {
       }),
     );
     expect(refreshMock).toHaveBeenCalledTimes(1);
-    expect(await screen.findByText("Event created successfully.")).toBeInTheDocument();
-    expect(screen.getByText(/stores the exact date and time you enter as utc/i)).toBeInTheDocument();
+    expect(await screen.findByText("Evento creado correctamente.")).toBeInTheDocument();
+    expect(screen.getByText(/guarda la fecha y hora exactas que ingreses en utc/i)).toBeInTheDocument();
   });
 
   it("shows the backend error message", async () => {
@@ -80,19 +80,19 @@ describe("VenueEventForm", () => {
 
     render(<VenueEventForm />);
 
-    await user.click(screen.getByRole("button", { name: /create event/i }));
+    await user.click(screen.getByRole("button", { name: /crear evento/i }));
 
-    fireEvent.change(screen.getByLabelText(/event name/i), {
+    fireEvent.change(screen.getByLabelText(/nombre del evento/i), {
       target: { value: "Friday Opening" },
     });
-    fireEvent.change(screen.getByLabelText(/starts at \(utc\)/i), {
+    fireEvent.change(screen.getByLabelText(/inicio \(utc\)/i), {
       target: { value: "2026-06-20T23:00" },
     });
-    fireEvent.change(screen.getByLabelText(/ends at \(utc\)/i), {
+    fireEvent.change(screen.getByLabelText(/fin \(utc\)/i), {
       target: { value: "2026-06-21T05:00" },
     });
 
-    await user.click(screen.getByRole("button", { name: /^create event$/i }));
+    await user.click(screen.getByRole("button", { name: /^crear evento$/i }));
 
     expect(await screen.findByText("Venue events are not available yet.")).toBeInTheDocument();
     expect(refreshMock).not.toHaveBeenCalled();
@@ -103,23 +103,23 @@ describe("VenueEventForm", () => {
 
     render(<VenueEventForm />);
 
-    await user.click(screen.getByRole("button", { name: /create event/i }));
+    await user.click(screen.getByRole("button", { name: /crear evento/i }));
 
-    fireEvent.change(screen.getByLabelText(/event name/i), {
+    fireEvent.change(screen.getByLabelText(/nombre del evento/i), {
       target: { value: "Friday Opening" },
     });
-    const startsAtInput = screen.getByLabelText(/starts at \(utc\)/i);
+    const startsAtInput = screen.getByLabelText(/inicio \(utc\)/i);
 
     fireEvent.change(startsAtInput, {
       target: { value: "2026-02-30T23:00" },
     });
-    fireEvent.change(screen.getByLabelText(/ends at \(utc\)/i), {
+    fireEvent.change(screen.getByLabelText(/fin \(utc\)/i), {
       target: { value: "2026-03-01T05:00" },
     });
 
     expect(startsAtInput).toHaveValue("");
 
-    const submitButton = screen.getByRole("button", { name: /^create event$/i });
+    const submitButton = screen.getByRole("button", { name: /^crear evento$/i });
 
     await user.click(submitButton);
 
@@ -131,7 +131,7 @@ describe("VenueEventForm", () => {
     expect(fetchMock).not.toHaveBeenCalled();
     expect(refreshMock).not.toHaveBeenCalled();
     expect(
-      await screen.findByText("Start and end must be valid date and time values."),
+      await screen.findByText("El inicio y el fin deben ser fechas y horas válidas."),
     ).toBeInTheDocument();
   });
 
@@ -161,10 +161,10 @@ describe("VenueEventForm", () => {
       />,
     );
 
-    expect(screen.getByLabelText(/starts at \(utc\)/i)).toHaveValue("2026-06-20T23:00");
-    expect(screen.getByLabelText(/ends at \(utc\)/i)).toHaveValue("2026-06-21T05:00");
+    expect(screen.getByLabelText(/inicio \(utc\)/i)).toHaveValue("2026-06-20T23:00");
+    expect(screen.getByLabelText(/fin \(utc\)/i)).toHaveValue("2026-06-21T05:00");
 
-    await user.click(screen.getByRole("button", { name: /save changes/i }));
+    await user.click(screen.getByRole("button", { name: /guardar cambios/i }));
 
     await waitFor(() => {
       expect(fetchMock).toHaveBeenCalledTimes(1);
@@ -216,9 +216,9 @@ describe("VenueEventForm", () => {
       />,
     );
 
-    await user.clear(screen.getByLabelText(/max capacity/i));
-    await user.click(screen.getByLabelText(/require guest list/i));
-    await user.click(screen.getByRole("button", { name: /save changes/i }));
+    await user.clear(screen.getByLabelText(/capacidad máxima/i));
+    await user.click(screen.getByLabelText(/requiere lista de invitados/i));
+    await user.click(screen.getByRole("button", { name: /guardar cambios/i }));
 
     await waitFor(() => {
       expect(fetchMock).toHaveBeenCalledTimes(1);
@@ -250,21 +250,21 @@ describe("VenueEventForm", () => {
 
     render(<VenueEventForm />);
 
-    await user.click(screen.getByRole("button", { name: /create event/i }));
+    await user.click(screen.getByRole("button", { name: /crear evento/i }));
 
-    fireEvent.change(screen.getByLabelText(/event name/i), {
+    fireEvent.change(screen.getByLabelText(/nombre del evento/i), {
       target: { value: "Friday Opening" },
     });
-    fireEvent.change(screen.getByLabelText(/starts at \(utc\)/i), {
+    fireEvent.change(screen.getByLabelText(/inicio \(utc\)/i), {
       target: { value: "2026-06-20T23:00" },
     });
-    fireEvent.change(screen.getByLabelText(/ends at \(utc\)/i), {
+    fireEvent.change(screen.getByLabelText(/fin \(utc\)/i), {
       target: { value: "2026-06-21T05:00" },
     });
 
-    await user.click(screen.getByRole("button", { name: /^create event$/i }));
+    await user.click(screen.getByRole("button", { name: /^crear evento$/i }));
 
-    expect(await screen.findByText("Could not create the event. Please try again.")).toBeInTheDocument();
+    expect(await screen.findByText("No se pudo crear el evento. Intentá de nuevo.")).toBeInTheDocument();
     expect(refreshMock).not.toHaveBeenCalled();
   });
 
@@ -272,11 +272,11 @@ describe("VenueEventForm", () => {
     const user = userEvent.setup();
     render(<VenueEventForm />);
 
-    await user.click(screen.getByRole("button", { name: /create event/i }));
+    await user.click(screen.getByRole("button", { name: /crear evento/i }));
 
-    expect(screen.getByLabelText(/maximum age/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/entry window from/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/entry window until/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/edad máxima/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/ventana de ingreso desde/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/ventana de ingreso hasta/i)).toBeInTheDocument();
   });
 
   it("includes access policy fields in the submit body when filled", async () => {
@@ -285,16 +285,16 @@ describe("VenueEventForm", () => {
 
     render(<VenueEventForm />);
 
-    await user.click(screen.getByRole("button", { name: /create event/i }));
+    await user.click(screen.getByRole("button", { name: /crear evento/i }));
 
-    fireEvent.change(screen.getByLabelText(/event name/i), { target: { value: "Friday Opening" } });
-    fireEvent.change(screen.getByLabelText(/starts at \(utc\)/i), { target: { value: "2026-06-20T23:00" } });
-    fireEvent.change(screen.getByLabelText(/ends at \(utc\)/i), { target: { value: "2026-06-21T05:00" } });
-    fireEvent.change(screen.getByLabelText(/maximum age/i), { target: { value: "25" } });
-    fireEvent.change(screen.getByLabelText(/entry window from/i), { target: { value: "22:00" } });
-    fireEvent.change(screen.getByLabelText(/entry window until/i), { target: { value: "02:00" } });
+    fireEvent.change(screen.getByLabelText(/nombre del evento/i), { target: { value: "Friday Opening" } });
+    fireEvent.change(screen.getByLabelText(/inicio \(utc\)/i), { target: { value: "2026-06-20T23:00" } });
+    fireEvent.change(screen.getByLabelText(/fin \(utc\)/i), { target: { value: "2026-06-21T05:00" } });
+    fireEvent.change(screen.getByLabelText(/edad máxima/i), { target: { value: "25" } });
+    fireEvent.change(screen.getByLabelText(/ventana de ingreso desde/i), { target: { value: "22:00" } });
+    fireEvent.change(screen.getByLabelText(/ventana de ingreso hasta/i), { target: { value: "02:00" } });
 
-    await user.click(screen.getByRole("button", { name: /^create event$/i }));
+    await user.click(screen.getByRole("button", { name: /^crear evento$/i }));
 
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
 
@@ -320,17 +320,17 @@ describe("VenueEventForm", () => {
     const user = userEvent.setup();
     render(<VenueEventForm />);
 
-    await user.click(screen.getByRole("button", { name: /create event/i }));
+    await user.click(screen.getByRole("button", { name: /crear evento/i }));
 
-    fireEvent.change(screen.getByLabelText(/event name/i), { target: { value: "Friday Opening" } });
-    fireEvent.change(screen.getByLabelText(/starts at \(utc\)/i), { target: { value: "2026-06-20T23:00" } });
-    fireEvent.change(screen.getByLabelText(/ends at \(utc\)/i), { target: { value: "2026-06-21T05:00" } });
-    fireEvent.change(screen.getByLabelText(/minimum age/i), { target: { value: "25" } });
-    fireEvent.change(screen.getByLabelText(/maximum age/i), { target: { value: "20" } });
+    fireEvent.change(screen.getByLabelText(/nombre del evento/i), { target: { value: "Friday Opening" } });
+    fireEvent.change(screen.getByLabelText(/inicio \(utc\)/i), { target: { value: "2026-06-20T23:00" } });
+    fireEvent.change(screen.getByLabelText(/fin \(utc\)/i), { target: { value: "2026-06-21T05:00" } });
+    fireEvent.change(screen.getByLabelText(/edad mínima/i), { target: { value: "25" } });
+    fireEvent.change(screen.getByLabelText(/edad máxima/i), { target: { value: "20" } });
 
-    await user.click(screen.getByRole("button", { name: /^create event$/i }));
+    await user.click(screen.getByRole("button", { name: /^crear evento$/i }));
 
-    expect(await screen.findByText(/minimum age must not exceed maximum age/i)).toBeInTheDocument();
+    expect(await screen.findByText(/la edad mínima no puede superar la edad máxima/i)).toBeInTheDocument();
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
@@ -338,16 +338,16 @@ describe("VenueEventForm", () => {
     const user = userEvent.setup();
     render(<VenueEventForm />);
 
-    await user.click(screen.getByRole("button", { name: /create event/i }));
+    await user.click(screen.getByRole("button", { name: /crear evento/i }));
 
-    fireEvent.change(screen.getByLabelText(/event name/i), { target: { value: "Friday Opening" } });
-    fireEvent.change(screen.getByLabelText(/starts at \(utc\)/i), { target: { value: "2026-06-20T23:00" } });
-    fireEvent.change(screen.getByLabelText(/ends at \(utc\)/i), { target: { value: "2026-06-21T05:00" } });
-    fireEvent.change(screen.getByLabelText(/entry window from/i), { target: { value: "22:00" } });
+    fireEvent.change(screen.getByLabelText(/nombre del evento/i), { target: { value: "Friday Opening" } });
+    fireEvent.change(screen.getByLabelText(/inicio \(utc\)/i), { target: { value: "2026-06-20T23:00" } });
+    fireEvent.change(screen.getByLabelText(/fin \(utc\)/i), { target: { value: "2026-06-21T05:00" } });
+    fireEvent.change(screen.getByLabelText(/ventana de ingreso desde/i), { target: { value: "22:00" } });
 
-    await user.click(screen.getByRole("button", { name: /^create event$/i }));
+    await user.click(screen.getByRole("button", { name: /^crear evento$/i }));
 
-    expect(await screen.findByText(/entry window start and end must both be set/i)).toBeInTheDocument();
+    expect(await screen.findByText(/el inicio y el fin de la ventana de ingreso deben completarse juntos/i)).toBeInTheDocument();
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
@@ -372,8 +372,8 @@ describe("VenueEventForm", () => {
       />,
     );
 
-    expect(screen.getByLabelText(/maximum age/i)).toHaveValue(30);
-    expect(screen.getByLabelText(/entry window from/i)).toHaveValue("22:00");
-    expect(screen.getByLabelText(/entry window until/i)).toHaveValue("02:00");
+    expect(screen.getByLabelText(/edad máxima/i)).toHaveValue(30);
+    expect(screen.getByLabelText(/ventana de ingreso desde/i)).toHaveValue("22:00");
+    expect(screen.getByLabelText(/ventana de ingreso hasta/i)).toHaveValue("02:00");
   });
 });
