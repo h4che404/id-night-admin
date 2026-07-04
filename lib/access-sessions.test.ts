@@ -1,44 +1,28 @@
 import { describe, expect, it } from "vitest";
-import {
-  accessSessionResultTone,
-  accessSessionMethodLabel,
-  formatAccessSessionDate,
-} from "@/lib/access-sessions";
+import { accessSessionStatusLabel, accessSessionStatusTone } from "@/lib/access-sessions";
 
 describe("access-sessions utils", () => {
-  it("returns success tone for ALLOWED", () => {
-    expect(accessSessionResultTone("ALLOWED")).toBe("success");
+  it("returns the Spanish label for the open status", () => {
+    expect(accessSessionStatusLabel("open")).toBe("Abierta");
   });
 
-  it("returns warning tone for ALLOWED_WITH_WARNING", () => {
-    expect(accessSessionResultTone("ALLOWED_WITH_WARNING")).toBe("warning");
+  it("returns the Spanish label for the closed status", () => {
+    expect(accessSessionStatusLabel("closed")).toBe("Cerrada");
   });
 
-  it("returns danger tone for REJECTED", () => {
-    expect(accessSessionResultTone("REJECTED")).toBe("danger");
+  it("returns a humanized fallback for an unknown status token", () => {
+    expect(accessSessionStatusLabel("some_new_status")).toBe("Some New Status");
   });
 
-  it("returns neutral tone for unknown result", () => {
-    expect(accessSessionResultTone("UNKNOWN")).toBe("neutral");
+  it("returns success tone for the open status", () => {
+    expect(accessSessionStatusTone("open")).toBe("success");
   });
 
-  it("returns human-readable label for known method", () => {
-    expect(accessSessionMethodLabel("IDNIGHT_VERIFIED")).toBe("ID Night verified");
-    expect(accessSessionMethodLabel("MANUAL_DNI_CHECK")).toBe("Manual DNI check");
-    expect(accessSessionMethodLabel("GUEST_LIST_DNI_CHECK")).toBe("Guest list DNI check");
+  it("returns neutral tone for the closed status", () => {
+    expect(accessSessionStatusTone("closed")).toBe("neutral");
   });
 
-  it("returns raw value for unknown method", () => {
-    expect(accessSessionMethodLabel("SOME_NEW_METHOD")).toBe("SOME_NEW_METHOD");
-  });
-
-  it("formats a valid ISO date", () => {
-    const result = formatAccessSessionDate("2026-06-21T02:00:00.000Z");
-    expect(typeof result).toBe("string");
-    expect(result).not.toBe("Invalid date");
-  });
-
-  it("returns Invalid date for bad input", () => {
-    expect(formatAccessSessionDate("not-a-date")).toBe("Invalid date");
+  it("returns neutral tone for an unknown status", () => {
+    expect(accessSessionStatusTone("some_new_status")).toBe("neutral");
   });
 });

@@ -3,22 +3,9 @@
 import { useState } from "react";
 
 import { Badge, DataShell, DataTable, EmptyState, Surface } from "@/components/ui-kit";
+import { accessSessionStatusLabel, accessSessionStatusTone } from "@/lib/access-sessions";
+import { formatDateTimeAr } from "@/lib/datetime";
 import type { BackendAccessSession } from "@/lib/idnight-backend";
-
-function formatDate(value: string): string {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "Invalid date";
-  return new Intl.DateTimeFormat("es-AR", {
-    dateStyle: "short",
-    timeStyle: "short",
-  }).format(date);
-}
-
-function statusTone(status: string) {
-  if (status === "open") return "success" as const;
-  if (status === "closed") return "neutral" as const;
-  return "neutral" as const;
-}
 
 type Props = {
   initialSessions: BackendAccessSession[];
@@ -43,12 +30,12 @@ export function AccessSessionsSection({ initialSessions, initialError, events }:
       const response = await fetch(`/api/venue/access-sessions?${params.toString()}`);
       const payload = await response.json();
       if (!response.ok) {
-        setError(payload.message ?? "Could not load access sessions.");
+        setError(payload.message ?? "No se pudieron cargar las sesiones de acceso.");
         return;
       }
       setSessions(payload as BackendAccessSession[]);
     } catch {
-      setError("Could not load access sessions.");
+      setError("No se pudieron cargar las sesiones de acceso.");
     } finally {
       setLoading(false);
     }
@@ -62,26 +49,26 @@ export function AccessSessionsSection({ initialSessions, initialError, events }:
       <Surface className="p-4 md:p-6">
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <div>
-            <label className="mb-1 block text-xs font-medium text-slate-400">Status</label>
+            <label className="mb-1 block text-xs font-medium text-slate-400">Estado</label>
             <select
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value)}
               className={selectClass}
             >
-              <option value="">All statuses</option>
-              <option value="open">Open</option>
-              <option value="closed">Closed</option>
+              <option value="">Todos los estados</option>
+              <option value="open">Abierta</option>
+              <option value="closed">Cerrada</option>
             </select>
           </div>
           {events.length > 0 && (
             <div>
-              <label className="mb-1 block text-xs font-medium text-slate-400">Event</label>
+              <label className="mb-1 block text-xs font-medium text-slate-400">Evento</label>
               <select
                 value={filterEventId}
                 onChange={(e) => setFilterEventId(e.target.value)}
                 className={selectClass}
               >
-                <option value="">All events</option>
+                <option value="">Todos los eventos</option>
                 {events.map((ev) => (
                   <option key={ev.id} value={ev.id}>
                     {ev.name}
@@ -97,7 +84,7 @@ export function AccessSessionsSection({ initialSessions, initialError, events }:
             disabled={loading}
             className="rounded-xl border border-sky-400/30 bg-sky-400/10 px-4 py-2 text-sm font-medium text-sky-200 transition hover:bg-sky-400/20 disabled:opacity-50"
           >
-            {loading ? "Loading..." : "Apply filters"}
+            {loading ? "Cargando..." : "Aplicar filtros"}
           </button>
           <button
             onClick={() => {
@@ -106,38 +93,38 @@ export function AccessSessionsSection({ initialSessions, initialError, events }:
             }}
             className="text-sm text-slate-400 transition hover:text-slate-200"
           >
-            Clear
+            Limpiar
           </button>
         </div>
       </Surface>
 
       {error ? (
-        <EmptyState title="Could not load access sessions" description={error} />
+        <EmptyState title="No se pudieron cargar las sesiones de acceso" description={error} />
       ) : (
         <DataShell
-          title="Access sessions"
-          subtitle={`${sessions.length} record${sessions.length === 1 ? "" : "s"}`}
+          title="Sesiones de acceso"
+          subtitle={`${sessions.length} ${sessions.length === 1 ? "registro" : "registros"}`}
         >
           {sessions.length === 0 ? (
             <div className="p-8 text-center">
-              <p className="text-sm font-medium text-slate-300">No sessions found</p>
+              <p className="text-sm font-medium text-slate-300">No se encontraron sesiones</p>
               <p className="mt-1 text-sm text-slate-500">
-                Try adjusting filters or check back later.
+                Probá ajustar los filtros o volvé a intentar más tarde.
               </p>
             </div>
           ) : (
             <DataTable
-              columns={["Opened", "Closed", "Status", "Event", "Operator"]}
+              columns={["Apertura", "Cierre", "Estado", "Evento", "Operador"]}
               rows={sessions.map((s) => (
                 <tr key={s.id} className="align-top hover:bg-slate-950/20">
                   <td className="px-5 py-4 text-sm text-slate-300">
-                    {formatDate(s.openedAt)}
+                    {formatDateTimeAr(s.openedAt)}
                   </td>
                   <td className="px-5 py-4 text-sm text-slate-300">
-                    {s.closedAt ? formatDate(s.closedAt) : <span className="text-slate-600">—</span>}
+                    {s.closedAt ? formatDateTimeAr(s.closedAt) : <span className="text-slate-600">—</span>}
                   </td>
                   <td className="px-5 py-4">
-                    <Badge label={s.status} tone={statusTone(s.status)} />
+                    <Badge label={accessSessionStatusLabel(s.status)} tone={accessSessionStatusTone(s.status)} />
                   </td>
                   <td className="px-5 py-4 text-sm text-slate-300">
                     {events.find((e) => e.id === s.eventId)?.name ?? s.eventId}
