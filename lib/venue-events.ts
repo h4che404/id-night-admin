@@ -128,24 +128,6 @@ export function normalizeEventInstant(value: string) {
   return date.toISOString();
 }
 
-export function formatEventDateTime(value: string) {
-  const date = new Date(value);
-
-  if (Number.isNaN(date.getTime())) {
-    return "Schedule unavailable";
-  }
-
-  return new Intl.DateTimeFormat("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-    timeZone: "UTC",
-    timeZoneName: "short",
-  }).format(date);
-}
-
 export function formatEventSchedule(startsAt: string, endsAt: string | null) {
   if (!endsAt) return formatDateTimeAr(startsAt);
   return `${formatDateTimeAr(startsAt)} → ${formatDateTimeAr(endsAt)}`;
