@@ -93,6 +93,101 @@ describe("GuestListSection", () => {
       />,
     );
 
-    expect(screen.getAllByRole("button", { name: "Cancel" })).toHaveLength(1);
+    expect(screen.getAllByRole("button", { name: "Cancelar" })).toHaveLength(1);
+  });
+
+  it("renders the imported date in Argentina local time, deterministically regardless of runtime TZ", () => {
+    render(
+      <GuestListSection
+        eventId="event-1"
+        initialEntries={[
+          // 2026-07-01T00:00:00Z is 2026-06-30 21:00 in America/Argentina/Buenos_Aires
+          // (UTC-03:00) — a cross-midnight instant that would have exposed the old
+          // runtime-TZ-dependent `toLocaleDateString()` bug.
+          createEntry({ id: "e1", importedAt: "2026-07-01T00:00:00.000Z" }),
+        ]}
+        initialEntriesError={null}
+      />,
+    );
+
+    const row = screen.getByText("Ana Pérez").closest("tr");
+    expect(row).not.toBeNull();
+    expect(row!.cells[4].textContent).toBe("30 jun 2026");
+  });
+
+  it("renders every column header, the section title, and the actions column in Spanish", () => {
+    render(
+      <GuestListSection
+        eventId="event-1"
+        initialEntries={[createEntry()]}
+        initialEntriesError={null}
+      />,
+    );
+
+    expect(screen.getByText("Lista de invitados")).toBeInTheDocument();
+    expect(screen.getByText("1 entrada")).toBeInTheDocument();
+    expect(screen.getByRole("columnheader", { name: "Nombre" })).toBeInTheDocument();
+    expect(screen.getByRole("columnheader", { name: "DNI" })).toBeInTheDocument();
+    expect(screen.getByRole("columnheader", { name: "Categoría" })).toBeInTheDocument();
+    expect(screen.getByRole("columnheader", { name: "Estado" })).toBeInTheDocument();
+    expect(screen.getByRole("columnheader", { name: "Importado el" })).toBeInTheDocument();
+    expect(screen.getByRole("columnheader", { name: "Acciones" })).toBeInTheDocument();
+  });
+
+  it("pluralizes the entry-count subtitle correctly", () => {
+    render(
+      <GuestListSection
+        eventId="event-1"
+        initialEntries={[createEntry({ id: "e1" }), createEntry({ id: "e2" })]}
+        initialEntriesError={null}
+      />,
+    );
+
+    expect(screen.getByText("2 entradas")).toBeInTheDocument();
+  });
+
+  it("renders the import panel, search box, and empty state copy in Spanish", () => {
+    render(
+      <GuestListSection eventId="event-1" initialEntries={[]} initialEntriesError={null} />,
+    );
+
+    expect(screen.getByText("Importar lista de invitados")).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "Subí un archivo CSV o XLSX con las columnas: dni, nombre, apellido, categoria (opcional).",
+      ),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Archivo")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Subir" })).toBeInTheDocument();
+    expect(
+      screen.getByText("Todavía no hay invitados. Subí un archivo para agregarlos."),
+    ).toBeInTheDocument();
+  });
+
+  it("shows the Spanish search placeholder and no-match copy when entries exist", () => {
+    render(
+      <GuestListSection
+        eventId="event-1"
+        initialEntries={[createEntry()]}
+        initialEntriesError={null}
+      />,
+    );
+
+    expect(
+      screen.getByPlaceholderText("Buscar por nombre o sufijo de DNI..."),
+    ).toBeInTheDocument();
+  });
+
+  it("shows the Spanish error panel copy when the guest list fails to load", () => {
+    render(
+      <GuestListSection
+        eventId="event-1"
+        initialEntries={[]}
+        initialEntriesError="backend unavailable"
+      />,
+    );
+
+    expect(screen.getByText("No se pudo cargar la lista de invitados")).toBeInTheDocument();
+    expect(screen.getByText("backend unavailable")).toBeInTheDocument();
   });
 });
