@@ -194,6 +194,15 @@ export type BackendScanRecord = {
   guardDecisionAt?: string | null;
   guardDecisionReason?: string | null;
   isOverride?: boolean;
+  /*
+   * Method, operator attribution, and the mapped PRD result are optional
+   * because records created before this backend slice deployed do not carry
+   * them. See sdd/backend-audit-trail ADR-7.
+   */
+  method?: "IDNIGHT_VERIFIED" | "MANUAL_DNI_CHECK" | "GUEST_LIST_DNI_CHECK" | string | null;
+  operatorId?: string | null;
+  operatorName?: string | null;
+  result?: "ALLOWED" | "ALLOWED_WITH_WARNING" | "REJECTED" | string | null;
 };
 
 export type BackendScanStats = {

@@ -9,7 +9,8 @@ import {
   formatScanScore,
   formatScanTime,
   guardDecisionLabel,
-  scanOutcomeUi,
+  methodUi,
+  resolveScanResultUi,
 } from "@/lib/scan-records";
 import { cn } from "@/lib/utils";
 
@@ -90,15 +91,32 @@ export function EventScanRecordsTable({
       subtitle={`${total} intento${total === 1 ? "" : "s"} de ingreso registrado${total === 1 ? "" : "s"}`}
     >
       <DataTable
-        columns={["Hora (UTC)", "Resultado", "Decisión del guardia", "Score", "Latencia", "Override"]}
+        columns={[
+          "Hora (UTC)",
+          "Método",
+          "Resultado",
+          "Decisión del guardia",
+          "Score",
+          "Latencia",
+          "Override",
+          "Operador",
+        ]}
         rows={records.map((record) => {
-          const outcome = scanOutcomeUi(record.outcome);
+          const outcome = resolveScanResultUi(record);
           const decision = guardDecisionLabel(record.guardDecision);
+          const method = methodUi(record.method);
 
           return (
             <tr key={record.id}>
               <td className="px-5 font-mono text-sm text-foreground/80">
                 {formatScanTime(record.validatedAt)}
+              </td>
+              <td className="px-5">
+                {method ? (
+                  <Badge label={method.label} tone={method.tone} />
+                ) : (
+                  <span className="text-sm text-muted-foreground">—</span>
+                )}
               </td>
               <td className="px-5">
                 <Badge label={outcome.label} tone={outcome.tone} />
@@ -127,6 +145,9 @@ export function EventScanRecordsTable({
               </td>
               <td className="px-5">
                 {record.isOverride ? <Badge label="Override" tone="warning" /> : null}
+              </td>
+              <td className="px-5 text-sm text-muted-foreground">
+                {record.operatorName ?? "—"}
               </td>
             </tr>
           );

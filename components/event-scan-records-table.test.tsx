@@ -72,7 +72,7 @@ describe("EventScanRecordsTable", () => {
     );
 
     const row = screen.getByText("Permitido").closest("tr");
-    expect(row!.cells[3].textContent).toBe("—");
+    expect(row!.cells[4].textContent).toBe("—");
   });
 
   it("shows the guard decision badge, reason tooltip, and override badge when present", () => {
@@ -103,7 +103,7 @@ describe("EventScanRecordsTable", () => {
     );
 
     const row = screen.getByText("Permitido").closest("tr");
-    expect(row!.cells[2].textContent).toBe("—");
+    expect(row!.cells[3].textContent).toBe("—");
     expect(within(row!).queryByText("Override")).not.toBeInTheDocument();
   });
 
@@ -113,6 +113,118 @@ describe("EventScanRecordsTable", () => {
     );
 
     expect(screen.queryByText("lookup-key-1")).not.toBeInTheDocument();
+  });
+
+  it("renders the PRD method label for each of the three door-entry methods", () => {
+    render(
+      <EventScanRecordsTable
+        records={[
+          createRecord({ id: "s1", method: "IDNIGHT_VERIFIED" }),
+          createRecord({ id: "s2", method: "MANUAL_DNI_CHECK" }),
+          createRecord({ id: "s3", method: "GUEST_LIST_DNI_CHECK" }),
+        ]}
+        total={3}
+        error={null}
+      />,
+    );
+
+    expect(screen.getByText("Ingreso verificado por ID-Night")).toBeInTheDocument();
+    expect(screen.getByText("Ingreso manual con DNI físico")).toBeInTheDocument();
+    expect(screen.getByText("Ingreso por lista de invitados")).toBeInTheDocument();
+  });
+
+  it("renders an em-dash in the method column when method is missing or unrecognized", () => {
+    render(
+      <EventScanRecordsTable
+        records={[
+          createRecord({ id: "s1", method: undefined }),
+          createRecord({ id: "s2", method: "SOME_FUTURE_TOKEN" }),
+        ]}
+        total={2}
+        error={null}
+      />,
+    );
+
+    const methodColumnIndex = screen.getByRole("columnheader", { name: "Método" });
+    expect(methodColumnIndex).toBeInTheDocument();
+
+    const rows = screen.getAllByText("Permitido").map((el) => el.closest("tr")!);
+    // Method sits right after the time column, mirroring the reference mockup.
+    const methodCellIndex = 1;
+    expect(rows[0].cells[methodCellIndex].textContent).toBe("—");
+    expect(rows[1].cells[methodCellIndex].textContent).toBe("—");
+  });
+
+  it("renders the operator name, and a muted dash when it is missing", () => {
+    render(
+      <EventScanRecordsTable
+        records={[
+          createRecord({ id: "s1", operatorName: "Ana Pérez" }),
+          createRecord({ id: "s2", operatorName: null }),
+        ]}
+        total={2}
+        error={null}
+      />,
+    );
+
+    expect(screen.getByText("Ana Pérez")).toBeInTheDocument();
+
+    const rows = screen.getAllByText("Permitido").map((el) => el.closest("tr")!);
+    const operatorCellIndex = 7;
+    expect(rows[1].cells[operatorCellIndex].textContent).toBe("—");
+  });
+
+  it("prefers the backend result field over the client-side outcome mapping when present", () => {
+    render(
+      <EventScanRecordsTable
+        records={[createRecord({ outcome: "Allow", result: "ALLOWED_WITH_WARNING" })]}
+        total={1}
+        error={null}
+      />,
+    );
+
+    expect(screen.getByText("Advertencia operativa")).toBeInTheDocument();
+    expect(screen.queryByText("Permitido")).not.toBeInTheDocument();
+  });
+
+  it("falls back to the outcome mapping for old records without a result field", () => {
+    render(
+      <EventScanRecordsTable
+        records={[createRecord({ outcome: "Allow", result: undefined })]}
+        total={1}
+        error={null}
+      />,
+    );
+
+    expect(screen.getByText("Permitido")).toBeInTheDocument();
+  });
+
+  it("does not render any banned PRD §8 vocabulary", () => {
+    render(
+      <EventScanRecordsTable
+        records={[
+          createRecord({ method: "IDNIGHT_VERIFIED" }),
+          createRecord({ id: "s2", method: "MANUAL_DNI_CHECK" }),
+          createRecord({ id: "s3", method: "GUEST_LIST_DNI_CHECK" }),
+        ]}
+        total={3}
+        error={null}
+      />,
+    );
+
+    const bannedVocabulary = [
+      /lista negra/i,
+      /persona peligrosa/i,
+      /persona problemática/i,
+      /culpable detectado/i,
+      /identificado automáticamente/i,
+      /reconocimiento confirmado por IA/i,
+      /risk score/i,
+      /reputation score/i,
+    ];
+    for (const banned of bannedVocabulary) {
+      expect(screen.queryByText(banned)).not.toBeInTheDocument();
+    }
   });
 
   it("shows the empty state when there are no records", () => {
