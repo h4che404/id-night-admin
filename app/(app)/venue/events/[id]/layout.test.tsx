@@ -78,9 +78,9 @@ describe("EventDetailLayout", () => {
     await renderLayout();
 
     expect(screen.getByRole("heading", { name: "Friday Opening" })).toBeInTheDocument();
-    expect(screen.getByText("Active")).toBeInTheDocument();
+    expect(screen.getByText("Activo")).toBeInTheDocument();
     expect(
-      screen.getByText("Jun 20, 2026, 11:00 PM UTC → Jun 21, 2026, 5:00 AM UTC"),
+      screen.getByText("20 jun 2026, 20:00 hs → 21 jun 2026, 02:00 hs"),
     ).toBeInTheDocument();
     expect(screen.getByTestId("tab-content")).toBeInTheDocument();
   });
@@ -91,7 +91,7 @@ describe("EventDetailLayout", () => {
     const expectedTabs: Array<[string, string]> = [
       ["Resumen", "/venue/events/event-1"],
       ["Ingresos", "/venue/events/event-1/entries"],
-      ["Guest list", "/venue/events/event-1/guest-list"],
+      ["Lista de invitados", "/venue/events/event-1/guest-list"],
       ["Incidentes", "/venue/events/event-1/incidents"],
       ["Operadores", "/venue/events/event-1/operators"],
       ["Reporte", "/venue/events/event-1/report"],
