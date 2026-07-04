@@ -1,0 +1,3 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`formatDateTimeAr > matches the full-string snapshot (allowed to update on ICU bumps) 1`] = `"4 jul 2026, 20:00 hs"`;

@@ -6,7 +6,7 @@ import {
   type BackendVenueEvent,
 } from "@/lib/idnight-backend";
 import { Badge, ErrorPanel, Surface } from "@/components/ui-kit";
-import { formatEventDateTime } from "@/lib/venue-events";
+import { formatDateTimeAr } from "@/lib/datetime";
 
 function StatCard({
   label,
@@ -76,10 +76,10 @@ export default async function EventSummaryPage({
       ) : (
         <Surface className="p-5">
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-            <DetailItem label="Inicio" value={formatEventDateTime(event.startsAt)} />
+            <DetailItem label="Inicio" value={formatDateTimeAr(event.startsAt)} />
             <DetailItem
               label="Fin"
-              value={event.endsAt ? formatEventDateTime(event.endsAt) : "Sin definir"}
+              value={event.endsAt ? formatDateTimeAr(event.endsAt) : "Sin definir"}
             />
             <DetailItem
               label="Capacidad"
@@ -110,7 +110,7 @@ export default async function EventSummaryPage({
       <section className="space-y-3">
         <div className="flex items-baseline justify-between">
           <h2 className="text-lg font-semibold text-foreground">Ingresos</h2>
-          <p className="text-xs text-muted-foreground">Estadísticas de hoy (UTC)</p>
+          <p className="text-xs text-muted-foreground">Estadísticas de hoy</p>
         </div>
 
         {statsError || !stats ? (

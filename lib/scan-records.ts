@@ -1,4 +1,5 @@
 import type { StatusTone } from "@/lib/data";
+import { formatTimeWithSecondsAr } from "@/lib/datetime";
 
 /* PRD §8 product language: backend scan outcomes → Spanish UI labels. */
 
@@ -93,20 +94,12 @@ export function methodUi(method: string | null | undefined): MethodUi | null {
 
 /* ── Formatting ────────────────────────────────────────────────── */
 
-export function formatScanTime(value: string) {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return "—";
-  }
-
-  return new Intl.DateTimeFormat("es-AR", {
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-    hour12: false,
-    timeZone: "UTC",
-  }).format(date);
-}
+/*
+ * Audit precision (seconds retained per owner decision #933), now rendered
+ * in Argentina local time via the shared formatter (design ADR-1/ADR-7)
+ * instead of the previous UTC-pinned output.
+ */
+export const formatScanTime = formatTimeWithSecondsAr;
 
 export function formatScanScore(score: number | null | undefined) {
   if (score === null || score === undefined) {
