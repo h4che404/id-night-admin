@@ -1,34 +1,36 @@
-export const ACCESS_SESSION_METHODS = {
-  IDNIGHT_VERIFIED: "ID Night verified",
-  MANUAL_DNI_CHECK: "Manual DNI check",
-  GUEST_LIST_DNI_CHECK: "Guest list DNI check",
-} as const;
+/*
+ * Access-session status vocabulary (design ADR-4). The backend emits the
+ * session status as a raw lowercase token ("open" | "closed" — see
+ * BackendAccessSession in lib/idnight-backend.ts); this module owns the
+ * Spanish label + Badge tone mapping so no raw token is ever rendered.
+ */
 
-export const ACCESS_SESSION_RESULTS = {
-  ALLOWED: "Allowed",
-  ALLOWED_WITH_WARNING: "Allowed with warning",
-  REJECTED: "Rejected",
-} as const;
+function normalizeAccessSessionStatus(status: string): string {
+  return status.trim().toLowerCase();
+}
 
-export type AccessSessionMethod = keyof typeof ACCESS_SESSION_METHODS;
-export type AccessSessionResult = keyof typeof ACCESS_SESSION_RESULTS;
+/*
+ * Unknown-token fallback is a visible humanized token (ADR-5), not a
+ * dash — hiding an unmapped status would erase audit info.
+ */
+function humanizeStatus(status: string): string {
+  return status
+    .toLowerCase()
+    .split(/[_\s-]+/)
+    .filter(Boolean)
+    .map((segment) => segment[0]?.toUpperCase() + segment.slice(1))
+    .join(" ");
+}
 
-export function accessSessionResultTone(result: string) {
-  if (result === "ALLOWED") return "success" as const;
-  if (result === "ALLOWED_WITH_WARNING") return "warning" as const;
-  if (result === "REJECTED") return "danger" as const;
+export function accessSessionStatusLabel(status: string): string {
+  const normalized = normalizeAccessSessionStatus(status);
+  if (normalized === "open") return "Abierta";
+  if (normalized === "closed") return "Cerrada";
+  return humanizeStatus(status);
+}
+
+export function accessSessionStatusTone(status: string) {
+  const normalized = normalizeAccessSessionStatus(status);
+  if (normalized === "open") return "success" as const;
   return "neutral" as const;
-}
-
-export function accessSessionMethodLabel(method: string): string {
-  return ACCESS_SESSION_METHODS[method as AccessSessionMethod] ?? method;
-}
-
-export function formatAccessSessionDate(value: string): string {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "Invalid date";
-  return new Intl.DateTimeFormat("es-AR", {
-    dateStyle: "short",
-    timeStyle: "short",
-  }).format(date);
 }
