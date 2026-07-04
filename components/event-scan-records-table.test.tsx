@@ -97,7 +97,7 @@ describe("EventScanRecordsTable", () => {
 
     const row = screen.getByText("Aceptado").closest("tr");
     expect(row).not.toBeNull();
-    expect(within(row!).getByText("Anulación")).toBeInTheDocument();
+    expect(within(row!).getByText("Excepción")).toBeInTheDocument();
     expect(screen.getByTitle("Documento validado en puerta")).toBeInTheDocument();
   });
 
@@ -108,7 +108,7 @@ describe("EventScanRecordsTable", () => {
 
     const row = screen.getByText("Permitido").closest("tr");
     expect(row!.cells[3].textContent).toBe("—");
-    expect(within(row!).queryByText("Anulación")).not.toBeInTheDocument();
+    expect(within(row!).queryByText("Excepción")).not.toBeInTheDocument();
   });
 
   it("never renders the document lookup key", () => {

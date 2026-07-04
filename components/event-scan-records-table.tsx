@@ -99,7 +99,7 @@ export function EventScanRecordsTable({
           "Decisión del guardia",
           "Puntaje",
           "Latencia",
-          "Anulación",
+          "Excepción",
           "Operador",
         ]}
         rows={records.map((record) => {
@@ -145,7 +145,7 @@ export function EventScanRecordsTable({
                 {formatScanLatency(record.latencyMs)}
               </td>
               <td className="px-5">
-                {record.isOverride ? <Badge label="Anulación" tone="warning" /> : null}
+                {record.isOverride ? <Badge label="Excepción" tone="warning" /> : null}
               </td>
               <td className="px-5 text-sm text-muted-foreground">
                 {record.operatorName ?? "—"}
