@@ -11,6 +11,7 @@ import {
   PrimaryButton,
   Surface,
 } from "@/components/ui-kit";
+import { formatDateAr } from "@/lib/datetime";
 import {
   guestListStatusLabel,
   guestListStatusTone,
@@ -55,7 +56,7 @@ export function GuestListSection({
       });
       const payload = await response.json();
       if (!response.ok) {
-        setUploadError(payload.message ?? "Could not import the guest list.");
+        setUploadError(payload.message ?? "No se pudo importar la lista de invitados.");
         return;
       }
       setUploadResult(payload as BackendGuestListImportResult);
@@ -66,7 +67,7 @@ export function GuestListSection({
         setEntriesError(null);
       }
     } catch {
-      setUploadError("Could not import the guest list.");
+      setUploadError("No se pudo importar la lista de invitados.");
     } finally {
       setUploading(false);
     }
@@ -81,14 +82,14 @@ export function GuestListSection({
       });
       const payload = await response.json();
       if (!response.ok) {
-        setCancelError(payload.message ?? "Could not cancel the entry.");
+        setCancelError(payload.message ?? "No se pudo cancelar la entrada.");
         return;
       }
       setEntries((prev) =>
         prev.map((entry) => (entry.id === entryId ? (payload as BackendGuestListEntry) : entry)),
       );
     } catch {
-      setCancelError("Could not cancel the entry.");
+      setCancelError("No se pudo cancelar la entrada.");
     } finally {
       setCancellingId(null);
     }
@@ -109,15 +110,16 @@ export function GuestListSection({
       <Surface className="p-6 md:p-8">
         <div className="space-y-4">
           <div>
-            <h3 className="text-lg font-semibold text-white">Import guest list</h3>
+            <h3 className="text-lg font-semibold text-white">Importar lista de invitados</h3>
             <p className="mt-1 text-sm text-slate-400">
-              Upload a CSV or XLSX file with columns: dni, nombre, apellido, categoria (optional).
+              Subí un archivo CSV o XLSX con las columnas: dni, nombre, apellido, categoria
+              (opcional).
             </p>
           </div>
 
           <form onSubmit={handleUpload} className="space-y-4">
             <div>
-              <label className="mb-2 block text-sm font-medium text-slate-300">File</label>
+              <label className="mb-2 block text-sm font-medium text-slate-300">Archivo</label>
               <input
                 type="file"
                 accept=".csv,.xlsx"
@@ -126,21 +128,21 @@ export function GuestListSection({
               />
             </div>
             <PrimaryButton loading={uploading} disabled={!file || uploading}>
-              {uploading ? "Uploading..." : "Upload"}
+              {uploading ? "Subiendo..." : "Subir"}
             </PrimaryButton>
           </form>
 
           {uploadResult && (
             <div className="rounded-2xl border border-emerald-400/20 bg-emerald-400/10 p-4">
               <p className="text-sm font-medium text-emerald-200">
-                Imported: {uploadResult.imported} · Duplicates: {uploadResult.duplicates} ·
-                Invalid: {uploadResult.invalid}
+                Importados: {uploadResult.imported} · Duplicados: {uploadResult.duplicates} ·
+                Inválidos: {uploadResult.invalid}
               </p>
               {uploadResult.errors.length > 0 && (
                 <ul className="mt-2 space-y-1">
                   {uploadResult.errors.map((err, i) => (
                     <li key={i} className="text-xs text-rose-300">
-                      Row {err.row} — {err.reason}
+                      Fila {err.row} — {err.reason}
                     </li>
                   ))}
                 </ul>
@@ -158,19 +160,19 @@ export function GuestListSection({
 
       {entriesError ? (
         <EmptyState
-          title="Could not load guest list"
+          title="No se pudo cargar la lista de invitados"
           description={entriesError}
           icon={<Users className="h-5 w-5 text-sky-300" />}
         />
       ) : (
         <DataShell
-          title="Guest list"
-          subtitle={`${entries.length} entr${entries.length === 1 ? "y" : "ies"}`}
+          title="Lista de invitados"
+          subtitle={`${entries.length} entrada${entries.length === 1 ? "" : "s"}`}
           action={
             entries.length > 0 ? (
               <input
                 type="search"
-                placeholder="Search by name or DNI suffix..."
+                placeholder="Buscar por nombre o sufijo de DNI..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="rounded-xl border border-slate-800 bg-slate-950/40 px-3 py-2 text-sm text-slate-300 placeholder:text-slate-600 focus:border-sky-400/30 focus:outline-none"
@@ -182,13 +184,13 @@ export function GuestListSection({
             <div className="p-8 text-center">
               <p className="text-sm text-slate-400">
                 {entries.length === 0
-                  ? "No entries yet. Upload a file to add guests."
-                  : "No entries match your search."}
+                  ? "Todavía no hay invitados. Subí un archivo para agregarlos."
+                  : "Ninguna entrada coincide con tu búsqueda."}
               </p>
             </div>
           ) : (
             <DataTable
-              columns={["Name", "DNI", "Category", "Status", "Imported at", "Actions"]}
+              columns={["Nombre", "DNI", "Categoría", "Estado", "Importado el", "Acciones"]}
               rows={filtered.map((entry) => (
                 <tr key={entry.id} className="align-top hover:bg-slate-950/20">
                   <td className="px-5 py-4">
@@ -209,7 +211,7 @@ export function GuestListSection({
                     />
                   </td>
                   <td className="px-5 py-4 text-sm text-slate-300">
-                    {new Date(entry.importedAt).toLocaleDateString()}
+                    {formatDateAr(entry.importedAt)}
                   </td>
                   <td className="px-5 py-4">
                     <div className="flex flex-wrap items-center gap-2">
@@ -219,7 +221,7 @@ export function GuestListSection({
                           disabled={cancellingId === entry.id}
                           className="rounded-lg border border-rose-400/30 bg-rose-400/10 px-3 py-1.5 text-xs font-medium text-rose-200 transition hover:bg-rose-400/20 disabled:opacity-50"
                         >
-                          {cancellingId === entry.id ? "Cancelling..." : "Cancel"}
+                          {cancellingId === entry.id ? "Cancelando..." : "Cancelar"}
                         </button>
                       )}
                     </div>
