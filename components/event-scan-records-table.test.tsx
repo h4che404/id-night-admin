@@ -45,19 +45,23 @@ describe("EventScanRecordsTable", () => {
     expect(screen.getByText("No encontrado en ID-Night")).toBeInTheDocument();
   });
 
-  it("renders time in UTC with an explicit column header, plus score and latency", () => {
+  it("renders time in Argentina local time with an accessible header and a persistent zone caption, plus score and latency", () => {
     render(
       <EventScanRecordsTable records={[createRecord()]} total={1} error={null} />,
     );
 
+    const header = screen.getByRole("columnheader", { name: "Hora local de Argentina" });
+    expect(header).toHaveTextContent("Hora");
+
     expect(
-      screen.getByRole("columnheader", { name: "Hora (UTC)" }),
+      screen.getByText("Horarios en hora de Argentina (UTC-3)."),
     ).toBeInTheDocument();
 
     const row = screen.getByText("Permitido").closest("tr");
     expect(row).not.toBeNull();
-    // validatedAt is 01:15:30 UTC; output must not depend on the runtime TZ.
-    expect(row!.cells[0].textContent).toBe("01:15:30");
+    // validatedAt is 2026-07-03T01:15:30Z (UTC); AR local time (-03:00) is the
+    // previous day at 22:15:30 — output must not depend on the runtime TZ.
+    expect(row!.cells[0].textContent).toBe("22:15:30 hs");
     expect(screen.getByText("0.92")).toBeInTheDocument();
     expect(screen.getByText("145 ms")).toBeInTheDocument();
   });
@@ -93,7 +97,7 @@ describe("EventScanRecordsTable", () => {
 
     const row = screen.getByText("Aceptado").closest("tr");
     expect(row).not.toBeNull();
-    expect(within(row!).getByText("Override")).toBeInTheDocument();
+    expect(within(row!).getByText("Anulación")).toBeInTheDocument();
     expect(screen.getByTitle("Documento validado en puerta")).toBeInTheDocument();
   });
 
@@ -104,7 +108,7 @@ describe("EventScanRecordsTable", () => {
 
     const row = screen.getByText("Permitido").closest("tr");
     expect(row!.cells[3].textContent).toBe("—");
-    expect(within(row!).queryByText("Override")).not.toBeInTheDocument();
+    expect(within(row!).queryByText("Anulación")).not.toBeInTheDocument();
   });
 
   it("never renders the document lookup key", () => {

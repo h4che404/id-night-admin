@@ -91,14 +91,15 @@ export function EventScanRecordsTable({
       subtitle={`${total} intento${total === 1 ? "" : "s"} de ingreso registrado${total === 1 ? "" : "s"}`}
     >
       <DataTable
+        caption="Horarios en hora de Argentina (UTC-3)."
         columns={[
-          "Hora (UTC)",
+          { label: "Hora", ariaLabel: "Hora local de Argentina" },
           "Método",
           "Resultado",
           "Decisión del guardia",
-          "Score",
+          "Puntaje",
           "Latencia",
-          "Override",
+          "Anulación",
           "Operador",
         ]}
         rows={records.map((record) => {
@@ -144,7 +145,7 @@ export function EventScanRecordsTable({
                 {formatScanLatency(record.latencyMs)}
               </td>
               <td className="px-5">
-                {record.isOverride ? <Badge label="Override" tone="warning" /> : null}
+                {record.isOverride ? <Badge label="Anulación" tone="warning" /> : null}
               </td>
               <td className="px-5 text-sm text-muted-foreground">
                 {record.operatorName ?? "—"}

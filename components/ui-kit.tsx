@@ -93,22 +93,44 @@ export function SectionHeader({
 
 /* ── Data table ────────────────────────────────────────────────── */
 
+export type DataTableColumn = string | { label: string; ariaLabel?: string };
+
+function columnKey(column: DataTableColumn): string {
+  return typeof column === "string" ? column : column.label;
+}
+
 export function DataTable({
   columns,
   rows,
+  caption,
 }: {
-  columns: string[];
+  columns: DataTableColumn[];
   rows: ReactNode;
+  /** Persistent, once-per-table note (e.g. clarifying a displayed timezone). */
+  caption?: string;
 }) {
   return (
     <table className="min-w-full border-collapse text-left">
+      {caption ? (
+        <caption className="caption-bottom px-5 pt-2 text-left text-xs text-muted-foreground">
+          {caption}
+        </caption>
+      ) : null}
       <thead>
         <tr className="border-b border-border">
-          {columns.map((column) => (
-            <th key={column} className="label-sm px-5 py-3 text-muted-foreground">
-              {column}
-            </th>
-          ))}
+          {columns.map((column) => {
+            const label = typeof column === "string" ? column : column.label;
+            const ariaLabel = typeof column === "string" ? undefined : column.ariaLabel;
+            return (
+              <th
+                key={columnKey(column)}
+                aria-label={ariaLabel}
+                className="label-sm px-5 py-3 text-muted-foreground"
+              >
+                {label}
+              </th>
+            );
+          })}
         </tr>
       </thead>
       <tbody
