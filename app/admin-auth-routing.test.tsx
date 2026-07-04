@@ -185,7 +185,8 @@ describe("admin auth routing pages", () => {
 
     expect(screen.getByTestId("app-shell")).toBeInTheDocument();
     expect(screen.getByText("Ada Lovelace")).toBeInTheDocument();
-    expect(screen.getByText(/degraded access/i)).toBeInTheDocument();
+    expect(screen.getByText(/acceso degradado/i)).toBeInTheDocument();
+    expect(screen.queryByText(/degraded access/i)).not.toBeInTheDocument();
     expect(screen.queryByTestId("protected-child")).not.toBeInTheDocument();
   });
 
