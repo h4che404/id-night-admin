@@ -210,7 +210,7 @@ export function VenueEventForm({ event, onClose }: VenueEventFormProps = {}) {
             icon={<CalendarDays className="h-4 w-4" />}
             value={name}
             onChange={setName}
-            placeholder="Friday Opening"
+            placeholder="Apertura de viernes"
           />
           <FormField
             label="Capacidad máxima"

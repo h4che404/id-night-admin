@@ -135,7 +135,7 @@ describe("VenueEventsPage", () => {
 
     await renderVenueEventsPage();
 
-    expect(screen.getByText(/scheduled for ID Night/i)).toBeInTheDocument();
+    expect(screen.getByText(/programados para ID Night/i)).toBeInTheDocument();
     expect(fetchMyVenue).not.toHaveBeenCalled();
   });
 
@@ -167,7 +167,9 @@ describe("VenueEventsPage", () => {
     await renderVenueEventsPage();
 
     expect(screen.getByText("No se pudieron cargar los eventos")).toBeInTheDocument();
-    expect(screen.getByText("Could not load venue events. Please try again.")).toBeInTheDocument();
+    expect(
+      screen.getByText("No se pudieron cargar los eventos del boliche. Intentá de nuevo."),
+    ).toBeInTheDocument();
     expect(fetchMyVenue).not.toHaveBeenCalled();
   });
 

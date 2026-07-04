@@ -100,7 +100,7 @@ export default async function EventSummaryPage({
               tone="neutral"
             />
             <Badge
-              label={event.requireGuestList ? "Requiere guest list" : "Guest list opcional"}
+              label={event.requireGuestList ? "Requiere lista de invitados" : "Lista de invitados opcional"}
               tone="neutral"
             />
           </div>

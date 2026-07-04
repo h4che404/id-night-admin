@@ -12,7 +12,10 @@ async function EventsData({ token, page }: { token: string; page: number }) {
   try {
     result = await fetchVenueEvents(token, page);
   } catch (error) {
-    eventsError = getSafeEventErrorMessage(error, "Could not load venue events. Please try again.");
+    eventsError = getSafeEventErrorMessage(
+      error,
+      "No se pudieron cargar los eventos del boliche. Intentá de nuevo.",
+    );
   }
 
   return (
@@ -45,9 +48,9 @@ export default async function VenueEventsPage({
   return (
     <div className="space-y-6">
       <SectionHeader
-        eyebrow="Events"
-        title="Venue events"
-        description={`Create and manage events scheduled for ${venue.name}. Activate, finish, or cancel events from the lineup below.`}
+        eyebrow="Eventos"
+        title="Eventos del boliche"
+        description={`Creá y gestioná los eventos programados para ${venue.name}. Activá, finalizá o cancelá eventos desde la lista de abajo.`}
       />
 
       <Suspense fallback={<LoadingSkeleton />}>
