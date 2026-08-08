@@ -18,6 +18,7 @@ import {
   BackendDashboardMetrics,
 } from "@/lib/idnight-backend";
 import { Badge, EmptyState, LoadingSkeleton, SectionHeader, Surface } from "@/components/ui-kit";
+import { fetchStuckEmbeddingJobs } from "@/lib/idnight-backend";
 import { VenueCreateForm } from "@/components/venue-create-form";
 
 function MetricCard({
@@ -116,6 +117,52 @@ async function DashboardMetrics({ token }: { token: string }) {
   );
 }
 
+/**
+ * The enrolments that stopped, shown where somebody will actually see them.
+ *
+ * A failure that is recorded and unread is not much better than one that was never recorded.
+ * Six verified people sat in this state for two days, each of them believing they could walk
+ * in, and nothing anywhere said otherwise.
+ */
+async function StalledEnrolments({ token }: { token: string }) {
+  let stuck: Awaited<ReturnType<typeof fetchStuckEmbeddingJobs>> = [];
+  try {
+    stuck = await fetchStuckEmbeddingJobs(token);
+  } catch {
+    // Silence beats a scary empty panel: not being able to ask is not the same as nothing
+    // being wrong, but it is also not something this screen can act on.
+    return null;
+  }
+
+  if (stuck.length === 0) return null;
+
+  const longest = Math.max(...stuck.map((job) => job.waitingDays));
+
+  return (
+    <Surface className="border-amber-500/40">
+      <SectionHeader
+        title="Enrolamientos detenidos"
+        description="Estas personas verificaron su identidad y todavía no pueden ingresar con reconocimiento facial."
+      />
+      <p className="text-sm">
+        <strong>{stuck.length}</strong> {stuck.length === 1 ? "persona" : "personas"} en espera
+        {longest > 0 && <> — la más antigua hace <strong>{longest}</strong> {longest === 1 ? "día" : "días"}</>}.
+      </p>
+      <ul className="mt-2 space-y-1 text-xs text-muted-foreground">
+        {stuck.slice(0, 5).map((job) => (
+          <li key={job.id}>
+            {job.state} · {job.lastErrorCode ?? "sin código"} · {job.attemptCount}{" "}
+            {job.attemptCount === 1 ? "intento" : "intentos"} · {job.waitingDays}d
+          </li>
+        ))}
+      </ul>
+      {stuck.length > 5 && (
+        <p className="mt-1 text-xs text-muted-foreground">y {stuck.length - 5} más.</p>
+      )}
+    </Surface>
+  );
+}
+
 function MetricsSkeleton() {
   return (
     <div className="grid gap-4 grid-cols-2 md:grid-cols-3">
@@ -200,6 +247,11 @@ export default async function VenuePage() {
 
       <Suspense fallback={<MetricsSkeleton />}>
         <DashboardMetrics token={session.accessToken} />
+      </Suspense>
+
+      {/* Above the fold on purpose. Somebody who cannot get in is more urgent than a count. */}
+      <Suspense fallback={null}>
+        <StalledEnrolments token={session.accessToken} />
       </Suspense>
 
       <div className="grid gap-4 md:grid-cols-3">

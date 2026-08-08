@@ -939,3 +939,28 @@ export function fetchEventReport(token: string, eventId: string) {
     { token },
   );
 }
+
+/* ── Stalled enrolments ────────────────────────────────────────── */
+
+export type BackendStuckEmbeddingJob = {
+  id: string;
+  kycVerificationId: string;
+  appUserId: string;
+  state: string;
+  attemptCount: number;
+  lastErrorClass: string | null;
+  lastErrorCode: string | null;
+  approvedAt: string;
+  waitingDays: number;
+};
+
+/**
+ * The enrolments the queue gave up on.
+ *
+ * These people finished verifying, believe they can walk in, and will be turned away at a door
+ * without anybody here knowing why. The queue recorded every one of them from the start; what
+ * was missing was anywhere that read the record. Six of them sat unseen for two days.
+ */
+export async function fetchStuckEmbeddingJobs(token: string): Promise<BackendStuckEmbeddingJob[]> {
+  return backendRequest<BackendStuckEmbeddingJob[]>("/admin/embedding-jobs/stuck", { token });
+}
