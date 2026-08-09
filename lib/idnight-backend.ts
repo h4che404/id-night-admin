@@ -943,9 +943,6 @@ export function fetchEventReport(token: string, eventId: string) {
 /* ── Stalled enrolments ────────────────────────────────────────── */
 
 export type BackendStuckEmbeddingJob = {
-  id: string;
-  kycVerificationId: string;
-  appUserId: string;
   state: string;
   attemptCount: number;
   lastErrorClass: string | null;

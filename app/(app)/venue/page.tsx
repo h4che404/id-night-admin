@@ -149,8 +149,8 @@ async function StalledEnrolments({ token }: { token: string }) {
         {longest > 0 && <> — la más antigua hace <strong>{longest}</strong> {longest === 1 ? "día" : "días"}</>}.
       </p>
       <ul className="mt-2 space-y-1 text-xs text-muted-foreground">
-        {stuck.slice(0, 5).map((job) => (
-          <li key={job.id}>
+        {stuck.slice(0, 5).map((job, at) => (
+          <li key={`${job.approvedAt}-${at}`}>
             {job.state} · {job.lastErrorCode ?? "sin código"} · {job.attemptCount}{" "}
             {job.attemptCount === 1 ? "intento" : "intentos"} · {job.waitingDays}d
           </li>
