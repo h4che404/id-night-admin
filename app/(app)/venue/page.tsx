@@ -18,7 +18,7 @@ import {
   BackendDashboardMetrics,
 } from "@/lib/idnight-backend";
 import { Badge, EmptyState, LoadingSkeleton, SectionHeader, Surface } from "@/components/ui-kit";
-import { fetchStuckEmbeddingJobs } from "@/lib/idnight-backend";
+import { fetchEnrolmentFunnel, fetchStuckEmbeddingJobs } from "@/lib/idnight-backend";
 import { VenueCreateForm } from "@/components/venue-create-form";
 
 function MetricCard({
@@ -163,6 +163,62 @@ async function StalledEnrolments({ token }: { token: string }) {
   );
 }
 
+/**
+ * Where people stop between verifying and being able to walk in.
+ *
+ * The stalled panel above can never show somebody who never consented: no job is created for
+ * them, so the queue is behaving correctly and the person is simply invisible. Two in a hundred
+ * is ordinary. Sixty means the consent screen is frightening people — and until this existed,
+ * nothing anywhere would have said so.
+ */
+async function EnrolmentFunnel({ token }: { token: string }) {
+  let funnel: Awaited<ReturnType<typeof fetchEnrolmentFunnel>>;
+  try {
+    funnel = await fetchEnrolmentFunnel(token);
+  } catch {
+    return null;
+  }
+
+  if (funnel.verified === 0) return null;
+
+  const share = Math.round((funnel.awaitingConsent / funnel.verified) * 100);
+  // A quarter is where a rate stops being a handful of people who got distracted.
+  const worrying = share >= 25;
+
+  return (
+    <Surface className={worrying ? "border-amber-500/40" : undefined}>
+      <SectionHeader
+        title="Del alta al ingreso"
+        description="Cuánta gente llega a poder entrar con reconocimiento facial."
+      />
+      <dl className="grid grid-cols-2 gap-3 text-sm md:grid-cols-4">
+        <div>
+          <dt className="text-muted-foreground">Verificados</dt>
+          <dd className="text-lg font-semibold">{funnel.verified}</dd>
+        </div>
+        <div>
+          <dt className="text-muted-foreground">Consintieron</dt>
+          <dd className="text-lg font-semibold">{funnel.consented}</dd>
+        </div>
+        <div>
+          <dt className="text-muted-foreground">Enrolados</dt>
+          <dd className="text-lg font-semibold">{funnel.enrolled}</dd>
+        </div>
+        <div>
+          <dt className="text-muted-foreground">Sin consentir</dt>
+          <dd className="text-lg font-semibold">{funnel.awaitingConsent}</dd>
+        </div>
+      </dl>
+      {worrying && (
+        <p className="text-sm">
+          <strong>{share}%</strong> de quienes verificaron su identidad no aceptaron el uso de su
+          rostro. Vale revisar qué dice esa pantalla.
+        </p>
+      )}
+    </Surface>
+  );
+}
+
 function MetricsSkeleton() {
   return (
     <div className="grid gap-4 grid-cols-2 md:grid-cols-3">
@@ -252,6 +308,10 @@ export default async function VenuePage() {
       {/* Above the fold on purpose. Somebody who cannot get in is more urgent than a count. */}
       <Suspense fallback={null}>
         <StalledEnrolments token={session.accessToken} />
+      </Suspense>
+
+      <Suspense fallback={null}>
+        <EnrolmentFunnel token={session.accessToken} />
       </Suspense>
 
       <div className="grid gap-4 md:grid-cols-3">

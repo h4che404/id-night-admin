@@ -964,3 +964,21 @@ export type BackendStuckEmbeddingJob = {
 export async function fetchStuckEmbeddingJobs(token: string): Promise<BackendStuckEmbeddingJob[]> {
   return backendRequest<BackendStuckEmbeddingJob[]>("/admin/embedding-jobs/stuck", { token });
 }
+
+export type BackendEnrolmentFunnel = {
+  verified: number;
+  consented: number;
+  enrolled: number;
+  awaitingConsent: number;
+  stalled: number;
+};
+
+/**
+ * How far people get between finishing verification and being able to walk in.
+ *
+ * Counts, never identifiers. The question is a rate — is the consent screen losing people — and
+ * a rate does not need names.
+ */
+export async function fetchEnrolmentFunnel(token: string): Promise<BackendEnrolmentFunnel> {
+  return backendRequest<BackendEnrolmentFunnel>("/admin/embedding-jobs/funnel", { token });
+}
