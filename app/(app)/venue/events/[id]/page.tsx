@@ -48,25 +48,40 @@ export default async function EventSummaryPage({
 
   const { session } = readyAccess;
 
+  // Asked for together rather than one after the other. Neither reads the other's answer, and
+  // waiting on the first before starting the second doubled the wait for no reason — about half
+  // a second on this page, all of it before anything is drawn.
+  //
+  // allSettled rather than all: statistics failing must not take the event down with it. Each
+  // still reports its own problem, which is why they are not folded into one message.
+  const [eventResult, statsResult] = await Promise.allSettled([
+    findVenueEventById(session.accessToken, eventId),
+    fetchEventScanStats(session.accessToken, eventId),
+  ]);
+
   let event: BackendVenueEvent | null = null;
   let eventError: string | null = null;
-  try {
-    event = await findVenueEventById(session.accessToken, eventId);
+  if (eventResult.status === "fulfilled") {
+    event = eventResult.value;
     if (!event) {
       eventError = "No se encontró el evento.";
     }
-  } catch (error) {
+  } else {
     eventError =
-      error instanceof Error ? error.message : "No se pudo cargar el evento.";
+      eventResult.reason instanceof Error
+        ? eventResult.reason.message
+        : "No se pudo cargar el evento.";
   }
 
   let stats: BackendScanStats | null = null;
   let statsError: string | null = null;
-  try {
-    stats = await fetchEventScanStats(session.accessToken, eventId);
-  } catch (error) {
+  if (statsResult.status === "fulfilled") {
+    stats = statsResult.value;
+  } else {
     statsError =
-      error instanceof Error ? error.message : "No se pudieron cargar las estadísticas.";
+      statsResult.reason instanceof Error
+        ? statsResult.reason.message
+        : "No se pudieron cargar las estadísticas.";
   }
 
   return (
