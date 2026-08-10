@@ -46,10 +46,26 @@ function NavLink({ item, pathname }: { item: (typeof navigationItems)[number]; p
   const isActive =
     pathname === item.href || (item.href !== "/venue" && pathname.startsWith(item.href));
 
+  /**
+   * Prefetched on hover, never on sight.
+   *
+   * Viewport prefetching was turned off here for a good reason: seven sidebar links meant seven
+   * routes warmed on every page load, each one reaching the backend, and that cost was paid
+   * whether or not anybody clicked. Hover is the moment somebody has decided, and it buys the
+   * fraction of a second between deciding and clicking.
+   *
+   * It is cheap now in a way it was not then. Every async page has a loading boundary, so what
+   * gets warmed is the skeleton and the shared layout rather than a fully rendered page.
+   */
+  const [warm, setWarm] = useState(false);
+
   return (
     <Link
       href={item.href}
-      prefetch={false}
+      prefetch={warm ? null : false}
+      onMouseEnter={() => setWarm(true)}
+      onFocus={() => setWarm(true)}
+      onTouchStart={() => setWarm(true)}
       className={cn(
         "relative flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors duration-200 ease-out",
         isActive
