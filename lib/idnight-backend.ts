@@ -922,6 +922,30 @@ export function fetchEventScanStats(token: string, eventId: string) {
   );
 }
 
+/* ── Entry-photo gallery ───────────────────────────────────────── */
+
+export type BackendEntryPhotoCard = {
+  entryPhotoId: string | null;
+  correlationId: string;
+  method: "ID_NIGHT_VERIFIED" | "ManualDniCheck" | "GuestListDniCheck" | string;
+  outcome: string;
+  occurredAt: string;
+  documentLookupKey: string | null;
+  hasPhoto: boolean;
+};
+
+/**
+ * Manual-DNI and guest-list entries render as photoless cards (`hasPhoto: false`,
+ * `entryPhotoId: null`) rather than being hidden — the backend never invents a photo for
+ * them (spec EP-12).
+ */
+export function fetchEntryPhotoGallery(token: string, venueId: string, eventId: string) {
+  return backendRequest<BackendEntryPhotoCard[]>(
+    `/api/v1/admin/venues/${venueId}/events/${eventId}/entry-photos`,
+    { token, operation: "fetchEntryPhotoGallery" },
+  );
+}
+
 /* ── Dashboard ─────────────────────────────────────────────────── */
 
 export function fetchDashboardMetrics(token: string) {
