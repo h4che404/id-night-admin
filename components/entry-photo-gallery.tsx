@@ -58,7 +58,18 @@ function EntryPhotoCardView({ card }: { card: BackendEntryPhotoCard }) {
   );
 }
 
-export function EntryPhotoGallery({ cards }: { cards: BackendEntryPhotoCard[] }) {
+export function EntryPhotoGallery({
+  cards,
+  onSelectCard,
+}: {
+  cards: BackendEntryPhotoCard[];
+  /**
+   * Optional (S5b, task 5.12): when provided, every card able to identify someone becomes
+   * clickable — "pointing at a face" is how an operator links a person to an incident. A card
+   * with no `documentLookupKey` (nothing to link) stays visible but disabled, never hidden.
+   */
+  onSelectCard?: (card: BackendEntryPhotoCard) => void;
+}) {
   if (cards.length === 0) {
     return (
       <EmptyState
@@ -70,9 +81,22 @@ export function EntryPhotoGallery({ cards }: { cards: BackendEntryPhotoCard[] })
 
   return (
     <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-      {cards.map((card) => (
-        <EntryPhotoCardView key={card.correlationId} card={card} />
-      ))}
+      {cards.map((card) =>
+        onSelectCard ? (
+          <button
+            key={card.correlationId}
+            type="button"
+            disabled={!card.documentLookupKey}
+            onClick={() => onSelectCard(card)}
+            aria-label={`Vincular ingreso ${card.documentLookupKey ?? card.correlationId}`}
+            className="text-left disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <EntryPhotoCardView card={card} />
+          </button>
+        ) : (
+          <EntryPhotoCardView key={card.correlationId} card={card} />
+        ),
+      )}
     </div>
   );
 }

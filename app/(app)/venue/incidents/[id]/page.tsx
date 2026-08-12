@@ -3,8 +3,14 @@ import { ArrowLeft } from "lucide-react";
 
 import { SectionHeader, Surface, Badge, ErrorPanel } from "@/components/ui-kit";
 import { VenueIncidentForm } from "@/components/venue-incident-form";
+import { VenueIncidentLifecyclePanel } from "@/components/venue-incident-lifecycle-panel";
 import { requireReadyPageAccess } from "@/lib/auth-session";
-import { fetchVenueIncident } from "@/lib/idnight-backend";
+import {
+  fetchEntryPhotoGallery,
+  fetchVenueEvents,
+  fetchVenueIncident,
+  type BackendEntryPhotoCard,
+} from "@/lib/idnight-backend";
 
 function formatDateTime(value: string | null) {
   if (!value) {
@@ -30,17 +36,20 @@ function statusTone(status: string) {
 
 export default async function VenueIncidentDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ eventId?: string }>;
 }) {
   const resolvedParams = await params;
+  const { eventId } = await searchParams;
   const readyAccess = await requireReadyPageAccess();
 
   if (!readyAccess) {
     return null;
   }
 
-  const { session } = readyAccess;
+  const { session, venueSummary } = readyAccess;
 
   let incident = null;
   let incidentError = null;
@@ -49,6 +58,28 @@ export default async function VenueIncidentDetailPage({
     incident = await fetchVenueIncident(session.accessToken, resolvedParams.id);
   } catch (error) {
     incidentError = error instanceof Error ? error.message : "No se pudo cargar el incidente.";
+  }
+
+  // Venue events feed the gallery picker below — an incident carries no eventId today (no
+  // backend field exposes one), so the operator chooses which night's gallery to browse.
+  let events: Array<{ id: string; name: string }> = [];
+  try {
+    events = (await fetchVenueEvents(session.accessToken)).items;
+  } catch (error) {
+    // Degrades to an empty picker rather than failing the whole page; still logged so a
+    // silent backend outage on this call does not go unnoticed.
+    console.error("[incident-detail] failed to load venue events for the gallery picker", error);
+  }
+
+  let galleryCards: BackendEntryPhotoCard[] = [];
+  let galleryError: string | null = null;
+  if (eventId) {
+    try {
+      galleryCards = await fetchEntryPhotoGallery(session.accessToken, venueSummary.id, eventId);
+    } catch (error) {
+      galleryError =
+        error instanceof Error ? error.message : "No se pudieron cargar las fotos de ingreso.";
+    }
   }
 
   if (incidentError || !incident) {
@@ -112,6 +143,40 @@ export default async function VenueIncidentDetailPage({
           <VenueIncidentForm incident={incident} />
         </div>
       </div>
+
+      <Surface className="space-y-4 p-6">
+        <h3 className="text-lg font-medium text-white">Galería del evento</h3>
+        <form className="flex flex-wrap items-end gap-3">
+          <div>
+            <label htmlFor="eventId" className="mb-2 block text-sm font-medium text-slate-300">
+              Evento
+            </label>
+            <select
+              id="eventId"
+              name="eventId"
+              defaultValue={eventId ?? ""}
+              className="rounded-2xl border border-slate-800 bg-slate-950/40 px-4 py-3 text-slate-100 outline-none focus:border-sky-400/30 transition"
+            >
+              <option value="">Elegí un evento…</option>
+              {events.map((event) => (
+                <option key={event.id} value={event.id}>
+                  {event.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <button
+            type="submit"
+            className="rounded-2xl border border-slate-800 bg-slate-950/40 px-4 py-3 text-sm text-slate-100 hover:border-sky-400/30 transition"
+          >
+            Ver galería
+          </button>
+        </form>
+
+        {galleryError ? <ErrorPanel message={galleryError} /> : null}
+      </Surface>
+
+      <VenueIncidentLifecyclePanel incidentId={incident.id} cards={galleryCards} />
     </div>
   );
 }

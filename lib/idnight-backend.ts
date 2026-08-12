@@ -946,6 +946,62 @@ export function fetchEntryPhotoGallery(token: string, venueId: string, eventId: 
   );
 }
 
+/* ── Incident lifecycle (person-linking, IL-01/IL-02) ────────────── */
+
+export type BackendIncidentLifecycle = {
+  id: string;
+  venueId: string;
+  lifecycle: "Open" | "PersonLinked" | "Resolved";
+  isBlocking: boolean;
+  resolvedAt: string | null;
+};
+
+/**
+ * Must match `StepUpActions.IncidentLinkPerson` on the backend exactly: the OTP challenge and
+ * the `link-person` endpoint both scope the spent proof to this literal action string.
+ */
+export const INCIDENT_LINK_PERSON_STEP_UP_ACTION = "incident:link-person";
+
+export function linkIncidentPerson(
+  token: string,
+  venueId: string,
+  incidentId: string,
+  data: { documentLookupKey: string; blocking: boolean },
+) {
+  return backendRequest<BackendIncidentLifecycle>(
+    `/api/v1/admin/venues/${venueId}/incidents/${incidentId}/link-person`,
+    { token, method: "POST", body: data },
+  );
+}
+
+/** No step-up required (owner decision, task 5.6): lifting a ban needs less proof than casting one. */
+export function resolveIncident(token: string, venueId: string, incidentId: string) {
+  return backendRequest<BackendIncidentLifecycle>(
+    `/api/v1/admin/venues/${venueId}/incidents/${incidentId}/resolve`,
+    { token, method: "POST" },
+  );
+}
+
+/* ── Step-up (email OTP fallback — no passkey support in this admin client) ─ */
+
+export type BackendStepUpOtpSent = { expiresAt: string; maxAttempts: number };
+
+export function sendStepUpOtp(token: string, action: string, resource: string) {
+  return backendRequest<BackendStepUpOtpSent>("/api/v1/web/step-up/otp/send", {
+    token,
+    method: "POST",
+    body: { action, resource },
+  });
+}
+
+export function verifyStepUpOtp(token: string, action: string, resource: string, code: string) {
+  return backendRequest<void>("/api/v1/web/step-up/otp/verify", {
+    token,
+    method: "POST",
+    body: { action, resource, code },
+  });
+}
+
 /* ── Dashboard ─────────────────────────────────────────────────── */
 
 export function fetchDashboardMetrics(token: string) {
