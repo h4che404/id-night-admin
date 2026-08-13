@@ -23,4 +23,12 @@ describe("EventDetailTabs", () => {
     ).toHaveAttribute("href", "/venue/events/event-1/guest-list");
     expect(screen.queryByText("Guest list")).not.toBeInTheDocument();
   });
+
+  it("renders the entry-photos tab with the Spanish product label", () => {
+    render(<EventDetailTabs eventId="event-1" />);
+
+    expect(
+      screen.getByRole("link", { name: "Fotos de ingreso" }),
+    ).toHaveAttribute("href", "/venue/events/event-1/entry-photos");
+  });
 });
