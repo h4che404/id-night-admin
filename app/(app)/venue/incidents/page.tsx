@@ -121,6 +121,11 @@ export default async function VenueIncidentsPage({
         eyebrow="Incidentes"
         title="Incidentes reportados"
         description={`Registro de incidentes ocurridos en ${venue.name}.`}
+        action={
+          <Link href="/venue/incidents/new">
+            <SecondaryButton>Nuevo incidente</SecondaryButton>
+          </Link>
+        }
       />
 
       <Suspense fallback={<LoadingSkeleton />}>

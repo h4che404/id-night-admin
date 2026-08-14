@@ -875,6 +875,28 @@ export function updateVenueIncident(
   });
 }
 
+/**
+ * Full `IncidentResponse` shape returned by `POST /admin/venues/mine/incidents`. There is
+ * deliberately no `venueId` in the request: the backend resolves it from the caller's own
+ * active operator row, so a client-supplied venue id has nowhere to bind.
+ */
+export type BackendIncidentCreateResult = BackendIncidentSummary & {
+  eventId: string | null;
+  lifecycle: "Open" | "PersonLinked" | "Resolved";
+  isBlocking: boolean;
+};
+
+export function createVenueIncident(
+  token: string,
+  data: { title: string; description?: string; eventId?: string },
+) {
+  return backendRequest<BackendIncidentCreateResult>("/admin/venues/mine/incidents", {
+    token,
+    method: "POST",
+    body: data,
+  });
+}
+
 /* ── Access Sessions ───────────────────────────────────────────── */
 
 export function fetchAccessSessions(
