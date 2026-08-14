@@ -1,0 +1,47 @@
+name: ci
+
+# This repository had no CI at all, and a broken build reached production because of it.
+#
+# The slice that broke it ran the tests, the type checker and the linter — all three green — and
+# never ran `next build`. The defect was a `"use client"` component importing a value from a
+# `server-only` module. Vitest with jsdom does not enforce the React Server Component boundary,
+# and neither does `tsc`. Only `next build` does. Vercel caught it, after merge, in production.
+#
+# So `build` is the step that matters here. The others are worth running, but none of them would
+# have caught it.
+
+on:
+  pull_request:
+  push:
+    branches: ['**']
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - run: npm run lint
+
+      - run: npm run test
+
+      # The one that would have stopped it.
+      - run: npm run build
+
+      # `npx tsc --noEmit` is deliberately not a step yet. The repository carries 15 pre-existing
+      # errors — 6 in lib/idnight-backend.test.ts, 6 under app/, 3 in components/
+      # venue-event-form.test.tsx — so adding it today would make this workflow red on its first
+      # run and every run after, which teaches everyone to ignore it. It becomes a step once that
+      # backlog is cleared; until then the type checker cannot tell a new error from an old one,
+      # which is the actual reason it is worth clearing.
