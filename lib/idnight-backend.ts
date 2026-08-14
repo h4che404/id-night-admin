@@ -957,10 +957,11 @@ export type BackendIncidentLifecycle = {
 };
 
 /**
- * Must match `StepUpActions.IncidentLinkPerson` on the backend exactly: the OTP challenge and
- * the `link-person` endpoint both scope the spent proof to this literal action string.
+ * Re-exported so server-side callers keep a single import site. The definition lives in
+ * `lib/step-up-actions.ts` because client components need this value too, and they cannot
+ * import anything from this `server-only` module without dragging it into the browser bundle.
  */
-export const INCIDENT_LINK_PERSON_STEP_UP_ACTION = "incident:link-person";
+export { INCIDENT_LINK_PERSON_STEP_UP_ACTION } from "@/lib/step-up-actions";
 
 export function linkIncidentPerson(
   token: string,

@@ -4,11 +4,11 @@ import { useState } from "react";
 
 import { EntryPhotoGallery } from "@/components/entry-photo-gallery";
 import { Badge, PrimaryButton, SecondaryButton, Surface } from "@/components/ui-kit";
-import {
-  INCIDENT_LINK_PERSON_STEP_UP_ACTION,
-  type BackendEntryPhotoCard,
-  type BackendIncidentLifecycle,
+import type {
+  BackendEntryPhotoCard,
+  BackendIncidentLifecycle,
 } from "@/lib/idnight-backend";
+import { INCIDENT_LINK_PERSON_STEP_UP_ACTION } from "@/lib/step-up-actions";
 
 const LIFECYCLE_LABELS: Record<string, string> = {
   Open: "Abierto",
