@@ -77,15 +77,6 @@ export type BackendSecurityUser = {
   createdAt: string;
 };
 
-export type BackendVenueDevice = {
-  id: string;
-  name: string;
-  deviceKey: string;
-  active: boolean;
-  venueId: string;
-  createdAt: string;
-};
-
 export type BackendIncidentSummary = {
   id: string;
   venueId: string;
@@ -164,7 +155,6 @@ export type BackendDashboardMetrics = {
   upcomingEvents: number;
   activeEvents: number;
   totalOperators: number;
-  activeDevices: number;
   openIncidents: number;
   totalGuestEntriesAllEvents: number;
   admissionsToday: number;
@@ -855,46 +845,6 @@ export function toggleSecurityUserStatus(token: string, id: string, active: bool
     `/admin/venues/mine/security-users/${id}/status`,
     { token, method: "PATCH", body: { active } },
   );
-}
-
-/* ── Authorized venue devices ──────────────────────────────────── */
-
-export function fetchVenueDevices(token: string, page = 1) {
-  return backendRequest<BackendPagedResult<BackendVenueDevice>>(
-    `/admin/venues/mine/devices?page=${page}&pageSize=20`,
-    { token },
-  );
-}
-
-export function createVenueDevice(
-  token: string,
-  data: { name: string; deviceKey: string },
-) {
-  return backendRequest<BackendVenueDevice>("/admin/venues/mine/devices", {
-    token,
-    method: "POST",
-    body: { name: data.name, deviceKey: data.deviceKey },
-  });
-}
-
-export function updateVenueDevice(
-  token: string,
-  id: string,
-  data: { name: string; deviceKey: string },
-) {
-  return backendRequest<BackendVenueDevice>(`/admin/venues/mine/devices/${id}`, {
-    token,
-    method: "PUT",
-    body: { name: data.name, deviceKey: data.deviceKey },
-  });
-}
-
-export function toggleVenueDeviceStatus(token: string, id: string, active: boolean) {
-  return backendRequest<BackendVenueDevice>(`/admin/venues/mine/devices/${id}/status`, {
-    token,
-    method: "PATCH",
-    body: { active },
-  });
 }
 
 /* ── Incidents ─────────────────────────────────────────────────── */
