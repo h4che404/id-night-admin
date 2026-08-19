@@ -7,6 +7,7 @@ vi.mock("server-only", () => ({}));
 import {
   BackendApiError,
   IDNIGHT_BACKEND_URL,
+  type BackendBootstrapResponse,
   cancelGuestListEntry,
   createVenueEvent,
   fetchDashboardMetrics,
@@ -47,7 +48,7 @@ describe("idnight backend error parsing", () => {
         startsAt: "2026-06-20T23:00:00.000Z",
         endsAt: "2026-06-21T05:00:00.000Z",
       }),
-    ).rejects.toMatchObject<Partial<BackendApiError>>({
+    ).rejects.toMatchObject({
       name: "BackendApiError",
       message: "Gateway upstream exploded",
       status: 502,
@@ -68,7 +69,7 @@ describe("idnight backend error parsing", () => {
         startsAt: "2026-06-20T23:00:00.000Z",
         endsAt: "2026-06-21T05:00:00.000Z",
       }),
-    ).rejects.toMatchObject<Partial<BackendApiError>>({
+    ).rejects.toMatchObject({
       name: "BackendApiError",
       message: '{"message":',
       status: 422,
@@ -215,7 +216,7 @@ describe("idnight backend error parsing", () => {
 
     await expect(
       uploadEventGuestList("admin-token", "event-1", createGuestListFormData()),
-    ).rejects.toMatchObject<Partial<BackendApiError>>({
+    ).rejects.toMatchObject({
       name: "BackendApiError",
       message: "Guest list upload gateway exploded",
       status: 502,
@@ -232,7 +233,7 @@ describe("idnight backend error parsing", () => {
 
     await expect(
       uploadEventGuestList("admin-token", "event-1", createGuestListFormData()),
-    ).rejects.toMatchObject<Partial<BackendApiError>>({
+    ).rejects.toMatchObject({
       name: "BackendApiError",
       message: '{"message":',
       status: 422,
@@ -286,7 +287,7 @@ describe("idnight backend error parsing", () => {
       );
 
       const uploadPromise = uploadEventGuestList("admin-token", "event-1", createGuestListFormData());
-      const uploadExpectation = expect(uploadPromise).rejects.toMatchObject<Partial<BackendApiError>>({
+      const uploadExpectation = expect(uploadPromise).rejects.toMatchObject({
         name: "BackendApiError",
         message: "El servicio no está disponible en este momento.",
         status: 503,
@@ -339,18 +340,22 @@ describe("idnight backend bootstrap admin context helpers", () => {
   });
 
   it("defaults missing bootstrap adminContextMode to legacy-fallback", () => {
-    expect(
-      resolveBootstrapAdminContextMode({
-        id: "operator-1",
-        supabaseId: "supabase-1",
-        email: "owner@example.com",
-        status: "active",
-        createdAt: "2026-06-27T00:00:00.000Z",
-        organizationId: "org-1",
-        organizationName: "My Org",
-        membershipRole: "Owner",
-      }),
-    ).toBe("legacy-fallback");
+    // Declared as the full response rather than passed inline: the function only needs
+    // adminContextMode, and an object literal handed straight to it trips excess-property
+    // checking. Keeping the realistic shape is the point of the test — this is what a real
+    // bootstrap that predates the field actually looks like.
+    const bootstrapWithoutMode: BackendBootstrapResponse = {
+      id: "operator-1",
+      supabaseId: "supabase-1",
+      email: "owner@example.com",
+      status: "active",
+      createdAt: "2026-06-27T00:00:00.000Z",
+      organizationId: "org-1",
+      organizationName: "My Org",
+      membershipRole: "Owner",
+    };
+
+    expect(resolveBootstrapAdminContextMode(bootstrapWithoutMode)).toBe("legacy-fallback");
   });
   it("maps enriched bootstrap primaryVenue into fetchAdminProfile venue fields", async () => {
     vi.spyOn(globalThis, "fetch").mockResolvedValue(

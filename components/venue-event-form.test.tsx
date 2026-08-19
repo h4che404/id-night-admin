@@ -148,6 +148,9 @@ describe("VenueEventForm", () => {
       <VenueEventForm
         event={{
           id: "event-1",
+          venueId: "venue-1",
+          createdAt: "2026-06-01T00:00:00.000Z",
+          updatedAt: null,
           name: "Friday Opening",
           status: "UPCOMING",
           startsAt: "2026-06-20T23:00:00.000Z",
@@ -203,6 +206,9 @@ describe("VenueEventForm", () => {
       <VenueEventForm
         event={{
           id: "event-1",
+          venueId: "venue-1",
+          createdAt: "2026-06-01T00:00:00.000Z",
+          updatedAt: null,
           name: "Friday Opening",
           status: "UPCOMING",
           startsAt: "2026-06-20T23:00:00.000Z",
@@ -356,6 +362,9 @@ describe("VenueEventForm", () => {
       <VenueEventForm
         event={{
           id: "event-1",
+          venueId: "venue-1",
+          createdAt: "2026-06-01T00:00:00.000Z",
+          updatedAt: null,
           name: "Friday Opening",
           status: "UPCOMING",
           startsAt: "2026-06-20T23:00:00.000Z",
