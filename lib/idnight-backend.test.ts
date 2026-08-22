@@ -1,5 +1,7 @@
 // @vitest-environment node
 
+import { readFile } from "node:fs/promises";
+
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("server-only", () => ({}));
@@ -28,6 +30,47 @@ function createGuestListFormData() {
   formData.append("file", new Blob(["dni,firstName,lastName\n12345678,Juan,Perez"], { type: "text/csv" }), "guests.csv");
   return formData;
 }
+
+describe("idnight backend route prefix", () => {
+  beforeEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("calls the unified path, not the legacy one", async () => {
+    // Every admin path answers under two prefixes while clients migrate. The old one still
+    // works, so nothing breaks by staying — which is exactly why it needs a test to move at
+    // all. The prefix is assembled in one place: a call site that has to remember it is a call
+    // site that will eventually forget, and that was the shape of the original mistake.
+    const spy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(JSON.stringify({ id: "v1", name: "Venue" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+
+    await fetchMyVenue("token");
+
+    expect(spy.mock.calls[0]?.[0]).toBe(`${IDNIGHT_BACKEND_URL}/api/v1/admin/venues/mine`);
+  });
+
+  it("has no call site that spells the prefix out", async () => {
+    // How this rule was learned: when the prefix moved into one place, three template-literal
+    // call sites kept spelling it and silently produced /api/v1/api/v1/... The full suite stayed
+    // green and the build passed, because nothing exercised those three endpoints. A 404 that
+    // only appears in front of a customer is exactly what a cheap structural check is for.
+    const source = await readFile(new URL("./idnight-backend.ts", import.meta.url), "utf8");
+
+    const offenders = source
+      .split("\n")
+      .map((line, index) => ({ line, number: index + 1 }))
+      .filter(({ line }) => /[`"]\/api\/v1/.test(line))
+      // The one place it is allowed to appear is where it is defined.
+      .filter(({ line }) => !line.includes("API_PREFIX ="))
+      .map(({ number, line }) => `${number}: ${line.trim()}`);
+
+    expect(offenders).toEqual([]);
+  });
+});
 
 describe("idnight backend client identity", () => {
   beforeEach(() => {
@@ -133,7 +176,7 @@ describe("idnight backend error parsing", () => {
       }),
     ).resolves.toEqual(createdEvent);
 
-    expect(fetchSpy).toHaveBeenCalledWith(`${IDNIGHT_BACKEND_URL}/admin/venues/mine/events`, {
+    expect(fetchSpy).toHaveBeenCalledWith(`${IDNIGHT_BACKEND_URL}/api/v1/admin/venues/mine/events`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -182,7 +225,7 @@ describe("idnight backend error parsing", () => {
       }),
     ).resolves.toEqual(updatedEvent);
 
-    expect(fetchSpy).toHaveBeenCalledWith(`${IDNIGHT_BACKEND_URL}/admin/venues/mine/events/event-1`, {
+    expect(fetchSpy).toHaveBeenCalledWith(`${IDNIGHT_BACKEND_URL}/api/v1/admin/venues/mine/events/event-1`, {
       method: "PATCH",
       headers: {
         "Content-Type": "application/json",
@@ -221,7 +264,7 @@ describe("idnight backend error parsing", () => {
 
     await expect(publishVenueEvent("admin-token", "event-1")).resolves.toEqual(publishedEvent);
 
-    expect(fetchSpy).toHaveBeenCalledWith(`${IDNIGHT_BACKEND_URL}/admin/venues/mine/events/event-1/publish`, {
+    expect(fetchSpy).toHaveBeenCalledWith(`${IDNIGHT_BACKEND_URL}/api/v1/admin/venues/mine/events/event-1/publish`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
