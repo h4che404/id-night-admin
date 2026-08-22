@@ -29,6 +29,31 @@ function createGuestListFormData() {
   return formData;
 }
 
+describe("idnight backend client identity", () => {
+  beforeEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("names this client on every request", async () => {
+    // The backend tags each request with its calling client so a legacy route can be retired on
+    // evidence instead of on a guess. Requests that do not say who they are count as "unknown",
+    // and unknown traffic on a legacy path blocks retirement — deliberately, since absence of
+    // evidence is not evidence. So a panel that stays silent here does not just go unlabelled:
+    // it holds the migration still for the door app too, which is the client we cannot deploy.
+    const spy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(JSON.stringify({ id: "v1", name: "Venue" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+
+    await fetchMyVenue("token");
+
+    const headers = new Headers(spy.mock.calls[0]?.[1]?.headers);
+    expect(headers.get("X-IdNight-Client")).toBe("admin-web");
+  });
+});
+
 describe("idnight backend error parsing", () => {
   beforeEach(() => {
     vi.restoreAllMocks();
@@ -113,6 +138,7 @@ describe("idnight backend error parsing", () => {
       headers: {
         "Content-Type": "application/json",
         Authorization: "Bearer admin-token",
+        "X-IdNight-Client": "admin-web",
       },
       body: JSON.stringify({
         name: "Friday Opening",
@@ -161,6 +187,7 @@ describe("idnight backend error parsing", () => {
       headers: {
         "Content-Type": "application/json",
         Authorization: "Bearer admin-token",
+        "X-IdNight-Client": "admin-web",
       },
       body: JSON.stringify({
         maxCapacity: null,
@@ -199,6 +226,7 @@ describe("idnight backend error parsing", () => {
       headers: {
         "Content-Type": "application/json",
         Authorization: "Bearer admin-token",
+        "X-IdNight-Client": "admin-web",
       },
       body: undefined,
       cache: "no-store",
