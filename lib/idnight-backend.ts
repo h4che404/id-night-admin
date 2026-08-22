@@ -394,7 +394,7 @@ async function performBackendFetch(path: string, options: RequestOptions = {}) {
   const timeoutId = setTimeout(() => controller.abort(), options.timeoutMs ?? 5000);
 
   try {
-    return await fetch(`${IDNIGHT_BACKEND_URL}${path}`, {
+    return await fetch(`${IDNIGHT_BACKEND_URL}${API_PREFIX}${path}`, {
       method: options.method ?? "GET",
       headers: {
         ...(options.isBodyJson === false ? {} : { "Content-Type": "application/json" }),
@@ -433,10 +433,46 @@ async function performBackendFetch(path: string, options: RequestOptions = {}) {
  * Distinct from `X-Client-Type`, which bootstrap sends on one call to change what that endpoint
  * does. This one changes nothing; it only says who is calling.
  */
+/**
+ * Every backend path lives under this prefix, and it is applied here rather than written at
+ * each call site.
+ *
+ * Controllers used to disagree about it — some carried it, some did not, with no rule behind
+ * which — and that disagreement was not merely untidy: the staff-only gate keyed on the prefix,
+ * so half the admin surface went ungated without anyone deciding it should. The backend now
+ * answers every admin path under one prefix and keeps the old one alive while clients move.
+ *
+ * A call site that has to remember the prefix is a call site that will eventually forget, which
+ * is the shape the original mistake had. Paths passed to `backendRequest` are therefore written
+ * without it.
+ */
+export const API_PREFIX = "/api/v1";
+
+/**
+ * Base for callers that cannot go through `backendRequest` — a streaming proxy cannot, because
+ * that function reads and parses the body. They still must not spell the prefix themselves.
+ */
+export const IDNIGHT_API_BASE = `${IDNIGHT_BACKEND_URL}${API_PREFIX}`;
+
 const IDNIGHT_CLIENT_HEADER = "X-IdNight-Client";
 const IDNIGHT_CLIENT = "admin-web";
 
+/** For the same callers, so their traffic is attributed rather than counted as unknown. */
+export const IDNIGHT_CLIENT_HEADERS: Readonly<Record<string, string>> = Object.freeze({
+  [IDNIGHT_CLIENT_HEADER]: IDNIGHT_CLIENT,
+});
+
 async function backendRequest<T>(path: string, options: RequestOptions = {}): Promise<T> {
+  if (path.startsWith(API_PREFIX)) {
+    // Caught late once already: three template-literal call sites still spelled the prefix out
+    // after it moved in here, which silently produced /api/v1/api/v1/... — a 404 that no test
+    // covered, on endpoints nothing exercised. A wrong path is worth failing loudly for; a
+    // silent one only surfaces in front of a customer.
+    throw new Error(
+      `Backend paths are written without ${API_PREFIX}; it is applied once here. Received: ${path}`,
+    );
+  }
+
   const startedAt = Date.now();
 
   try {
@@ -518,7 +554,7 @@ export function resolveBootstrapPrimaryVenueSummary(
 /* ── Bootstrap / Auth ───────────────────────────────────────────── */
 
 export function bootstrapMe(token: string) {
-  return backendRequest<BackendBootstrapResponse>("/api/v1/bootstrap/me", {
+  return backendRequest<BackendBootstrapResponse>("/bootstrap/me", {
     token,
     method: "POST",
     headers: { "X-Client-Type": "admin" },
@@ -979,7 +1015,7 @@ export type BackendEntryPhotoCard = {
  */
 export function fetchEntryPhotoGallery(token: string, venueId: string, eventId: string) {
   return backendRequest<BackendEntryPhotoCard[]>(
-    `/api/v1/admin/venues/${venueId}/events/${eventId}/entry-photos`,
+    `/admin/venues/${venueId}/events/${eventId}/entry-photos`,
     { token, operation: "fetchEntryPhotoGallery" },
   );
 }
@@ -1008,7 +1044,7 @@ export function linkIncidentPerson(
   data: { documentLookupKey: string; blocking: boolean },
 ) {
   return backendRequest<BackendIncidentLifecycle>(
-    `/api/v1/admin/venues/${venueId}/incidents/${incidentId}/link-person`,
+    `/admin/venues/${venueId}/incidents/${incidentId}/link-person`,
     { token, method: "POST", body: data },
   );
 }
@@ -1016,7 +1052,7 @@ export function linkIncidentPerson(
 /** No step-up required (owner decision, task 5.6): lifting a ban needs less proof than casting one. */
 export function resolveIncident(token: string, venueId: string, incidentId: string) {
   return backendRequest<BackendIncidentLifecycle>(
-    `/api/v1/admin/venues/${venueId}/incidents/${incidentId}/resolve`,
+    `/admin/venues/${venueId}/incidents/${incidentId}/resolve`,
     { token, method: "POST" },
   );
 }
@@ -1026,7 +1062,7 @@ export function resolveIncident(token: string, venueId: string, incidentId: stri
 export type BackendStepUpOtpSent = { expiresAt: string; maxAttempts: number };
 
 export function sendStepUpOtp(token: string, action: string, resource: string) {
-  return backendRequest<BackendStepUpOtpSent>("/api/v1/web/step-up/otp/send", {
+  return backendRequest<BackendStepUpOtpSent>("/web/step-up/otp/send", {
     token,
     method: "POST",
     body: { action, resource },
@@ -1034,7 +1070,7 @@ export function sendStepUpOtp(token: string, action: string, resource: string) {
 }
 
 export function verifyStepUpOtp(token: string, action: string, resource: string, code: string) {
-  return backendRequest<void>("/api/v1/web/step-up/otp/verify", {
+  return backendRequest<void>("/web/step-up/otp/verify", {
     token,
     method: "POST",
     body: { action, resource, code },
