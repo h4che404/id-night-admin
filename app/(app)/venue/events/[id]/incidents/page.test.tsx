@@ -16,30 +16,8 @@ vi.mock("@/lib/idnight-backend", () => ({
 }));
 
 import EventIncidentsPage from "@/app/(app)/venue/events/[id]/incidents/page";
+import { resolveAsyncNode } from "@/test-support/resolve-async-node";
 
-async function resolveAsyncNode(node: ReactNode): Promise<ReactNode> {
-  if (Array.isArray(node)) {
-    return Promise.all(node.map((child) => resolveAsyncNode(child)));
-  }
-
-  if (!isValidElement(node)) {
-    return node;
-  }
-
-  if (typeof node.type === "function" && node.type.constructor.name === "AsyncFunction") {
-    return resolveAsyncNode(await (node.type as (props: unknown) => unknown)(node.props));
-  }
-
-  if ((node.props as { children?: ReactNode }).children === undefined) {
-    return node;
-  }
-
-  const resolvedChildren = await resolveAsyncNode((node.props as { children?: ReactNode }).children);
-
-  return Array.isArray(resolvedChildren)
-    ? cloneElement(node, undefined, ...resolvedChildren)
-    : cloneElement(node, undefined, resolvedChildren);
-}
 
 async function renderPage(eventId = "event-1", page = "1") {
   const rendered = await EventIncidentsPage({

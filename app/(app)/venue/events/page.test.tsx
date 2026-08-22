@@ -44,30 +44,8 @@ vi.mock("@/components/venue-event-form", () => ({
 }));
 
 import VenueEventsPage from "@/app/(app)/venue/events/page";
+import { resolveAsyncNode } from "@/test-support/resolve-async-node";
 
-async function resolveAsyncNode(node: ReactNode): Promise<ReactNode> {
-  if (Array.isArray(node)) {
-    return Promise.all(node.map((child) => resolveAsyncNode(child)));
-  }
-
-  if (!isValidElement(node)) {
-    return node;
-  }
-
-  if (typeof node.type === "function" && node.type.constructor.name === "AsyncFunction") {
-    return resolveAsyncNode(await node.type(node.props));
-  }
-
-  if (node.props.children === undefined) {
-    return node;
-  }
-
-  const resolvedChildren = await resolveAsyncNode(node.props.children);
-
-  return Array.isArray(resolvedChildren)
-    ? cloneElement(node, undefined, ...resolvedChildren)
-    : cloneElement(node, undefined, resolvedChildren);
-}
 
 async function renderVenueEventsPage(searchParams: { page?: string } = {}) {
   const page = await VenueEventsPage({

@@ -399,6 +399,7 @@ async function performBackendFetch(path: string, options: RequestOptions = {}) {
       headers: {
         ...(options.isBodyJson === false ? {} : { "Content-Type": "application/json" }),
         ...(options.token ? { Authorization: `Bearer ${options.token}` } : {}),
+        [IDNIGHT_CLIENT_HEADER]: IDNIGHT_CLIENT,
         ...options.headers,
       },
       body:
@@ -419,6 +420,21 @@ async function performBackendFetch(path: string, options: RequestOptions = {}) {
     clearTimeout(timeoutId);
   }
 }
+
+/**
+ * Says which client made the request, on every request.
+ *
+ * The backend records this as a metric dimension so a legacy route can be retired on evidence
+ * that nobody calls it. Requests that do not name a client count as "unknown", and unknown
+ * traffic blocks retirement on purpose — absence of evidence is not evidence. A silent panel
+ * therefore holds the migration still for the door app too, which is the one client we cannot
+ * deploy.
+ *
+ * Distinct from `X-Client-Type`, which bootstrap sends on one call to change what that endpoint
+ * does. This one changes nothing; it only says who is calling.
+ */
+const IDNIGHT_CLIENT_HEADER = "X-IdNight-Client";
+const IDNIGHT_CLIENT = "admin-web";
 
 async function backendRequest<T>(path: string, options: RequestOptions = {}): Promise<T> {
   const startedAt = Date.now();

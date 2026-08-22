@@ -39,9 +39,7 @@ jobs:
       # The one that would have stopped it.
       - run: npm run build
 
-      # `npx tsc --noEmit` is deliberately not a step yet. The repository carries 15 pre-existing
-      # errors — 6 in lib/idnight-backend.test.ts, 6 under app/, 3 in components/
-      # venue-event-form.test.tsx — so adding it today would make this workflow red on its first
-      # run and every run after, which teaches everyone to ignore it. It becomes a step once that
-      # backlog is cleared; until then the type checker cannot tell a new error from an old one,
-      # which is the actual reason it is worth clearing.
+      # Joined the gate once the backlog it was hiding behind was cleared. It reported 15 errors
+      # for long enough that a sixteenth would have looked exactly like the fifteen before it —
+      # which is the whole reason a standing backlog is worth paying off rather than baselining.
+      - run: npx tsc --noEmit

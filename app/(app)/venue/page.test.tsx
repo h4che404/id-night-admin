@@ -8,29 +8,6 @@ function createRedirectError(path: string) {
   });
 }
 
-async function resolveAsyncNode(node: ReactNode): Promise<ReactNode> {
-  if (Array.isArray(node)) {
-    return Promise.all(node.map((child) => resolveAsyncNode(child)));
-  }
-
-  if (!isValidElement(node)) {
-    return node;
-  }
-
-  if (typeof node.type === "function" && node.type.constructor.name === "AsyncFunction") {
-    return resolveAsyncNode(await (node.type as (props: unknown) => unknown)(node.props));
-  }
-
-  if ((node.props as { children?: ReactNode }).children === undefined) {
-    return node;
-  }
-
-  const resolvedChildren = await resolveAsyncNode((node.props as { children?: ReactNode }).children);
-
-  return Array.isArray(resolvedChildren)
-    ? cloneElement(node, undefined, ...resolvedChildren)
-    : cloneElement(node, undefined, resolvedChildren);
-}
 
 const { MockBackendApiError, requireBackendProfile, requireAdminAccess, canRecoverVenueSetup, fetchMyVenue, fetchDashboardMetrics } = vi.hoisted(() => {
   class MockBackendApiError extends Error {
@@ -95,6 +72,7 @@ vi.mock("next/navigation", () => ({
 }));
 
 import VenuePage from "@/app/(app)/venue/page";
+import { resolveAsyncNode } from "@/test-support/resolve-async-node";
 
 describe("VenuePage", () => {
   beforeEach(() => {
