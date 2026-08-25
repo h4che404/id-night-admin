@@ -121,7 +121,6 @@ describe("VenuePage", () => {
       upcomingEvents: 1,
       activeEvents: 2,
       totalOperators: 3,
-      activeDevices: 2,
       openIncidents: 1,
       totalGuestEntriesAllEvents: 250,
       admissionsToday: 48,
@@ -139,7 +138,6 @@ describe("VenuePage", () => {
     expect(screen.getByText("Eventos totales")).toBeInTheDocument();
     expect(screen.getByText("Activos ahora")).toBeInTheDocument();
     expect(screen.getByText("Ingresos hoy")).toBeInTheDocument();
-    expect(screen.getByText("Dispositivos activos")).toBeInTheDocument();
     expect(screen.getByText("Operadores")).toBeInTheDocument();
     expect(screen.getByText("Incidentes abiertos")).toBeInTheDocument();
   });

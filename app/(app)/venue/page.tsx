@@ -6,7 +6,6 @@ import {
   Settings2,
   Shield,
   ShieldAlert,
-  Smartphone,
   Users,
 } from "lucide-react";
 import Link from "next/link";
@@ -58,7 +57,6 @@ async function DashboardMetrics({ token }: { token: string }) {
     upcomingEvents: 0,
     activeEvents: 0,
     totalOperators: 0,
-    activeDevices: 0,
     openIncidents: 0,
     totalGuestEntriesAllEvents: 0,
     admissionsToday: 0,
@@ -90,12 +88,6 @@ async function DashboardMetrics({ token }: { token: string }) {
           value={metrics.admissionsToday}
           tone="neutral"
           icon={<Users className="h-4 w-4" />}
-        />
-        <MetricCard
-          label="Dispositivos activos"
-          value={metrics.activeDevices}
-          tone="info"
-          icon={<Smartphone className="h-4 w-4" />}
         />
         <MetricCard
           label="Operadores"
@@ -338,13 +330,6 @@ export default async function VenuePage() {
           title="Configuración"
           subtitle="Editar datos y requisitos de ingreso"
         />
-
-        <QuickLink
-          href="/venue/devices"
-          icon={<Smartphone className="h-4 w-4" />}
-          title="Dispositivos autorizados"
-          subtitle="Controlar tablets y teléfonos habilitados"
-        />
       </div>
 
       <Surface className="p-6">
@@ -353,7 +338,7 @@ export default async function VenuePage() {
           <div>
             <p className="text-sm font-medium text-foreground">Próximos pasos</p>
             <p className="mt-1 text-sm leading-6 text-muted-foreground">
-              Definí usuarios de seguridad y autorizá los dispositivos que tu equipo va a usar en la puerta para operar el control de accesos desde la app mobile de ID-Night.
+              Definí los usuarios de seguridad que van a operar el control de accesos desde la app mobile de ID-Night.
             </p>
           </div>
         </div>
