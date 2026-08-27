@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 
 import { SectionHeader, Surface, Badge, ErrorPanel } from "@/components/ui-kit";
+import { IncidentEvidence } from "@/components/incident-evidence";
 import { VenueIncidentForm } from "@/components/venue-incident-form";
 import { VenueIncidentLifecyclePanel } from "@/components/venue-incident-lifecycle-panel";
 import { requireReadyPageAccess } from "@/lib/auth-session";
@@ -10,6 +11,8 @@ import {
   fetchVenueEvents,
   fetchVenueIncident,
   type BackendEntryPhotoCard,
+  fetchIncidentMedia,
+  type BackendIncidentMedia,
 } from "@/lib/idnight-backend";
 
 function formatDateTime(value: string | null) {
@@ -69,6 +72,16 @@ export default async function VenueIncidentDetailPage({
     // Degrades to an empty picker rather than failing the whole page; still logged so a
     // silent backend outage on this call does not go unnoticed.
     console.error("[incident-detail] failed to load venue events for the gallery picker", error);
+  }
+
+  // Evidence already attached. Degrades to an empty list rather than failing the page: the
+  // incident's own details are what somebody came here to read, and a storage outage should not
+  // take those away too.
+  let media: BackendIncidentMedia[] = [];
+  try {
+    media = await fetchIncidentMedia(session.accessToken, venueSummary.id, resolvedParams.id);
+  } catch (error) {
+    console.error("[incident-detail] failed to load incident evidence", error);
   }
 
   let galleryCards: BackendEntryPhotoCard[] = [];
@@ -137,6 +150,8 @@ export default async function VenueIncidentDetailPage({
               )}
             </dl>
           </Surface>
+
+          <IncidentEvidence incidentId={incident.id} media={media} />
         </div>
 
         <div className="space-y-6">
