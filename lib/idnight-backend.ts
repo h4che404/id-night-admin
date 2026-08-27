@@ -987,6 +987,22 @@ export type BackendIncidentLifecycle = {
  */
 export { INCIDENT_LINK_PERSON_STEP_UP_ACTION } from "@/lib/step-up-actions";
 
+/** Evidence attached to an incident, newest first. */
+export type BackendIncidentMedia = {
+  id: string;
+  incidentId: string;
+  contentType: string;
+  sizeBytes: number;
+  uploadedAt: string;
+};
+
+export function fetchIncidentMedia(token: string, venueId: string, incidentId: string) {
+  return backendRequest<BackendIncidentMedia[]>(
+    `/admin/venues/${venueId}/incidents/${incidentId}/media`,
+    { token, operation: "fetchIncidentMedia" },
+  );
+}
+
 export function linkIncidentPerson(
   token: string,
   venueId: string,
